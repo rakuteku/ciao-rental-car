@@ -1,0 +1,137 @@
+Build a full-stack rental car reservation web app for a Sapporo-based service called CIAO Rental Car.
+
+Tech Stack
+Frontend: React (Vite)
+Backend: Node.js + Express
+Database: SQLite
+Styling: Tailwind CSS
+Fully responsive (mobile-first)
+1. Landing Page (Hero Section)
+
+Create a modern hero section with:
+
+Title: Rent a Car in Sapporo with Ease
+Subtitle: Premium vehicles, flexible pickup, fully insured options
+
+Booking Form (IMPORTANT - exact fields & order):
+
+Pickup Date (date picker)
+Pickup Location (input or dropdown)
+Return Date (date picker)
+Return Location (input or dropdown)
+
+Include:
+
+Search button → navigates to car listing page
+Clean horizontal layout on desktop
+Stacked layout on mobile
+2. Featured Fleet Section
+
+Display 3 cars using the following images:
+
+Toyota Alphard
+Image:
+https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRhXCeVILCUIsx_8zJupa5T_nat_tCyOi42DA&s
+
+Toyota Vellfire
+Image:
+https://www.trl-nagoya.co.jp/eng/wp-content/uploads/2023/04/%E3%83%B4%E3%82%A7%E3%83%AB%E3%83%95%E3%82%A1%E3%82%A4%E3%82%A2.png
+
+Toyota Sienta
+Image:
+https://secure.p-yamaguchi.com/wp-content/uploads/2025/08/sienta2025_top_sienta.png
+
+Each card should include:
+
+Image
+Car name
+Passenger capacity (mock data OK)
+Price per day (dynamic from backend)
+“Book Now” button
+3. Why Book With CIAO Rental Car
+
+Create a section with 4 feature blocks:
+
+Fully insured coverage plan available
+Convenient pickup locations
+Airport pickup & drop-off available
+Easy booking & payment system
+
+Use icons and clean grid layout.
+
+4. Reservation Flow
+User selects a car
+Dates are pre-filled from hero search
+Show:
+Number of days
+Total price (price_per_day × days)
+Booking form:
+Name
+Email
+Phone
+Save booking to database
+5. Admin Panel
+
+Create a simple admin system:
+
+Routes:
+
+/admin/login
+/admin/dashboard
+/admin/cars
+/admin/bookings
+
+Features:
+
+Basic login (hardcoded credentials OK)
+Edit car price per day
+Set availability per date
+View all bookings
+6. Backend API
+GET /cars
+POST /booking
+GET /admin/bookings
+PUT /admin/cars/:id
+7. Database (SQLite)
+
+cars
+
+id
+name
+price_per_day
+image_url
+
+bookings
+
+id
+car_id
+pickup_date
+return_date
+pickup_location
+return_location
+name
+email
+phone
+
+availability
+
+id
+car_id
+date
+is_available
+8. UI/UX Requirements
+Mobile-first responsive
+Sticky CTA button on mobile
+Clean modern travel-style UI
+Smooth spacing and layout
+Fast loading
+9. Bonus
+Disable unavailable cars based on dates
+Prevent selecting past dates
+Live price calculation
+Loading + error states
+Output Requirements
+Fully working Replit app
+Clear folder structure (client/server)
+Seed initial 3 cars with provided images
+Instructions to run (npm install + npm run dev)

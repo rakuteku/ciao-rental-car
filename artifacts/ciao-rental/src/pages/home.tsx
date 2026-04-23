@@ -59,31 +59,10 @@ export function Home() {
             </p>
           </div>
 
-          <Card className="max-w-4xl p-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 text-foreground border-none shadow-xl">
+          <Card className="max-w-5xl p-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 text-foreground border-none shadow-xl">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <FormField
-                  control={form.control}
-                  name="pickupLocation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pickup</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Location" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {LOCATIONS.map(loc => (
-                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                {/* 1. Pickup Date */}
                 <FormField
                   control={form.control}
                   name="pickupDate"
@@ -95,9 +74,10 @@ export function Home() {
                           <FormControl>
                             <Button
                               variant={"outline"}
+                              data-testid="button-pickup-date"
                               className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                             >
-                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                              {field.value ? format(field.value, "MMM d, yyyy") : <span>Pick a date</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -116,6 +96,30 @@ export function Home() {
                     </FormItem>
                   )}
                 />
+                {/* 2. Pickup Location */}
+                <FormField
+                  control={form.control}
+                  name="pickupLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pickup Location</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-pickup-location">
+                            <SelectValue placeholder="Select location" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {LOCATIONS.map(loc => (
+                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* 3. Return Date */}
                 <FormField
                   control={form.control}
                   name="returnDate"
@@ -127,9 +131,10 @@ export function Home() {
                           <FormControl>
                             <Button
                               variant={"outline"}
+                              data-testid="button-return-date"
                               className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                             >
-                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                              {field.value ? format(field.value, "MMM d, yyyy") : <span>Pick a date</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -148,7 +153,31 @@ export function Home() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" size="lg">Search Vehicles</Button>
+                {/* 4. Return Location */}
+                <FormField
+                  control={form.control}
+                  name="returnLocation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Return Location</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-return-location">
+                            <SelectValue placeholder="Select location" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {LOCATIONS.map(loc => (
+                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* 5. Search Button */}
+                <Button type="submit" data-testid="button-search" className="w-full sm:col-span-2 lg:col-span-1" size="lg">Search Vehicles</Button>
               </form>
             </Form>
           </Card>
