@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "CIAO Rental Car"
+version = "1.0.0"
+id = "artifacts/ciao-rental"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18186
+
+[services.development]
+run = "pnpm --filter @workspace/ciao-rental run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ciao-rental", "run", "build" ]
+publicDir = "artifacts/ciao-rental/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18186"
+BASE_PATH = "/"

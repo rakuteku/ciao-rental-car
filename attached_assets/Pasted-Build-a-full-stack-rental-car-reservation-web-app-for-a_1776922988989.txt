@@ -1,0 +1,125 @@
+Build a full-stack rental car reservation web app for a Sapporo-based service called CIAO Rental Car.
+
+Tech Stack
+Frontend: React (Vite)
+Backend: Node.js + Express
+Database: SQLite (simple local DB)
+Styling: Tailwind CSS
+Mobile-first responsive design
+Core Features
+1. Landing Page (Homepage)
+
+Create a modern hero section with:
+
+Title: “Rent a Car in Sapporo with Ease”
+Subtitle: “Premium vehicles, flexible pickup, fully insured options”
+
+Booking Form (Hero Section):
+
+Pickup Location (dropdown or input)
+Pickup Date (date picker)
+Return Location (dropdown or same as pickup toggle)
+Return Date (date picker)
+Search Button → leads to car selection page
+2. Car Listings (Initial Fleet)
+
+Display 3 vehicles with cards:
+
+Toyota Alphard
+Toyota Vellfire
+Toyota Sienta
+
+Each card should include:
+
+Image
+Car name
+Passenger capacity
+Price per day (dynamic from backend)
+“Book Now” button
+3. “Why Book With CIAO Rental Car?” Section
+
+Include 4 feature blocks with icons:
+
+Fully insured coverage plan available
+Convenient pickup locations
+Airport pickup & drop-off available
+Easy booking & payment system
+4. Reservation Flow
+User selects car
+Chooses dates (pre-filled from search)
+Displays total price calculation:
+Daily rate × number of days
+Simple checkout form:
+Name
+Email
+Phone
+Submit booking → store in database
+5. Admin Panel (Important)
+
+Create a simple admin dashboard with:
+
+Authentication (basic login, hardcoded is OK for now)
+
+Admin can:
+
+Edit car pricing (per day)
+Set availability (available / unavailable by date)
+View bookings list
+
+Admin UI pages:
+
+/admin/login
+/admin/dashboard
+/admin/cars
+/admin/bookings
+6. Backend API Endpoints
+
+Create Express routes:
+
+GET /cars → list all cars
+POST /booking → create booking
+GET /admin/bookings → list bookings
+PUT /admin/cars/:id → update pricing & availability
+7. Database Schema (SQLite)
+
+Tables:
+
+cars
+
+id
+name
+price_per_day
+image_url
+
+bookings
+
+id
+car_id
+pickup_date
+return_date
+name
+email
+phone
+
+availability
+
+id
+car_id
+date
+is_available
+8. UI/UX Requirements
+Fully responsive (mobile-first)
+Sticky booking button on mobile
+Clean modern design (similar to travel booking sites)
+Fast loading
+Simple and intuitive flow
+9. Bonus Features (if possible)
+Date validation (no past dates)
+Disable unavailable cars automatically
+Total price updates dynamically
+Loading states and basic error handling
+Output Requirements
+Working full-stack app runnable in Replit
+Clear folder structure (client/server)
+Seed initial data for 3 cars
+Include instructions to run (npm install + start)

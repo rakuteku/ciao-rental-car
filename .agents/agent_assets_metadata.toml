@@ -1,0 +1,20 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "V23XjFcf4y8jwWTWwRHD1"
+uri = "file://artifacts/ciao-rental/public/images/alphard.png"
+type = "image"
+title = "Toyota Alphard mountain road"
+
+[[generated]]
+id = "FyckabL_Yy2PMNvNFMNX6"
+uri = "file://artifacts/ciao-rental/public/images/vellfire.png"
+type = "image"
+title = "Toyota Vellfire city background"
+
+[[generated]]
+id = "PPE_w90WJVlTR_GE2gaWJ"
+uri = "file://artifacts/ciao-rental/public/images/sienta.png"
+type = "image"
+title = "Toyota Sienta studio background"

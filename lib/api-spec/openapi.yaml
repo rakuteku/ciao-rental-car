@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: CIAO Rental Car API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: cars
+    description: Car fleet operations
+  - name: bookings
+    description: Booking operations
+  - name: availability
+    description: Availability operations
+  - name: admin
+    description: Admin operations
 paths:
   /healthz:
     get:
@@ -24,6 +32,276 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /cars:
+    get:
+      operationId: getCars
+      tags: [cars]
+      summary: List all cars
+      description: Returns all cars in the fleet
+      responses:
+        "200":
+          description: List of cars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Car"
+
+  /cars/{id}:
+    get:
+      operationId: getCar
+      tags: [cars]
+      summary: Get a single car
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Car details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Car"
+        "404":
+          description: Car not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /cars/{id}/availability:
+    get:
+      operationId: getCarAvailability
+      tags: [availability]
+      summary: Get car availability
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Availability records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Availability"
+
+  /bookings:
+    post:
+      operationId: createBooking
+      tags: [bookings]
+      summary: Create a booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingBody"
+      responses:
+        "201":
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Car not available for selected dates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [admin]
+      summary: Admin logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+
+  /admin/me:
+    get:
+      operationId: adminMe
+      tags: [admin]
+      summary: Get current admin session
+      responses:
+        "200":
+          description: Admin session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLoginResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/bookings:
+    get:
+      operationId: getAdminBookings
+      tags: [admin]
+      summary: List all bookings (admin)
+      responses:
+        "200":
+          description: List of bookings with car info
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookingWithCar"
+
+  /admin/cars:
+    get:
+      operationId: getAdminCars
+      tags: [admin]
+      summary: List all cars (admin)
+      responses:
+        "200":
+          description: List of cars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Car"
+
+  /admin/cars/{id}:
+    put:
+      operationId: updateAdminCar
+      tags: [admin]
+      summary: Update car pricing and availability
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCarBody"
+      responses:
+        "200":
+          description: Updated car
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Car"
+        "404":
+          description: Car not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/cars/{id}/availability:
+    post:
+      operationId: setCarAvailability
+      tags: [admin]
+      summary: Set availability for a date range
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetAvailabilityBody"
+      responses:
+        "200":
+          description: Availability updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Dashboard stats
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +312,230 @@ components:
       required:
         - status
 
+    Car:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        passengerCapacity:
+          type: integer
+        pricePerDay:
+          type: number
+        imageUrl:
+          type: string
+        isAvailable:
+          type: boolean
+        description:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - passengerCapacity
+        - pricePerDay
+        - imageUrl
+        - isAvailable
+
+    Availability:
+      type: object
+      properties:
+        id:
+          type: integer
+        carId:
+          type: integer
+        date:
+          type: string
+        isAvailable:
+          type: boolean
+      required:
+        - id
+        - carId
+        - date
+        - isAvailable
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: integer
+        carId:
+          type: integer
+        pickupDate:
+          type: string
+        returnDate:
+          type: string
+        pickupLocation:
+          type: string
+        returnLocation:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        totalPrice:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - carId
+        - pickupDate
+        - returnDate
+        - pickupLocation
+        - returnLocation
+        - name
+        - email
+        - phone
+        - totalPrice
+        - createdAt
+
+    BookingWithCar:
+      type: object
+      properties:
+        id:
+          type: integer
+        carId:
+          type: integer
+        carName:
+          type: string
+        pickupDate:
+          type: string
+        returnDate:
+          type: string
+        pickupLocation:
+          type: string
+        returnLocation:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        totalPrice:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - carId
+        - carName
+        - pickupDate
+        - returnDate
+        - pickupLocation
+        - returnLocation
+        - name
+        - email
+        - phone
+        - totalPrice
+        - createdAt
+
+    CreateBookingBody:
+      type: object
+      properties:
+        carId:
+          type: integer
+        pickupDate:
+          type: string
+        returnDate:
+          type: string
+        pickupLocation:
+          type: string
+        returnLocation:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+      required:
+        - carId
+        - pickupDate
+        - returnDate
+        - pickupLocation
+        - returnLocation
+        - name
+        - email
+        - phone
+
+    UpdateCarBody:
+      type: object
+      properties:
+        pricePerDay:
+          type: number
+        isAvailable:
+          type: boolean
+        name:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        passengerCapacity:
+          type: ["integer", "null"]
+
+    SetAvailabilityBody:
+      type: object
+      properties:
+        startDate:
+          type: string
+        endDate:
+          type: string
+        isAvailable:
+          type: boolean
+      required:
+        - startDate
+        - endDate
+        - isAvailable
+
+    AdminLoginBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    AdminLoginResponse:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        username:
+          type: string
+      required:
+        - authenticated
+        - username
+
+    AdminStats:
+      type: object
+      properties:
+        totalBookings:
+          type: integer
+        totalRevenue:
+          type: number
+        availableCars:
+          type: integer
+        totalCars:
+          type: integer
+        recentBookings:
+          type: integer
+      required:
+        - totalBookings
+        - totalRevenue
+        - availableCars
+        - totalCars
+        - recentBookings
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
