@@ -84,6 +84,38 @@ export const CreateBookingBody = zod.object({
 });
 
 /**
+ * @summary Get current settings
+ */
+export const GetSettingsResponse = zod.object({
+  id: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+});
+
+/**
+ * @summary Get settings (admin)
+ */
+export const GetAdminSettingsResponse = zod.object({
+  id: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+});
+
+/**
+ * @summary Update airport fee settings
+ */
+export const UpdateAdminSettingsBody = zod.object({
+  airportPickupFee: zod.number().optional(),
+  airportDropoffFee: zod.number().optional(),
+});
+
+export const UpdateAdminSettingsResponse = zod.object({
+  id: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+});
+
+/**
  * @summary Admin login
  */
 export const AdminLoginBody = zod.object({

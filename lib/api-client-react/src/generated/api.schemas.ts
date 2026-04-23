@@ -94,6 +94,17 @@ export interface AdminLoginResponse {
   username: string;
 }
 
+export interface Settings {
+  id: number;
+  airportPickupFee: number;
+  airportDropoffFee: number;
+}
+
+export interface UpdateSettingsBody {
+  airportPickupFee?: number;
+  airportDropoffFee?: number;
+}
+
 export interface AdminStats {
   totalBookings: number;
   totalRevenue: number;

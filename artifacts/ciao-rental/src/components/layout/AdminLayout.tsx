@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAdminMe, useAdminLogout } from "@workspace/api-client-react";
-import { Car, LayoutDashboard, Calendar, LogOut } from "lucide-react";
+import { Car, LayoutDashboard, Calendar, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -42,6 +42,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <Button variant="ghost" className="w-full justify-start gap-2">
               <Calendar className="h-4 w-4" />
               Bookings
+            </Button>
+          </Link>
+          <Link href="/admin/settings">
+            <Button variant="ghost" className="w-full justify-start gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
             </Button>
           </Link>
         </nav>

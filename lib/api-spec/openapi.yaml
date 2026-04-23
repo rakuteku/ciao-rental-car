@@ -18,6 +18,8 @@ tags:
     description: Availability operations
   - name: admin
     description: Admin operations
+  - name: settings
+    description: Settings operations
 paths:
   /healthz:
     get:
@@ -131,6 +133,55 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Car not available for selected dates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get current settings
+      responses:
+        "200":
+          description: Current settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+
+  /admin/settings:
+    get:
+      operationId: getAdminSettings
+      tags: [settings]
+      summary: Get settings (admin)
+      responses:
+        "200":
+          description: Current settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    put:
+      operationId: updateAdminSettings
+      tags: [settings]
+      summary: Update airport fee settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSettingsBody"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "400":
+          description: Bad request
           content:
             application/json:
               schema:
@@ -511,6 +562,28 @@ components:
       required:
         - authenticated
         - username
+
+    Settings:
+      type: object
+      properties:
+        id:
+          type: integer
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
+      required:
+        - id
+        - airportPickupFee
+        - airportDropoffFee
+
+    UpdateSettingsBody:
+      type: object
+      properties:
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
 
     AdminStats:
       type: object

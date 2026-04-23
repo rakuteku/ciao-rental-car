@@ -1,10 +1,12 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, bookingsTable, carsTable } from "@workspace/db";
+import { db, bookingsTable, carsTable, settingsTable } from "@workspace/db";
 import {
   CreateBookingBody,
   GetAdminBookingsResponse,
 } from "@workspace/api-zod";
+
+const AIRPORT_LOCATION = "New Chitose Airport";
 
 const router: IRouter = Router();
 
@@ -26,10 +28,17 @@ router.post("/bookings", async (req, res): Promise<void> => {
     return;
   }
 
+  const settingsRows = await db.select().from(settingsTable).limit(1);
+  const settings = settingsRows[0] ?? { airportPickupFee: 9800, airportDropoffFee: 9800 };
+
   const pickup = new Date(body.data.pickupDate);
   const returnD = new Date(body.data.returnDate);
   const days = Math.max(1, Math.ceil((returnD.getTime() - pickup.getTime()) / (1000 * 60 * 60 * 24)));
-  const totalPrice = days * car.pricePerDay;
+
+  const rentalCost = days * car.pricePerDay;
+  const airportPickupFee = body.data.pickupLocation === AIRPORT_LOCATION ? settings.airportPickupFee : 0;
+  const airportDropoffFee = body.data.returnLocation === AIRPORT_LOCATION ? settings.airportDropoffFee : 0;
+  const totalPrice = rentalCost + airportPickupFee + airportDropoffFee;
 
   const [booking] = await db.insert(bookingsTable).values({
     carId: body.data.carId,

@@ -17,6 +17,7 @@ import { AdminLogin } from "@/pages/admin/login";
 import { AdminDashboard } from "@/pages/admin/dashboard";
 import { AdminCars } from "@/pages/admin/cars";
 import { AdminBookings } from "@/pages/admin/bookings";
+import { AdminSettings } from "@/pages/admin/settings";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/admin/dashboard" component={() => <AdminLayout><AdminDashboard /></AdminLayout>} />
       <Route path="/admin/cars" component={() => <AdminLayout><AdminCars /></AdminLayout>} />
       <Route path="/admin/bookings" component={() => <AdminLayout><AdminBookings /></AdminLayout>} />
+      <Route path="/admin/settings" component={() => <AdminLayout><AdminSettings /></AdminLayout>} />
       
       <Route component={() => <MainLayout><NotFound /></MainLayout>} />
     </Switch>

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { CalendarIcon, Car as CarIcon, Users, CreditCard, Shield, MapPin, CheckCircle2 } from "lucide-react";
 
-import { useGetCar, useGetCarAvailability, useCreateBooking, getGetCarQueryKey, getGetCarAvailabilityQueryKey } from "@workspace/api-client-react";
+import { useGetCar, useGetCarAvailability, useCreateBooking, useGetSettings, getGetCarQueryKey, getGetCarAvailabilityQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,10 @@ export function CarDetailPage() {
     query: { enabled: !!id, queryKey: getGetCarAvailabilityQueryKey(id) }
   });
 
+  const { data: settings } = useGetSettings();
   const createBooking = useCreateBooking();
+
+  const AIRPORT_LOCATION = "New Chitose Airport";
 
   const form = useForm<z.infer<typeof bookingSchema>>({
     resolver: zodResolver(bookingSchema),
@@ -61,12 +64,17 @@ export function CarDetailPage() {
 
   const pickupDate = form.watch("pickupDate");
   const returnDate = form.watch("returnDate");
+  const pickupLocation = form.watch("pickupLocation");
+  const returnLocation = form.watch("returnLocation");
 
-  const days = pickupDate && returnDate 
-    ? Math.max(1, differenceInDays(returnDate, pickupDate)) 
+  const days = pickupDate && returnDate
+    ? Math.max(1, differenceInDays(returnDate, pickupDate))
     : 1;
-  
-  const totalPrice = car ? car.pricePerDay * days : 0;
+
+  const airportPickupFee = pickupLocation === AIRPORT_LOCATION ? (settings?.airportPickupFee ?? 9800) : 0;
+  const airportDropoffFee = returnLocation === AIRPORT_LOCATION ? (settings?.airportDropoffFee ?? 9800) : 0;
+  const rentalCost = car ? car.pricePerDay * days : 0;
+  const totalPrice = rentalCost + airportPickupFee + airportDropoffFee;
 
   function onSubmit(data: z.infer<typeof bookingSchema>) {
     if (!car) return;
@@ -303,19 +311,33 @@ export function CarDetailPage() {
                       )} />
                     </div>
                     
-                    <div className="bg-muted p-4 rounded-lg mt-6 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Rate ({days} {days === 1 ? 'day' : 'days'})</span>
-                        <span>¥{(car.pricePerDay * days).toLocaleString()}</span>
+                    <div className="bg-muted p-4 rounded-lg mt-6 space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          Rental ({days} {days === 1 ? 'day' : 'days'} × ¥{car.pricePerDay.toLocaleString()})
+                        </span>
+                        <span className="tabular-nums">¥{rentalCost.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      {airportPickupFee > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Airport Pickup Fee</span>
+                          <span className="tabular-nums">¥{airportPickupFee.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {airportDropoffFee > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Airport Drop-off Fee</span>
+                          <span className="tabular-nums">¥{airportDropoffFee.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
                         <span className="text-muted-foreground">Insurance & Taxes</span>
                         <span>Included</span>
                       </div>
                       <Separator className="my-2" />
-                      <div className="flex justify-between font-bold text-lg">
+                      <div className="flex justify-between font-bold text-base">
                         <span>Total</span>
-                        <span>¥{totalPrice.toLocaleString()}</span>
+                        <span className="tabular-nums">¥{totalPrice.toLocaleString()}</span>
                       </div>
                     </div>
                     
