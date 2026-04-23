@@ -7,28 +7,33 @@ export function Navbar() {
   const logout = useAdminLogout();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold font-serif tracking-tight">CIAO</span>
-          <span className="text-sm font-medium text-muted-foreground hidden sm:inline-block">Rental Car</span>
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-border/60">
+      <div className="container flex h-14 items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5">
+          <span className="text-lg font-bold font-serif tracking-widest uppercase">Ciao</span>
+          <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden sm:inline-block pt-0.5">Rental Car · Sapporo</span>
         </Link>
         <nav className="flex items-center gap-6">
-          <Link href="/cars" className="text-sm font-medium hover:text-primary transition-colors">
+          <Link href="/cars" className="text-xs tracking-[0.15em] uppercase font-medium text-muted-foreground hover:text-foreground transition-colors">
             Our Fleet
           </Link>
           {admin?.authenticated ? (
             <>
-              <Link href="/admin/dashboard" className="text-sm font-medium text-primary">
-                Admin Panel
+              <Link href="/admin/dashboard" className="text-xs tracking-[0.15em] uppercase font-medium text-foreground">
+                Admin
               </Link>
-              <Button variant="ghost" size="sm" onClick={() => logout.mutate(undefined, { onSuccess: () => window.location.href = "/" })}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-8"
+                onClick={() => logout.mutate(undefined, { onSuccess: () => window.location.href = "/" })}
+              >
                 Logout
               </Button>
             </>
           ) : (
-            <Link href="/admin/login" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-              Admin Login
+            <Link href="/admin/login" className="text-xs tracking-[0.15em] uppercase font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Admin
             </Link>
           )}
         </nav>

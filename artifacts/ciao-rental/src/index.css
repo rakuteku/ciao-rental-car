@@ -61,69 +61,69 @@
 }
 
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
-  --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --button-outline: rgba(0,0,0, .08);
+  --badge-outline: rgba(0,0,0, .04);
+  --opaque-button-border-intensity: -5;
+  --elevate-1: rgba(0,0,0, .02);
+  --elevate-2: rgba(0,0,0, .05);
 
-  --background: 60 10% 99%;
-  --foreground: 240 5% 10%;
-  --border: 60 5% 90%;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 8%;
+  --border: 0 0% 91%;
   --card: 0 0% 100%;
-  --card-foreground: 240 5% 10%;
-  --card-border: 60 5% 90%;
-  
-  --sidebar: 60 10% 99%;
-  --sidebar-foreground: 240 5% 10%;
-  --sidebar-border: 60 5% 90%;
-  --sidebar-primary: 210 25% 22%;
+  --card-foreground: 0 0% 8%;
+  --card-border: 0 0% 91%;
+
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 0 0% 8%;
+  --sidebar-border: 0 0% 91%;
+  --sidebar-primary: 0 0% 8%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 60 5% 94%;
-  --sidebar-accent-foreground: 240 5% 10%;
-  --sidebar-ring: 210 25% 22%;
+  --sidebar-accent: 0 0% 96%;
+  --sidebar-accent-foreground: 0 0% 8%;
+  --sidebar-ring: 0 0% 8%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 240 5% 10%;
-  --popover-border: 60 5% 90%;
+  --popover-foreground: 0 0% 8%;
+  --popover-border: 0 0% 91%;
 
-  --primary: 210 25% 22%;
+  --primary: 0 0% 8%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 60 5% 94%;
-  --secondary-foreground: 240 5% 10%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 8%;
 
-  --muted: 60 5% 94%;
-  --muted-foreground: 240 5% 40%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
 
-  --accent: 60 5% 94%;
-  --accent-foreground: 240 5% 10%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 8%;
 
-  --destructive: 0 84% 60%;
+  --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --input: 60 5% 85%;
-  --ring: 210 25% 22%;
+  --input: 0 0% 88%;
+  --ring: 0 0% 8%;
 
-  --chart-1: 210 25% 22%;
-  --chart-2: 60 5% 60%;
-  --chart-3: 0 0% 40%;
-  --chart-4: 60 5% 80%;
-  --chart-5: 240 5% 80%;
+  --chart-1: 0 0% 8%;
+  --chart-2: 0 0% 40%;
+  --chart-3: 0 0% 60%;
+  --chart-4: 0 0% 80%;
+  --chart-5: 0 0% 90%;
 
   --app-font-sans: "Inter", sans-serif;
   --app-font-serif: "Playfair Display", serif;
   --app-font-mono: "Space Mono", monospace;
-  --radius: 0.25rem;
+  --radius: 0.125rem;
 
-  --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.02);
-  --shadow-xs: 0px 2px 0px 0px rgba(0,0,0,0.03);
-  --shadow-sm: 0px 2px 0px 0px rgba(0,0,0,0.04), 0px 1px 2px -1px rgba(0,0,0,0.04);
-  --shadow: 0px 2px 0px 0px rgba(0,0,0,0.05), 0px 1px 2px -1px rgba(0,0,0,0.04);
-  --shadow-md: 0px 2px 0px 0px rgba(0,0,0,0.05), 0px 2px 4px -1px rgba(0,0,0,0.04);
-  --shadow-lg: 0px 2px 0px 0px rgba(0,0,0,0.05), 0px 4px 6px -1px rgba(0,0,0,0.04);
-  --shadow-xl: 0px 2px 0px 0px rgba(0,0,0,0.05), 0px 8px 10px -1px rgba(0,0,0,0.04);
-  --shadow-2xl: 0px 2px 0px 0px rgba(0,0,0,0.05);
+  --shadow-2xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-xs: 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.07);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
+  --shadow-xl: 0 16px 40px rgba(0,0,0,0.09);
+  --shadow-2xl: 0 24px 60px rgba(0,0,0,0.10);
 
   --primary-border: hsl(var(--primary));
   --secondary-border: hsl(var(--secondary));

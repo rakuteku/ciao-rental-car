@@ -2,7 +2,6 @@ import { Link } from "wouter";
 import { Car as CarIcon } from "lucide-react";
 import { useGetCars } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function CarsPage() {
@@ -10,63 +9,66 @@ export function CarsPage() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col">
-      <div className="bg-muted py-12">
+      <div className="border-b py-12 bg-white">
         <div className="container">
-          <h1 className="text-4xl font-serif font-bold tracking-tight">Our Fleet</h1>
-          <p className="text-muted-foreground mt-4 max-w-2xl">
-            Choose from our selection of premium vehicles designed for comfort and reliability during your Hokkaido journey.
+          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-2">Fleet</p>
+          <h1 className="text-4xl font-serif font-bold tracking-tight">Our Vehicles</h1>
+          <p className="text-muted-foreground mt-3 text-sm max-w-xl">
+            Premium vehicles, meticulously maintained for your Hokkaido journey.
           </p>
         </div>
       </div>
 
-      <div className="container py-12 flex-1">
+      <div className="container py-16 flex-1">
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="overflow-hidden border-none shadow-sm">
-                <Skeleton className="h-[250px] w-full" />
-                <CardHeader><Skeleton className="h-6 w-2/3" /></CardHeader>
-                <CardContent><Skeleton className="h-4 w-full" /></CardContent>
-                <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
-              </Card>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="aspect-[4/3] w-full" />
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {cars?.map((car) => (
-              <Card key={car.id} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow flex flex-col">
-                <div className="aspect-[16/9] overflow-hidden relative bg-muted">
-                  <img 
-                    src={car.imageUrl} 
-                    alt={car.name} 
-                    className="object-cover w-full h-full" 
+              <Link key={car.id} href={`/cars/${car.id}`} className="group block">
+                <div className="overflow-hidden bg-muted aspect-[4/3]">
+                  <img
+                    src={car.imageUrl}
+                    alt={car.name}
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
                   />
                 </div>
-                <CardHeader>
-                  <CardTitle className="font-serif text-2xl">{car.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <div className="flex flex-col gap-4 text-sm">
-                    <p className="text-muted-foreground line-clamp-2">{car.description}</p>
-                    <div className="flex justify-between items-center py-2 border-y">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <CarIcon className="h-4 w-4" /> 
-                        <span>{car.passengerCapacity} Passengers</span>
-                      </div>
-                      <div className="font-mono text-lg font-medium">
-                        ¥{car.pricePerDay.toLocaleString()}<span className="text-sm text-muted-foreground">/day</span>
-                      </div>
-                    </div>
+                <div className="pt-4 pb-2 space-y-2">
+                  <div className="flex items-baseline justify-between">
+                    <h2 className="font-serif text-xl font-semibold group-hover:text-muted-foreground transition-colors">{car.name}</h2>
+                    <span className="text-sm font-medium tabular-nums">
+                      ¥{car.pricePerDay.toLocaleString()}<span className="text-muted-foreground text-xs">/day</span>
+                    </span>
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Link href={`/cars/${car.id}`} className="w-full">
-                    <Button className="w-full" disabled={!car.isAvailable}>
-                      {car.isAvailable ? "Book Now" : "Currently Unavailable"}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <CarIcon className="h-3.5 w-3.5" /> {car.passengerCapacity} Passengers
+                    </p>
+                    {!car.isAvailable && (
+                      <span className="text-xs text-muted-foreground border px-2 py-0.5">Unavailable</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{car.description}</p>
+                  <div className="pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs tracking-wide"
+                      disabled={!car.isAvailable}
+                    >
+                      {car.isAvailable ? "Reserve Now" : "Currently Unavailable"}
                     </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
         )}
