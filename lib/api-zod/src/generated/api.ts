@@ -21,9 +21,15 @@ export const HealthCheckResponse = zod.object({
  */
 export const GetCarsResponseItem = zod.object({
   id: zod.number(),
+  model: zod.string(),
   name: zod.string(),
+  year: zod.number(),
   passengerCapacity: zod.number(),
+  fuelEfficiency: zod.number(),
   pricePerDay: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+  imageUrls: zod.array(zod.string()),
   imageUrl: zod.string(),
   isAvailable: zod.boolean(),
   description: zod.string().nullish(),
@@ -39,9 +45,15 @@ export const GetCarParams = zod.object({
 
 export const GetCarResponse = zod.object({
   id: zod.number(),
+  model: zod.string(),
   name: zod.string(),
+  year: zod.number(),
   passengerCapacity: zod.number(),
+  fuelEfficiency: zod.number(),
   pricePerDay: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+  imageUrls: zod.array(zod.string()),
   imageUrl: zod.string(),
   isAvailable: zod.boolean(),
   description: zod.string().nullish(),
@@ -81,38 +93,6 @@ export const CreateBookingBody = zod.object({
   name: zod.string(),
   email: zod.string(),
   phone: zod.string(),
-});
-
-/**
- * @summary Get current settings
- */
-export const GetSettingsResponse = zod.object({
-  id: zod.number(),
-  airportPickupFee: zod.number(),
-  airportDropoffFee: zod.number(),
-});
-
-/**
- * @summary Get settings (admin)
- */
-export const GetAdminSettingsResponse = zod.object({
-  id: zod.number(),
-  airportPickupFee: zod.number(),
-  airportDropoffFee: zod.number(),
-});
-
-/**
- * @summary Update airport fee settings
- */
-export const UpdateAdminSettingsBody = zod.object({
-  airportPickupFee: zod.number().optional(),
-  airportDropoffFee: zod.number().optional(),
-});
-
-export const UpdateAdminSettingsResponse = zod.object({
-  id: zod.number(),
-  airportPickupFee: zod.number(),
-  airportDropoffFee: zod.number(),
 });
 
 /**
@@ -157,6 +137,8 @@ export const GetAdminBookingsResponseItem = zod.object({
   name: zod.string(),
   email: zod.string(),
   phone: zod.string(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
   totalPrice: zod.number(),
   createdAt: zod.string(),
 });
@@ -167,9 +149,15 @@ export const GetAdminBookingsResponse = zod.array(GetAdminBookingsResponseItem);
  */
 export const GetAdminCarsResponseItem = zod.object({
   id: zod.number(),
+  model: zod.string(),
   name: zod.string(),
+  year: zod.number(),
   passengerCapacity: zod.number(),
+  fuelEfficiency: zod.number(),
   pricePerDay: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+  imageUrls: zod.array(zod.string()),
   imageUrl: zod.string(),
   isAvailable: zod.boolean(),
   description: zod.string().nullish(),
@@ -177,28 +165,70 @@ export const GetAdminCarsResponseItem = zod.object({
 export const GetAdminCarsResponse = zod.array(GetAdminCarsResponseItem);
 
 /**
- * @summary Update car pricing and availability
+ * @summary Create a new car
+ */
+export const CreateAdminCarBody = zod.object({
+  model: zod.string(),
+  name: zod.string(),
+  year: zod.number(),
+  passengerCapacity: zod.number(),
+  fuelEfficiency: zod.number(),
+  pricePerDay: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+  imageUrls: zod.array(zod.string()).optional(),
+  imageUrl: zod.string().optional(),
+  isAvailable: zod.boolean().optional(),
+  description: zod.string().nullish(),
+});
+
+/**
+ * @summary Update car details and pricing
  */
 export const UpdateAdminCarParams = zod.object({
   id: zod.coerce.number(),
 });
 
 export const UpdateAdminCarBody = zod.object({
-  pricePerDay: zod.number().optional(),
-  isAvailable: zod.boolean().optional(),
+  model: zod.string().optional(),
   name: zod.string().nullish(),
-  description: zod.string().nullish(),
+  year: zod.number().nullish(),
   passengerCapacity: zod.number().nullish(),
+  fuelEfficiency: zod.number().nullish(),
+  pricePerDay: zod.number().optional(),
+  airportPickupFee: zod.number().optional(),
+  airportDropoffFee: zod.number().optional(),
+  imageUrls: zod.array(zod.string()).optional(),
+  imageUrl: zod.string().optional(),
+  isAvailable: zod.boolean().optional(),
+  description: zod.string().nullish(),
 });
 
 export const UpdateAdminCarResponse = zod.object({
   id: zod.number(),
+  model: zod.string(),
   name: zod.string(),
+  year: zod.number(),
   passengerCapacity: zod.number(),
+  fuelEfficiency: zod.number(),
   pricePerDay: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+  imageUrls: zod.array(zod.string()),
   imageUrl: zod.string(),
   isAvailable: zod.boolean(),
   description: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete a car
+ */
+export const DeleteAdminCarParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminCarResponse = zod.object({
+  message: zod.string(),
 });
 
 /**

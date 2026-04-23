@@ -15,9 +15,8 @@ import { BookingSuccessPage } from "@/pages/booking/success";
 
 import { AdminLogin } from "@/pages/admin/login";
 import { AdminDashboard } from "@/pages/admin/dashboard";
-import { AdminCars } from "@/pages/admin/cars";
+import { AdminFleet } from "@/pages/admin/fleet";
 import { AdminBookings } from "@/pages/admin/bookings";
-import { AdminSettings } from "@/pages/admin/settings";
 
 const queryClient = new QueryClient();
 
@@ -41,16 +40,15 @@ function Router() {
       <Route path="/cars" component={() => <MainLayout><CarsPage /></MainLayout>} />
       <Route path="/cars/:id" component={() => <MainLayout><CarDetailPage /></MainLayout>} />
       <Route path="/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
-      
+
       {/* Admin Auth Route */}
       <Route path="/admin/login" component={AdminLogin} />
-      
+
       {/* Protected Admin Routes */}
       <Route path="/admin/dashboard" component={() => <AdminLayout><AdminDashboard /></AdminLayout>} />
-      <Route path="/admin/cars" component={() => <AdminLayout><AdminCars /></AdminLayout>} />
+      <Route path="/admin/fleet" component={() => <AdminLayout><AdminFleet /></AdminLayout>} />
       <Route path="/admin/bookings" component={() => <AdminLayout><AdminBookings /></AdminLayout>} />
-      <Route path="/admin/settings" component={() => <AdminLayout><AdminSettings /></AdminLayout>} />
-      
+
       <Route component={() => <MainLayout><NotFound /></MainLayout>} />
     </Switch>
   );

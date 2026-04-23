@@ -13,6 +13,8 @@ export const bookingsTable = pgTable("bookings", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull(),
+  airportPickupFee: real("airport_pickup_fee").notNull().default(0),
+  airportDropoffFee: real("airport_dropoff_fee").notNull().default(0),
   totalPrice: real("total_price").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

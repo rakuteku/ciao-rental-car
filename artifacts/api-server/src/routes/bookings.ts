@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, bookingsTable, carsTable, settingsTable } from "@workspace/db";
+import { db, bookingsTable, carsTable } from "@workspace/db";
 import {
   CreateBookingBody,
   GetAdminBookingsResponse,
@@ -28,16 +28,13 @@ router.post("/bookings", async (req, res): Promise<void> => {
     return;
   }
 
-  const settingsRows = await db.select().from(settingsTable).limit(1);
-  const settings = settingsRows[0] ?? { airportPickupFee: 9800, airportDropoffFee: 9800 };
-
   const pickup = new Date(body.data.pickupDate);
   const returnD = new Date(body.data.returnDate);
   const days = Math.max(1, Math.ceil((returnD.getTime() - pickup.getTime()) / (1000 * 60 * 60 * 24)));
 
   const rentalCost = days * car.pricePerDay;
-  const airportPickupFee = body.data.pickupLocation === AIRPORT_LOCATION ? settings.airportPickupFee : 0;
-  const airportDropoffFee = body.data.returnLocation === AIRPORT_LOCATION ? settings.airportDropoffFee : 0;
+  const airportPickupFee = body.data.pickupLocation === AIRPORT_LOCATION ? car.airportPickupFee : 0;
+  const airportDropoffFee = body.data.returnLocation === AIRPORT_LOCATION ? car.airportDropoffFee : 0;
   const totalPrice = rentalCost + airportPickupFee + airportDropoffFee;
 
   const [booking] = await db.insert(bookingsTable).values({
@@ -49,6 +46,8 @@ router.post("/bookings", async (req, res): Promise<void> => {
     name: body.data.name,
     email: body.data.email,
     phone: body.data.phone,
+    airportPickupFee,
+    airportDropoffFee,
     totalPrice,
   }).returning();
 
@@ -71,6 +70,8 @@ router.get("/admin/bookings", async (_req, res): Promise<void> => {
       name: bookingsTable.name,
       email: bookingsTable.email,
       phone: bookingsTable.phone,
+      airportPickupFee: bookingsTable.airportPickupFee,
+      airportDropoffFee: bookingsTable.airportDropoffFee,
       totalPrice: bookingsTable.totalPrice,
       createdAt: bookingsTable.createdAt,
     })

@@ -18,8 +18,6 @@ tags:
     description: Availability operations
   - name: admin
     description: Admin operations
-  - name: settings
-    description: Settings operations
 paths:
   /healthz:
     get:
@@ -138,55 +136,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /settings:
-    get:
-      operationId: getSettings
-      tags: [settings]
-      summary: Get current settings
-      responses:
-        "200":
-          description: Current settings
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Settings"
-
-  /admin/settings:
-    get:
-      operationId: getAdminSettings
-      tags: [settings]
-      summary: Get settings (admin)
-      responses:
-        "200":
-          description: Current settings
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Settings"
-    put:
-      operationId: updateAdminSettings
-      tags: [settings]
-      summary: Update airport fee settings
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateSettingsBody"
-      responses:
-        "200":
-          description: Updated settings
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Settings"
-        "400":
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /admin/login:
     post:
       operationId: adminLogin
@@ -278,12 +227,35 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Car"
+    post:
+      operationId: createAdminCar
+      tags: [admin]
+      summary: Create a new car
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCarBody"
+      responses:
+        "201":
+          description: Car created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Car"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/cars/{id}:
     put:
       operationId: updateAdminCar
       tags: [admin]
-      summary: Update car pricing and availability
+      summary: Update car details and pricing
       parameters:
         - name: id
           in: path
@@ -303,6 +275,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Car"
+        "404":
+          description: Car not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminCar
+      tags: [admin]
+      summary: Delete a car
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Car deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
         "404":
           description: Car not found
           content:
@@ -368,12 +368,26 @@ components:
       properties:
         id:
           type: integer
+        model:
+          type: string
         name:
           type: string
+        year:
+          type: integer
         passengerCapacity:
           type: integer
+        fuelEfficiency:
+          type: number
         pricePerDay:
           type: number
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
+        imageUrls:
+          type: array
+          items:
+            type: string
         imageUrl:
           type: string
         isAvailable:
@@ -382,11 +396,86 @@ components:
           type: ["string", "null"]
       required:
         - id
+        - model
         - name
+        - year
         - passengerCapacity
+        - fuelEfficiency
         - pricePerDay
+        - airportPickupFee
+        - airportDropoffFee
+        - imageUrls
         - imageUrl
         - isAvailable
+
+    CreateCarBody:
+      type: object
+      properties:
+        model:
+          type: string
+        name:
+          type: string
+        year:
+          type: integer
+        passengerCapacity:
+          type: integer
+        fuelEfficiency:
+          type: number
+        pricePerDay:
+          type: number
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
+        imageUrls:
+          type: array
+          items:
+            type: string
+        imageUrl:
+          type: string
+        isAvailable:
+          type: boolean
+        description:
+          type: ["string", "null"]
+      required:
+        - model
+        - name
+        - year
+        - passengerCapacity
+        - fuelEfficiency
+        - pricePerDay
+        - airportPickupFee
+        - airportDropoffFee
+
+    UpdateCarBody:
+      type: object
+      properties:
+        model:
+          type: string
+        name:
+          type: ["string", "null"]
+        year:
+          type: ["integer", "null"]
+        passengerCapacity:
+          type: ["integer", "null"]
+        fuelEfficiency:
+          type: ["number", "null"]
+        pricePerDay:
+          type: number
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
+        imageUrls:
+          type: array
+          items:
+            type: string
+        imageUrl:
+          type: string
+        isAvailable:
+          type: boolean
+        description:
+          type: ["string", "null"]
 
     Availability:
       type: object
@@ -426,6 +515,10 @@ components:
           type: string
         phone:
           type: string
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
         totalPrice:
           type: number
         createdAt:
@@ -440,6 +533,8 @@ components:
         - name
         - email
         - phone
+        - airportPickupFee
+        - airportDropoffFee
         - totalPrice
         - createdAt
 
@@ -466,6 +561,10 @@ components:
           type: string
         phone:
           type: string
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
         totalPrice:
           type: number
         createdAt:
@@ -481,6 +580,8 @@ components:
         - name
         - email
         - phone
+        - airportPickupFee
+        - airportDropoffFee
         - totalPrice
         - createdAt
 
@@ -512,20 +613,6 @@ components:
         - name
         - email
         - phone
-
-    UpdateCarBody:
-      type: object
-      properties:
-        pricePerDay:
-          type: number
-        isAvailable:
-          type: boolean
-        name:
-          type: ["string", "null"]
-        description:
-          type: ["string", "null"]
-        passengerCapacity:
-          type: ["integer", "null"]
 
     SetAvailabilityBody:
       type: object
@@ -562,28 +649,6 @@ components:
       required:
         - authenticated
         - username
-
-    Settings:
-      type: object
-      properties:
-        id:
-          type: integer
-        airportPickupFee:
-          type: number
-        airportDropoffFee:
-          type: number
-      required:
-        - id
-        - airportPickupFee
-        - airportDropoffFee
-
-    UpdateSettingsBody:
-      type: object
-      properties:
-        airportPickupFee:
-          type: number
-        airportDropoffFee:
-          type: number
 
     AdminStats:
       type: object

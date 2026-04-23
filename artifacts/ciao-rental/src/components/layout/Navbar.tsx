@@ -1,9 +1,9 @@
 import { Link } from "wouter";
-import { useAdminMe, useAdminLogout } from "@workspace/api-client-react";
+import { useAdminMe, useAdminLogout, getAdminMeQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
-  const { data: admin } = useAdminMe({ query: { retry: false } });
+  const { data: admin } = useAdminMe({ query: { retry: false, queryKey: getAdminMeQueryKey() } });
   const logout = useAdminLogout();
 
   return (

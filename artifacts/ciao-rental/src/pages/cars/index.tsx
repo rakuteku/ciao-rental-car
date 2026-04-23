@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Car as CarIcon } from "lucide-react";
+import { Car as CarIcon, Fuel } from "lucide-react";
 import { useGetCars } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,24 +36,30 @@ export function CarsPage() {
               <Link key={car.id} href={`/cars/${car.id}`} className="group block">
                 <div className="overflow-hidden bg-muted aspect-[4/3]">
                   <img
-                    src={car.imageUrl}
-                    alt={car.name}
+                    src={car.imageUrls?.[0] || car.imageUrl}
+                    alt={`${car.model} ${car.name}`}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
                   />
                 </div>
                 <div className="pt-4 pb-2 space-y-2">
                   <div className="flex items-baseline justify-between">
-                    <h2 className="font-serif text-xl font-semibold group-hover:text-muted-foreground transition-colors">{car.name}</h2>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{car.model} · {car.year}</p>
+                      <h2 className="font-serif text-xl font-semibold group-hover:text-muted-foreground transition-colors">{car.name}</h2>
+                    </div>
                     <span className="text-sm font-medium tabular-nums">
                       ¥{car.pricePerDay.toLocaleString()}<span className="text-muted-foreground text-xs">/day</span>
                     </span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <CarIcon className="h-3.5 w-3.5" /> {car.passengerCapacity} Passengers
+                      <CarIcon className="h-3.5 w-3.5" /> {car.passengerCapacity} pax
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Fuel className="h-3.5 w-3.5" /> {car.fuelEfficiency} km/L
                     </p>
                     {!car.isAvailable && (
-                      <span className="text-xs text-muted-foreground border px-2 py-0.5">Unavailable</span>
+                      <span className="text-xs text-muted-foreground border px-2 py-0.5 ml-auto">Unavailable</span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{car.description}</p>

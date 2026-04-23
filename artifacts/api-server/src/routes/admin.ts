@@ -24,7 +24,7 @@ router.post("/admin/login", async (req, res): Promise<void> => {
     return;
   }
 
-  (req.session as Record<string, unknown>).admin = { username: body.data.username };
+  (req.session as unknown as Record<string, unknown>).admin = { username: body.data.username };
   res.json(AdminLoginResponse.parse({ authenticated: true, username: body.data.username }));
 });
 
@@ -35,7 +35,7 @@ router.post("/admin/logout", async (req, res): Promise<void> => {
 });
 
 router.get("/admin/me", async (req, res): Promise<void> => {
-  const session = req.session as Record<string, unknown>;
+  const session = req.session as unknown as Record<string, unknown>;
   if (!session.admin) {
     res.status(401).json({ error: "Not authenticated" });
     return;

@@ -24,6 +24,7 @@ Full-stack rental car reservation web app for CIAO Rental Car, a Sapporo-based c
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- After codegen: fix `lib/api-zod/src/index.ts` — must only export `./generated/api` (orval adds `./generated/api.schemas` which doesn't exist)
 
 ## Admin Credentials
 
@@ -31,44 +32,51 @@ Full-stack rental car reservation web app for CIAO Rental Car, a Sapporo-based c
 - Password: `ciao2024`
 - URL: `/admin/login`
 
+## Admin Panel Routes
+
+- `/admin/login` — login page
+- `/admin/dashboard` — stats overview
+- `/admin/fleet` — fleet management (CRUD for cars)
+- `/admin/bookings` — view all bookings
+
 ## Features
 
 1. **Landing Page** — Hero with Sapporo winter photo, booking form, car listings, "Why CIAO" section
-2. **Car Listings** — 3 vehicles: Toyota Alphard (¥18,000/day), Toyota Vellfire (¥20,000/day), Toyota Sienta (¥9,800/day)
-3. **Booking Flow** — Car selection, date picker, location dropdowns, dynamic price breakdown with airport fees
-4. **Airport Fee Pricing** — Auto-adds pickup/drop-off surcharge when New Chitose Airport is selected (admin-configurable)
-5. **Admin Panel** — Auth-protected: dashboard, car pricing/availability editor, bookings list, settings
+2. **Car Listings** — Fleet of vehicles, each showing model, name, year, capacity, fuel efficiency, price
+3. **Booking Flow** — Car detail page, date picker, location dropdowns, per-car airport fee breakdown
+4. **Airport Fee Pricing** — Per-car fees applied when New Chitose Airport is selected (pickup/drop-off)
+5. **Fleet Management** — Admin CRUD: add/edit/delete cars with all fields including per-car airport fees, image URLs, availability toggles and date overrides
 
 ## Database Schema
 
-- `cars` — id, name, passenger_capacity, price_per_day, image_url, is_available, description
-- `bookings` — id, car_id, pickup_date, return_date, pickup_location, return_location, name, email, phone, total_price, created_at
+- `cars` — id, model, name, year, passenger_capacity, fuel_efficiency, price_per_day, airport_pickup_fee, airport_dropoff_fee, image_urls (jsonb), image_url, is_available, description
+- `bookings` — id, car_id, pickup_date, return_date, pickup_location, return_location, name, email, phone, airport_pickup_fee, airport_dropoff_fee, total_price, created_at
 - `availability` — id, car_id, date, is_available
-- `settings` — id, airport_pickup_fee, airport_dropoff_fee (defaults: ¥9,800 each)
 
 ## API Endpoints
 
 - `GET /api/cars` — list all cars
 - `GET /api/cars/:id` — get car details
 - `GET /api/cars/:id/availability` — get car availability
-- `POST /api/bookings` — create booking (server-side computes airport fees from settings)
-- `GET /api/settings` — get current airport fee settings (public)
-- `GET /api/admin/settings` — get settings (admin)
-- `PUT /api/admin/settings` — update airport fees (admin)
+- `POST /api/bookings` — create booking (server-side applies per-car airport fees)
 - `POST /api/admin/login` — admin login
 - `POST /api/admin/logout` — admin logout
 - `GET /api/admin/me` — check auth status
 - `GET /api/admin/bookings` — list all bookings
 - `GET /api/admin/cars` — list all cars (admin)
-- `PUT /api/admin/cars/:id` — update car pricing/availability
+- `POST /api/admin/cars` — create new car
+- `PUT /api/admin/cars/:id` — update car (all fields)
+- `DELETE /api/admin/cars/:id` — delete car
 - `POST /api/admin/cars/:id/availability` — set date availability
 - `GET /api/admin/stats` — dashboard statistics
 
 ## Airport Fee Logic
 
 Total = (price_per_day × days) + airport_pickup_fee (if pickup = airport) + airport_dropoff_fee (if return = airport)
-- Fees stored in `settings` table, fetched server-side on every booking
-- Frontend shows live breakdown as user selects locations (React Query + useGetSettings hook)
+- Fees are stored **per car** in the `cars` table (not global)
+- Backend reads from car record on booking creation
+- Frontend uses car's own fee fields for live price breakdown
+- If fee = 0, UI shows "Free" badge
 
 ## Pickup Locations
 
@@ -78,5 +86,6 @@ Total = (price_per_day × days) + airport_pickup_fee (if pickup = airport) + air
 
 ## Notes
 
-- `lib/api-zod/src/index.ts` must only export `./generated/api` (not `./generated/types` — causes name conflicts with Zod schemas)
+- `lib/api-zod/src/index.ts` must only export `./generated/api` (not `./generated/api.schemas` — orval adds it but the file doesn't exist)
 - Session secret is stored in `SESSION_SECRET` environment variable
+- `image_urls` is jsonb array in DB; `image_url` (text) is kept for backwards compat — always sync them

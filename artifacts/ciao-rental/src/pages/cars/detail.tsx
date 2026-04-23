@@ -3,9 +3,9 @@ import { format, differenceInDays, addDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { CalendarIcon, Car as CarIcon, Users, CreditCard, Shield, MapPin, CheckCircle2 } from "lucide-react";
+import { CalendarIcon, Users, CreditCard, Shield, MapPin, CheckCircle2, Fuel } from "lucide-react";
 
-import { useGetCar, useGetCarAvailability, useCreateBooking, useGetSettings, getGetCarQueryKey, getGetCarAvailabilityQueryKey } from "@workspace/api-client-react";
+import { useGetCar, useGetCarAvailability, useCreateBooking, getGetCarQueryKey, getGetCarAvailabilityQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { LOCATIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+
+const AIRPORT_LOCATION = "New Chitose Airport";
 
 const bookingSchema = z.object({
   pickupLocation: z.string({ required_error: "Pickup location is required" }),
@@ -34,20 +37,17 @@ export function CarDetailPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  const { data: car, isLoading } = useGetCar(id, { 
-    query: { enabled: !!id, queryKey: getGetCarQueryKey(id) } 
+  const { data: car, isLoading } = useGetCar(id, {
+    query: { enabled: !!id, queryKey: getGetCarQueryKey(id) }
   });
-  
+
   const { data: availability } = useGetCarAvailability(id, {
     startDate: new Date().toISOString(),
   }, {
     query: { enabled: !!id, queryKey: getGetCarAvailabilityQueryKey(id) }
   });
 
-  const { data: settings } = useGetSettings();
   const createBooking = useCreateBooking();
-
-  const AIRPORT_LOCATION = "New Chitose Airport";
 
   const form = useForm<z.infer<typeof bookingSchema>>({
     resolver: zodResolver(bookingSchema),
@@ -71,14 +71,14 @@ export function CarDetailPage() {
     ? Math.max(1, differenceInDays(returnDate, pickupDate))
     : 1;
 
-  const airportPickupFee = pickupLocation === AIRPORT_LOCATION ? (settings?.airportPickupFee ?? 9800) : 0;
-  const airportDropoffFee = returnLocation === AIRPORT_LOCATION ? (settings?.airportDropoffFee ?? 9800) : 0;
+  const airportPickupFee = car && pickupLocation === AIRPORT_LOCATION ? car.airportPickupFee : 0;
+  const airportDropoffFee = car && returnLocation === AIRPORT_LOCATION ? car.airportDropoffFee : 0;
   const rentalCost = car ? car.pricePerDay * days : 0;
   const totalPrice = rentalCost + airportPickupFee + airportDropoffFee;
 
   function onSubmit(data: z.infer<typeof bookingSchema>) {
     if (!car) return;
-    
+
     createBooking.mutate({
       data: {
         carId: car.id,
@@ -101,17 +101,16 @@ export function CarDetailPage() {
     });
   }
 
-  // Helper to check if a date is marked as unavailable in the API
   const isDateUnavailable = (date: Date) => {
     if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true;
     if (!availability) return false;
-    
     const dateStr = format(date, "yyyy-MM-dd");
     const found = availability.find(a => a.date.startsWith(dateStr));
     if (found && !found.isAvailable) return true;
-    
     return false;
   };
+
+  const displayImage = car?.imageUrls?.[0] || car?.imageUrl || "";
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -125,41 +124,71 @@ export function CarDetailPage() {
     <div className="min-h-[100dvh] bg-muted/20 py-12">
       <div className="container max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           <div className="lg:col-span-2 space-y-8">
             <div className="rounded-xl overflow-hidden bg-background border shadow-sm">
               <div className="aspect-[16/9] relative bg-muted">
-                <img 
-                  src={car.imageUrl} 
-                  alt={car.name} 
-                  className="object-cover w-full h-full" 
+                <img
+                  src={displayImage}
+                  alt={`${car.model} ${car.name}`}
+                  className="object-cover w-full h-full"
                 />
               </div>
               <div className="p-6 md:p-8 space-y-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h1 className="text-3xl font-serif font-bold">{car.name}</h1>
-                    <p className="text-muted-foreground flex items-center gap-2 mt-2">
-                      <Users className="w-4 h-4" /> {car.passengerCapacity} Passengers
-                    </p>
+                    <p className="text-sm text-muted-foreground font-medium tracking-wide uppercase">{car.model} · {car.year}</p>
+                    <h1 className="text-3xl font-serif font-bold mt-1">{car.name}</h1>
+                    <div className="flex flex-wrap gap-3 mt-3">
+                      <Badge variant="secondary" className="gap-1">
+                        <Users className="w-3 h-3" /> {car.passengerCapacity} passengers
+                      </Badge>
+                      <Badge variant="secondary" className="gap-1">
+                        <Fuel className="w-3 h-3" /> {car.fuelEfficiency} km/L
+                      </Badge>
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-mono font-bold">¥{car.pricePerDay.toLocaleString()}</div>
                     <div className="text-sm text-muted-foreground">per day</div>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-4">
                   <h3 className="font-bold text-lg">Description</h3>
                   <p className="text-muted-foreground leading-relaxed">
                     {car.description || "A premium vehicle perfectly suited for exploring the scenic routes of Hokkaido. Features advanced safety systems, comfortable seating, and excellent handling in all weather conditions."}
                   </p>
                 </div>
-                
+
                 <Separator />
-                
+
+                <div>
+                  <h3 className="font-bold text-lg mb-4">Airport Service Fees</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Airport Pickup</p>
+                      {car.airportPickupFee > 0
+                        ? <p className="font-bold text-lg">¥{car.airportPickupFee.toLocaleString()}</p>
+                        : <p className="font-bold text-lg text-green-600">Free</p>
+                      }
+                      <p className="text-xs text-muted-foreground mt-1">New Chitose Airport pickup</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Airport Drop-off</p>
+                      {car.airportDropoffFee > 0
+                        ? <p className="font-bold text-lg">¥{car.airportDropoffFee.toLocaleString()}</p>
+                        : <p className="font-bold text-lg text-green-600">Free</p>
+                      }
+                      <p className="text-xs text-muted-foreground mt-1">New Chitose Airport drop-off</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex gap-3 items-start">
                     <Shield className="w-5 h-5 text-primary mt-0.5" />
@@ -193,7 +222,7 @@ export function CarDetailPage() {
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-6">
             <Card className="sticky top-24 shadow-lg border-primary/10">
               <CardHeader>
@@ -203,7 +232,7 @@ export function CarDetailPage() {
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    
+
                     <div className="space-y-4">
                       <FormField
                         control={form.control}
@@ -225,7 +254,7 @@ export function CarDetailPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={form.control}
                         name="returnLocation"
@@ -247,7 +276,7 @@ export function CarDetailPage() {
                         )}
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -298,7 +327,7 @@ export function CarDetailPage() {
                     </div>
 
                     <Separator className="my-4" />
-                    
+
                     <div className="space-y-4">
                       <FormField control={form.control} name="name" render={({ field }) => (
                         <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
@@ -310,7 +339,7 @@ export function CarDetailPage() {
                         <FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="+81 11-123-4567" {...field} /></FormControl><FormMessage /></FormItem>
                       )} />
                     </div>
-                    
+
                     <div className="bg-muted p-4 rounded-lg mt-6 space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">
@@ -340,11 +369,11 @@ export function CarDetailPage() {
                         <span className="tabular-nums">¥{totalPrice.toLocaleString()}</span>
                       </div>
                     </div>
-                    
+
                     <Button type="submit" className="w-full mt-4" size="lg" disabled={createBooking.isPending || !car.isAvailable}>
                       {createBooking.isPending ? "Processing..." : car.isAvailable ? "Confirm Booking" : "Car Unavailable"}
                     </Button>
-                    
+
                   </form>
                 </Form>
               </CardContent>

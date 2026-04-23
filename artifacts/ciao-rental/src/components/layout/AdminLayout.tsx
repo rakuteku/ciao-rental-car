@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { useAdminMe, useAdminLogout } from "@workspace/api-client-react";
-import { Car, LayoutDashboard, Calendar, LogOut, Settings } from "lucide-react";
+import { useAdminMe, useAdminLogout, getAdminMeQueryKey } from "@workspace/api-client-react";
+import { Car, LayoutDashboard, Calendar, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [, setLocation] = useLocation();
-  const { data: admin, isLoading } = useAdminMe({ query: { retry: false } });
+  const [location, setLocation] = useLocation();
+  const { data: admin, isLoading } = useAdminMe({ query: { retry: false, queryKey: getAdminMeQueryKey() } });
   const logout = useAdminLogout();
 
   useEffect(() => {
@@ -19,41 +19,37 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
+  const navItems = [
+    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/fleet", label: "Fleet Management", icon: Car },
+    { href: "/admin/bookings", label: "Bookings", icon: Calendar },
+  ];
+
   return (
     <div className="flex min-h-screen bg-muted/40">
       <aside className="w-64 border-r bg-background flex flex-col">
         <div className="h-16 flex items-center px-6 border-b">
           <span className="font-serif font-bold text-xl">CIAO Admin</span>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
-          <Link href="/admin/dashboard">
-            <Button variant="ghost" className="w-full justify-start gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </Button>
-          </Link>
-          <Link href="/admin/cars">
-            <Button variant="ghost" className="w-full justify-start gap-2">
-              <Car className="h-4 w-4" />
-              Fleet Management
-            </Button>
-          </Link>
-          <Link href="/admin/bookings">
-            <Button variant="ghost" className="w-full justify-start gap-2">
-              <Calendar className="h-4 w-4" />
-              Bookings
-            </Button>
-          </Link>
-          <Link href="/admin/settings">
-            <Button variant="ghost" className="w-full justify-start gap-2">
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          </Link>
+        <nav className="flex-1 p-4 space-y-1">
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = location.startsWith(href);
+            return (
+              <Link key={href} href={href}>
+                <Button
+                  variant={active ? "secondary" : "ghost"}
+                  className="w-full justify-start gap-2"
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Button>
+              </Link>
+            );
+          })}
         </nav>
         <div className="p-4 border-t">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full justify-start gap-2 text-destructive hover:text-destructive"
             onClick={() => logout.mutate(undefined, { onSuccess: () => setLocation("/") })}
           >

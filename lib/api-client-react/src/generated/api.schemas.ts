@@ -11,11 +11,53 @@ export interface HealthStatus {
 
 export interface Car {
   id: number;
+  model: string;
   name: string;
+  year: number;
   passengerCapacity: number;
+  fuelEfficiency: number;
   pricePerDay: number;
+  airportPickupFee: number;
+  airportDropoffFee: number;
+  imageUrls: string[];
   imageUrl: string;
   isAvailable: boolean;
+  /** @nullable */
+  description?: string | null;
+}
+
+export interface CreateCarBody {
+  model: string;
+  name: string;
+  year: number;
+  passengerCapacity: number;
+  fuelEfficiency: number;
+  pricePerDay: number;
+  airportPickupFee: number;
+  airportDropoffFee: number;
+  imageUrls?: string[];
+  imageUrl?: string;
+  isAvailable?: boolean;
+  /** @nullable */
+  description?: string | null;
+}
+
+export interface UpdateCarBody {
+  model?: string;
+  /** @nullable */
+  name?: string | null;
+  /** @nullable */
+  year?: number | null;
+  /** @nullable */
+  passengerCapacity?: number | null;
+  /** @nullable */
+  fuelEfficiency?: number | null;
+  pricePerDay?: number;
+  airportPickupFee?: number;
+  airportDropoffFee?: number;
+  imageUrls?: string[];
+  imageUrl?: string;
+  isAvailable?: boolean;
   /** @nullable */
   description?: string | null;
 }
@@ -37,6 +79,8 @@ export interface Booking {
   name: string;
   email: string;
   phone: string;
+  airportPickupFee: number;
+  airportDropoffFee: number;
   totalPrice: number;
   createdAt: string;
 }
@@ -52,6 +96,8 @@ export interface BookingWithCar {
   name: string;
   email: string;
   phone: string;
+  airportPickupFee: number;
+  airportDropoffFee: number;
   totalPrice: number;
   createdAt: string;
 }
@@ -65,17 +111,6 @@ export interface CreateBookingBody {
   name: string;
   email: string;
   phone: string;
-}
-
-export interface UpdateCarBody {
-  pricePerDay?: number;
-  isAvailable?: boolean;
-  /** @nullable */
-  name?: string | null;
-  /** @nullable */
-  description?: string | null;
-  /** @nullable */
-  passengerCapacity?: number | null;
 }
 
 export interface SetAvailabilityBody {
@@ -92,17 +127,6 @@ export interface AdminLoginBody {
 export interface AdminLoginResponse {
   authenticated: boolean;
   username: string;
-}
-
-export interface Settings {
-  id: number;
-  airportPickupFee: number;
-  airportDropoffFee: number;
-}
-
-export interface UpdateSettingsBody {
-  airportPickupFee?: number;
-  airportDropoffFee?: number;
 }
 
 export interface AdminStats {
@@ -123,6 +147,10 @@ export type GetCarAvailabilityParams = {
 };
 
 export type AdminLogout200 = {
+  message: string;
+};
+
+export type DeleteAdminCar200 = {
   message: string;
 };
 
