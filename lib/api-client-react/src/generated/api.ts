@@ -27,16 +27,23 @@ import type {
   Car,
   CreateBookingBody,
   CreateCarBody,
+  CreateRoomBody,
   DeleteAdminCar200,
+  DeleteAdminRoom200,
   ErrorResponse,
   GetCarAvailabilityParams,
+  GetRoomsParams,
   HealthStatus,
   PageContent,
   PageSeo,
+  ReorderAdminRooms200,
+  ReorderRoomsBody,
+  Room,
   SetAvailabilityBody,
   SetCarAvailability200,
   UpdateCarBody,
   UpdateContentBody,
+  UpdateRoomBody,
   UpdateSeoBody,
 } from "./api.schemas";
 
@@ -48,6 +55,594 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * Returns all published rooms, sorted by sortOrder. Optionally filter to featured rooms only.
+ * @summary List published rooms
+ */
+export const getGetRoomsUrl = (params?: GetRoomsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rooms?${stringifiedParams}`
+    : `/api/rooms`;
+};
+
+export const getRooms = async (
+  params?: GetRoomsParams,
+  options?: RequestInit,
+): Promise<Room[]> => {
+  return customFetch<Room[]>(getGetRoomsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRoomsQueryKey = (params?: GetRoomsParams) => {
+  return [`/api/rooms`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetRoomsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRooms>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetRoomsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRooms>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRoomsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRooms>>> = ({
+    signal,
+  }) => getRooms(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRooms>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRoomsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRooms>>
+>;
+export type GetRoomsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List published rooms
+ */
+
+export function useGetRooms<
+  TData = Awaited<ReturnType<typeof getRooms>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetRoomsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRooms>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRoomsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a single published room by slug
+ */
+export const getGetRoomUrl = (slug: string) => {
+  return `/api/rooms/${slug}`;
+};
+
+export const getRoom = async (
+  slug: string,
+  options?: RequestInit,
+): Promise<Room> => {
+  return customFetch<Room>(getGetRoomUrl(slug), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRoomQueryKey = (slug: string) => {
+  return [`/api/rooms/${slug}`] as const;
+};
+
+export const getGetRoomQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRoom>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getRoom>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRoomQueryKey(slug);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRoom>>> = ({
+    signal,
+  }) => getRoom(slug, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!slug,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof getRoom>>, TError, TData> & {
+    queryKey: QueryKey;
+  };
+};
+
+export type GetRoomQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRoom>>
+>;
+export type GetRoomQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a single published room by slug
+ */
+
+export function useGetRoom<
+  TData = Awaited<ReturnType<typeof getRoom>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getRoom>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRoomQueryOptions(slug, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List all rooms (admin, incl. drafts)
+ */
+export const getGetAdminRoomsUrl = () => {
+  return `/api/admin/rooms`;
+};
+
+export const getAdminRooms = async (options?: RequestInit): Promise<Room[]> => {
+  return customFetch<Room[]>(getGetAdminRoomsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminRoomsQueryKey = () => {
+  return [`/api/admin/rooms`] as const;
+};
+
+export const getGetAdminRoomsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminRooms>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRooms>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAdminRoomsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminRooms>>> = ({
+    signal,
+  }) => getAdminRooms({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRooms>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminRoomsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminRooms>>
+>;
+export type GetAdminRoomsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all rooms (admin, incl. drafts)
+ */
+
+export function useGetAdminRooms<
+  TData = Awaited<ReturnType<typeof getAdminRooms>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRooms>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminRoomsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new room
+ */
+export const getCreateAdminRoomUrl = () => {
+  return `/api/admin/rooms`;
+};
+
+export const createAdminRoom = async (
+  createRoomBody: CreateRoomBody,
+  options?: RequestInit,
+): Promise<Room> => {
+  return customFetch<Room>(getCreateAdminRoomUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createRoomBody),
+  });
+};
+
+export const getCreateAdminRoomMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminRoom>>,
+    TError,
+    { data: BodyType<CreateRoomBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdminRoom>>,
+  TError,
+  { data: BodyType<CreateRoomBody> },
+  TContext
+> => {
+  const mutationKey = ["createAdminRoom"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdminRoom>>,
+    { data: BodyType<CreateRoomBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAdminRoom(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdminRoomMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdminRoom>>
+>;
+export type CreateAdminRoomMutationBody = BodyType<CreateRoomBody>;
+export type CreateAdminRoomMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a new room
+ */
+export const useCreateAdminRoom = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminRoom>>,
+    TError,
+    { data: BodyType<CreateRoomBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdminRoom>>,
+  TError,
+  { data: BodyType<CreateRoomBody> },
+  TContext
+> => {
+  return useMutation(getCreateAdminRoomMutationOptions(options));
+};
+
+/**
+ * @summary Reorder rooms
+ */
+export const getReorderAdminRoomsUrl = () => {
+  return `/api/admin/rooms/reorder`;
+};
+
+export const reorderAdminRooms = async (
+  reorderRoomsBody: ReorderRoomsBody,
+  options?: RequestInit,
+): Promise<ReorderAdminRooms200> => {
+  return customFetch<ReorderAdminRooms200>(getReorderAdminRoomsUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(reorderRoomsBody),
+  });
+};
+
+export const getReorderAdminRoomsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderAdminRooms>>,
+    TError,
+    { data: BodyType<ReorderRoomsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reorderAdminRooms>>,
+  TError,
+  { data: BodyType<ReorderRoomsBody> },
+  TContext
+> => {
+  const mutationKey = ["reorderAdminRooms"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reorderAdminRooms>>,
+    { data: BodyType<ReorderRoomsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return reorderAdminRooms(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReorderAdminRoomsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reorderAdminRooms>>
+>;
+export type ReorderAdminRoomsMutationBody = BodyType<ReorderRoomsBody>;
+export type ReorderAdminRoomsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reorder rooms
+ */
+export const useReorderAdminRooms = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reorderAdminRooms>>,
+    TError,
+    { data: BodyType<ReorderRoomsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reorderAdminRooms>>,
+  TError,
+  { data: BodyType<ReorderRoomsBody> },
+  TContext
+> => {
+  return useMutation(getReorderAdminRoomsMutationOptions(options));
+};
+
+/**
+ * @summary Update a room
+ */
+export const getUpdateAdminRoomUrl = (id: number) => {
+  return `/api/admin/rooms/${id}`;
+};
+
+export const updateAdminRoom = async (
+  id: number,
+  updateRoomBody: UpdateRoomBody,
+  options?: RequestInit,
+): Promise<Room> => {
+  return customFetch<Room>(getUpdateAdminRoomUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateRoomBody),
+  });
+};
+
+export const getUpdateAdminRoomMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRoom>>,
+    TError,
+    { id: number; data: BodyType<UpdateRoomBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdminRoom>>,
+  TError,
+  { id: number; data: BodyType<UpdateRoomBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAdminRoom"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdminRoom>>,
+    { id: number; data: BodyType<UpdateRoomBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAdminRoom(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdminRoomMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAdminRoom>>
+>;
+export type UpdateAdminRoomMutationBody = BodyType<UpdateRoomBody>;
+export type UpdateAdminRoomMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a room
+ */
+export const useUpdateAdminRoom = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRoom>>,
+    TError,
+    { id: number; data: BodyType<UpdateRoomBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdminRoom>>,
+  TError,
+  { id: number; data: BodyType<UpdateRoomBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAdminRoomMutationOptions(options));
+};
+
+/**
+ * @summary Delete a room
+ */
+export const getDeleteAdminRoomUrl = (id: number) => {
+  return `/api/admin/rooms/${id}`;
+};
+
+export const deleteAdminRoom = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DeleteAdminRoom200> => {
+  return customFetch<DeleteAdminRoom200>(getDeleteAdminRoomUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAdminRoomMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdminRoom>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAdminRoom>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteAdminRoom"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAdminRoom>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteAdminRoom(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAdminRoomMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAdminRoom>>
+>;
+
+export type DeleteAdminRoomMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a room
+ */
+export const useDeleteAdminRoom = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdminRoom>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAdminRoom>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteAdminRoomMutationOptions(options));
+};
 
 /**
  * Returns the editable content blob for a given page key (e.g. "home", "rentalcar")

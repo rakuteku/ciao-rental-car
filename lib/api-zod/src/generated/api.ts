@@ -8,6 +8,224 @@
 import * as zod from "zod";
 
 /**
+ * Returns all published rooms, sorted by sortOrder. Optionally filter to featured rooms only.
+ * @summary List published rooms
+ */
+export const GetRoomsQueryParams = zod.object({
+  featured: zod.coerce.boolean().optional(),
+});
+
+export const GetRoomsResponseItem = zod.object({
+  id: zod.number(),
+  slug: zod.string(),
+  title: zod.string(),
+  roomType: zod.string(),
+  maxGuests: zod.number(),
+  beds: zod.number(),
+  size: zod.string(),
+  floor: zod.string(),
+  description: zod.string(),
+  startingPrice: zod.number(),
+  amenities: zod.array(zod.string()),
+  images: zod.array(zod.string()),
+  coverImage: zod.string(),
+  houseRules: zod.string(),
+  checkInTime: zod.string(),
+  checkOutTime: zod.string(),
+  featured: zod.boolean(),
+  published: zod.boolean(),
+  sortOrder: zod.number(),
+  metaTitle: zod.string(),
+  metaDescription: zod.string(),
+  ogTitle: zod.string(),
+  ogDescription: zod.string(),
+  ogImage: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const GetRoomsResponse = zod.array(GetRoomsResponseItem);
+
+/**
+ * @summary Get a single published room by slug
+ */
+export const GetRoomParams = zod.object({
+  slug: zod.coerce.string(),
+});
+
+export const GetRoomResponse = zod.object({
+  id: zod.number(),
+  slug: zod.string(),
+  title: zod.string(),
+  roomType: zod.string(),
+  maxGuests: zod.number(),
+  beds: zod.number(),
+  size: zod.string(),
+  floor: zod.string(),
+  description: zod.string(),
+  startingPrice: zod.number(),
+  amenities: zod.array(zod.string()),
+  images: zod.array(zod.string()),
+  coverImage: zod.string(),
+  houseRules: zod.string(),
+  checkInTime: zod.string(),
+  checkOutTime: zod.string(),
+  featured: zod.boolean(),
+  published: zod.boolean(),
+  sortOrder: zod.number(),
+  metaTitle: zod.string(),
+  metaDescription: zod.string(),
+  ogTitle: zod.string(),
+  ogDescription: zod.string(),
+  ogImage: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary List all rooms (admin, incl. drafts)
+ */
+export const GetAdminRoomsResponseItem = zod.object({
+  id: zod.number(),
+  slug: zod.string(),
+  title: zod.string(),
+  roomType: zod.string(),
+  maxGuests: zod.number(),
+  beds: zod.number(),
+  size: zod.string(),
+  floor: zod.string(),
+  description: zod.string(),
+  startingPrice: zod.number(),
+  amenities: zod.array(zod.string()),
+  images: zod.array(zod.string()),
+  coverImage: zod.string(),
+  houseRules: zod.string(),
+  checkInTime: zod.string(),
+  checkOutTime: zod.string(),
+  featured: zod.boolean(),
+  published: zod.boolean(),
+  sortOrder: zod.number(),
+  metaTitle: zod.string(),
+  metaDescription: zod.string(),
+  ogTitle: zod.string(),
+  ogDescription: zod.string(),
+  ogImage: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const GetAdminRoomsResponse = zod.array(GetAdminRoomsResponseItem);
+
+/**
+ * @summary Create a new room
+ */
+export const CreateAdminRoomBody = zod.object({
+  slug: zod.string().optional(),
+  title: zod.string(),
+  roomType: zod.string().optional(),
+  maxGuests: zod.number().optional(),
+  beds: zod.number().optional(),
+  size: zod.string().optional(),
+  floor: zod.string().optional(),
+  description: zod.string().optional(),
+  startingPrice: zod.number().optional(),
+  amenities: zod.array(zod.string()).optional(),
+  images: zod.array(zod.string()).optional(),
+  coverImage: zod.string().optional(),
+  houseRules: zod.string().optional(),
+  checkInTime: zod.string().optional(),
+  checkOutTime: zod.string().optional(),
+  featured: zod.boolean().optional(),
+  published: zod.boolean().optional(),
+  metaTitle: zod.string().optional(),
+  metaDescription: zod.string().optional(),
+  ogTitle: zod.string().optional(),
+  ogDescription: zod.string().optional(),
+  ogImage: zod.string().optional(),
+});
+
+/**
+ * @summary Reorder rooms
+ */
+export const ReorderAdminRoomsBody = zod.object({
+  orderedIds: zod.array(zod.number()),
+});
+
+export const ReorderAdminRoomsResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Update a room
+ */
+export const UpdateAdminRoomParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminRoomBody = zod.object({
+  slug: zod.string().optional(),
+  title: zod.string().optional(),
+  roomType: zod.string().optional(),
+  maxGuests: zod.number().optional(),
+  beds: zod.number().optional(),
+  size: zod.string().optional(),
+  floor: zod.string().optional(),
+  description: zod.string().optional(),
+  startingPrice: zod.number().optional(),
+  amenities: zod.array(zod.string()).optional(),
+  images: zod.array(zod.string()).optional(),
+  coverImage: zod.string().optional(),
+  houseRules: zod.string().optional(),
+  checkInTime: zod.string().optional(),
+  checkOutTime: zod.string().optional(),
+  featured: zod.boolean().optional(),
+  published: zod.boolean().optional(),
+  metaTitle: zod.string().optional(),
+  metaDescription: zod.string().optional(),
+  ogTitle: zod.string().optional(),
+  ogDescription: zod.string().optional(),
+  ogImage: zod.string().optional(),
+});
+
+export const UpdateAdminRoomResponse = zod.object({
+  id: zod.number(),
+  slug: zod.string(),
+  title: zod.string(),
+  roomType: zod.string(),
+  maxGuests: zod.number(),
+  beds: zod.number(),
+  size: zod.string(),
+  floor: zod.string(),
+  description: zod.string(),
+  startingPrice: zod.number(),
+  amenities: zod.array(zod.string()),
+  images: zod.array(zod.string()),
+  coverImage: zod.string(),
+  houseRules: zod.string(),
+  checkInTime: zod.string(),
+  checkOutTime: zod.string(),
+  featured: zod.boolean(),
+  published: zod.boolean(),
+  sortOrder: zod.number(),
+  metaTitle: zod.string(),
+  metaDescription: zod.string(),
+  ogTitle: zod.string(),
+  ogDescription: zod.string(),
+  ogImage: zod.string(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a room
+ */
+export const DeleteAdminRoomParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteAdminRoomResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * Returns the editable content blob for a given page key (e.g. "home", "rentalcar")
  * @summary Get content for a page
  */

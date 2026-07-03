@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAdminMe, useAdminLogout, getAdminMeQueryKey } from "@workspace/api-client-react";
-import { Car, LayoutDashboard, Calendar, LogOut, FileText, Search } from "lucide-react";
+import { Car, LayoutDashboard, Calendar, LogOut, FileText, Search, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -22,6 +22,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/fleet", label: "Fleet Management", icon: Car },
+    { href: "/admin/lodging", label: "Lodging", icon: Building2 },
     { href: "/admin/bookings", label: "Bookings", icon: Calendar },
     { href: "/admin/content", label: "Page Content", icon: FileText },
     { href: "/admin/seo", label: "SEO", icon: Search },

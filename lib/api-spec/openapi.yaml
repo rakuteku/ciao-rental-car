@@ -20,7 +20,183 @@ tags:
     description: Admin operations
   - name: content
     description: Page content operations
+  - name: rooms
+    description: Lodging room operations
 paths:
+  /rooms:
+    get:
+      operationId: getRooms
+      tags: [rooms]
+      summary: List published rooms
+      description: Returns all published rooms, sorted by sortOrder. Optionally filter to featured rooms only.
+      parameters:
+        - name: featured
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+
+  /rooms/{slug}:
+    get:
+      operationId: getRoom
+      tags: [rooms]
+      summary: Get a single published room by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rooms:
+    get:
+      operationId: getAdminRooms
+      tags: [admin]
+      summary: List all rooms (admin, incl. drafts)
+      responses:
+        "200":
+          description: List of rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+    post:
+      operationId: createAdminRoom
+      tags: [admin]
+      summary: Create a new room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomBody"
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rooms/reorder:
+    put:
+      operationId: reorderAdminRooms
+      tags: [admin]
+      summary: Reorder rooms
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderRoomsBody"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+
+  /admin/rooms/{id}:
+    put:
+      operationId: updateAdminRoom
+      tags: [admin]
+      summary: Update a room
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoomBody"
+      responses:
+        "200":
+          description: Updated room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminRoom
+      tags: [admin]
+      summary: Delete a room
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Room deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /content/{page}:
     get:
       operationId: getPageContent
@@ -876,3 +1052,206 @@ components:
         - ogTitle
         - ogDescription
         - ogImage
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        title:
+          type: string
+        roomType:
+          type: string
+        maxGuests:
+          type: integer
+        beds:
+          type: integer
+        size:
+          type: string
+        floor:
+          type: string
+        description:
+          type: string
+        startingPrice:
+          type: number
+        amenities:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+        coverImage:
+          type: string
+        houseRules:
+          type: string
+        checkInTime:
+          type: string
+        checkOutTime:
+          type: string
+        featured:
+          type: boolean
+        published:
+          type: boolean
+        sortOrder:
+          type: integer
+        metaTitle:
+          type: string
+        metaDescription:
+          type: string
+        ogTitle:
+          type: string
+        ogDescription:
+          type: string
+        ogImage:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - slug
+        - title
+        - roomType
+        - maxGuests
+        - beds
+        - size
+        - floor
+        - description
+        - startingPrice
+        - amenities
+        - images
+        - coverImage
+        - houseRules
+        - checkInTime
+        - checkOutTime
+        - featured
+        - published
+        - sortOrder
+        - metaTitle
+        - metaDescription
+        - ogTitle
+        - ogDescription
+        - ogImage
+        - createdAt
+        - updatedAt
+
+    CreateRoomBody:
+      type: object
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        roomType:
+          type: string
+        maxGuests:
+          type: integer
+        beds:
+          type: integer
+        size:
+          type: string
+        floor:
+          type: string
+        description:
+          type: string
+        startingPrice:
+          type: number
+        amenities:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+        coverImage:
+          type: string
+        houseRules:
+          type: string
+        checkInTime:
+          type: string
+        checkOutTime:
+          type: string
+        featured:
+          type: boolean
+        published:
+          type: boolean
+        metaTitle:
+          type: string
+        metaDescription:
+          type: string
+        ogTitle:
+          type: string
+        ogDescription:
+          type: string
+        ogImage:
+          type: string
+      required:
+        - title
+
+    UpdateRoomBody:
+      type: object
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        roomType:
+          type: string
+        maxGuests:
+          type: integer
+        beds:
+          type: integer
+        size:
+          type: string
+        floor:
+          type: string
+        description:
+          type: string
+        startingPrice:
+          type: number
+        amenities:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          items:
+            type: string
+        coverImage:
+          type: string
+        houseRules:
+          type: string
+        checkInTime:
+          type: string
+        checkOutTime:
+          type: string
+        featured:
+          type: boolean
+        published:
+          type: boolean
+        metaTitle:
+          type: string
+        metaDescription:
+          type: string
+        ogTitle:
+          type: string
+        ogDescription:
+          type: string
+        ogImage:
+          type: string
+
+    ReorderRoomsBody:
+      type: object
+      properties:
+        orderedIds:
+          type: array
+          items:
+            type: integer
+      required:
+        - orderedIds

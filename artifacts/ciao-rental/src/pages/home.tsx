@@ -1,7 +1,7 @@
 import { Link } from "wouter";
-import { Building2, CalendarClock, Car as CarIcon, MapPin, Mail, ChevronRight } from "lucide-react";
+import { Building2, CalendarClock, Car as CarIcon, MapPin, Mail, ChevronRight, Users, BedDouble } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useGetPageContent } from "@workspace/api-client-react";
+import { useGetPageContent, useGetRooms } from "@workspace/api-client-react";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
 
 interface WhyItem {
@@ -22,6 +22,7 @@ interface HomeContent {
 export function Home() {
   const { data, isLoading } = useGetPageContent("home");
   const content = data?.content as HomeContent | undefined;
+  const { data: featuredRooms } = useGetRooms({ featured: true });
   useSeoMeta("home");
 
   if (isLoading || !content) {
@@ -58,11 +59,11 @@ export function Home() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <a href="#lodging">
+              <Link href="/lodging">
                 <Button size="lg" variant="secondary" className="gap-2">
                   <Building2 className="h-4 w-4" /> {content.hero.ctaLodging}
                 </Button>
-              </a>
+              </Link>
               <Link href="/rentalcar">
                 <Button size="lg" className="gap-2">
                   <CarIcon className="h-4 w-4" /> {content.hero.ctaRentalCar}
@@ -92,6 +93,39 @@ export function Home() {
             />
           </div>
         </div>
+        {featuredRooms && featuredRooms.length > 0 && (
+          <div className="container mt-16 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-serif font-semibold tracking-tight">Featured Rooms</h3>
+              <Link href="/lodging" className="text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                View all rooms <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {featuredRooms.slice(0, 3).map((room) => (
+                <Link key={room.id} href={`/lodging/${room.slug}`} className="group block">
+                  <div className="aspect-[4/3] bg-muted rounded-sm overflow-hidden">
+                    <img
+                      src={room.coverImage || room.images?.[0]}
+                      alt={room.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                  </div>
+                  <div className="pt-3 space-y-1">
+                    <div className="flex items-baseline justify-between">
+                      <h4 className="font-serif font-semibold group-hover:text-muted-foreground transition-colors">{room.title}</h4>
+                      <span className="text-sm font-medium tabular-nums">¥{room.startingPrice.toLocaleString()}<span className="text-muted-foreground text-xs">/night</span></span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {room.maxGuests}</span>
+                      <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {room.beds}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Monthly Stay */}

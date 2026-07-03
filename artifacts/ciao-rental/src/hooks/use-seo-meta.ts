@@ -11,17 +11,37 @@ function setMetaTag(attr: "name" | "property", key: string, content: string) {
   el.setAttribute("content", content);
 }
 
+export interface SeoMetaFields {
+  metaTitle: string;
+  metaDescription: string;
+  keywords?: string[];
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+}
+
+export function applySeoMeta(seo: SeoMetaFields | undefined) {
+  if (!seo) return;
+  document.title = seo.metaTitle;
+  setMetaTag("name", "description", seo.metaDescription);
+  if (seo.keywords) {
+    setMetaTag("name", "keywords", seo.keywords.join(", "));
+  }
+  setMetaTag("property", "og:title", seo.ogTitle);
+  setMetaTag("property", "og:description", seo.ogDescription);
+  setMetaTag("property", "og:image", seo.ogImage);
+}
+
 export function useSeoMeta(page: string) {
   const { data: seo } = useGetPageSeo(page);
 
   useEffect(() => {
-    if (!seo) return;
+    applySeoMeta(seo);
+  }, [seo]);
+}
 
-    document.title = seo.metaTitle;
-    setMetaTag("name", "description", seo.metaDescription);
-    setMetaTag("name", "keywords", seo.keywords.join(", "));
-    setMetaTag("property", "og:title", seo.ogTitle);
-    setMetaTag("property", "og:description", seo.ogDescription);
-    setMetaTag("property", "og:image", seo.ogImage);
+export function useInlineSeoMeta(seo: SeoMetaFields | undefined) {
+  useEffect(() => {
+    applySeoMeta(seo);
   }, [seo]);
 }

@@ -14,6 +14,9 @@ export function Navbar() {
           <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden sm:inline-block pt-0.5">Sapporo · Hokkaido</span>
         </Link>
         <nav className="flex items-center gap-6">
+          <Link href="/lodging" className="text-xs tracking-[0.15em] uppercase font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Lodging
+          </Link>
           <Link href="/rentalcar" className="text-xs tracking-[0.15em] uppercase font-medium text-muted-foreground hover:text-foreground transition-colors">
             Rental Car
           </Link>

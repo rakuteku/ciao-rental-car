@@ -82,6 +82,9 @@ export function AdminSeo() {
   const { data: rentalcarSeo, isLoading: rentalcarLoading } = useGetPageSeo("rentalcar", {
     query: { queryKey: getGetPageSeoQueryKey("rentalcar") },
   });
+  const { data: lodgingSeo, isLoading: lodgingLoading } = useGetPageSeo("lodging", {
+    query: { queryKey: getGetPageSeoQueryKey("lodging") },
+  });
 
   const updateSeo = useUpdateAdminSeo();
 
@@ -124,6 +127,7 @@ export function AdminSeo() {
         <TabsList>
           <TabsTrigger value="home">Home Page</TabsTrigger>
           <TabsTrigger value="rentalcar">Rental Car Page</TabsTrigger>
+          <TabsTrigger value="lodging">Lodging Page</TabsTrigger>
         </TabsList>
         <TabsContent value="home" className="pt-6">
           {homeLoading || !homeSeo ? (
@@ -159,6 +163,25 @@ export function AdminSeo() {
                 ogImage: rentalcarSeo.ogImage,
               }}
               onSave={(data) => handleSave("rentalcar", data)}
+              isPending={updateSeo.isPending}
+            />
+          )}
+        </TabsContent>
+        <TabsContent value="lodging" className="pt-6">
+          {lodgingLoading || !lodgingSeo ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : (
+            <SeoForm
+              initial={{
+                slug: lodgingSeo.slug,
+                metaTitle: lodgingSeo.metaTitle,
+                metaDescription: lodgingSeo.metaDescription,
+                keywords: lodgingSeo.keywords.join(", "),
+                ogTitle: lodgingSeo.ogTitle,
+                ogDescription: lodgingSeo.ogDescription,
+                ogImage: lodgingSeo.ogImage,
+              }}
+              onSave={(data) => handleSave("lodging", data)}
               isPending={updateSeo.isPending}
             />
           )}

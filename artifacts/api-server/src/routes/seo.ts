@@ -44,6 +44,17 @@ export const DEFAULT_SEO: Record<string, SeoDefaults> = {
       "Premium vehicles, flexible pickup locations, and fully insured options for your Hokkaido road trip.",
     ogImage: "/hero-sapporo.png",
   },
+  lodging: {
+    slug: "/lodging",
+    metaTitle: "Short-Term Lodging in Sapporo | CIAO Hokkaido",
+    metaDescription:
+      "Book short-term rooms and studios in Sapporo with CIAO — comfortable stays near New Chitose Airport, perfect for your Hokkaido trip.",
+    keywords: ["Sapporo short-term stay", "Sapporo lodging", "Hokkaido accommodation", "CIAO Sapporo rooms"],
+    ogTitle: "CIAO Lodging — Short-Term Stays in Sapporo",
+    ogDescription:
+      "Comfortable short-term rooms and studios in Sapporo, part of the CIAO all-in-one Hokkaido package.",
+    ogImage: "/hero-sapporo.png",
+  },
 };
 
 async function getOrSeedSeo(page: string) {

@@ -176,6 +176,101 @@ export interface UpdateSeoBody {
   ogImage: string;
 }
 
+export interface Room {
+  id: number;
+  slug: string;
+  title: string;
+  roomType: string;
+  maxGuests: number;
+  beds: number;
+  size: string;
+  floor: string;
+  description: string;
+  startingPrice: number;
+  amenities: string[];
+  images: string[];
+  coverImage: string;
+  houseRules: string;
+  checkInTime: string;
+  checkOutTime: string;
+  featured: boolean;
+  published: boolean;
+  sortOrder: number;
+  metaTitle: string;
+  metaDescription: string;
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRoomBody {
+  slug?: string;
+  title: string;
+  roomType?: string;
+  maxGuests?: number;
+  beds?: number;
+  size?: string;
+  floor?: string;
+  description?: string;
+  startingPrice?: number;
+  amenities?: string[];
+  images?: string[];
+  coverImage?: string;
+  houseRules?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  featured?: boolean;
+  published?: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+}
+
+export interface UpdateRoomBody {
+  slug?: string;
+  title?: string;
+  roomType?: string;
+  maxGuests?: number;
+  beds?: number;
+  size?: string;
+  floor?: string;
+  description?: string;
+  startingPrice?: number;
+  amenities?: string[];
+  images?: string[];
+  coverImage?: string;
+  houseRules?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  featured?: boolean;
+  published?: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+}
+
+export interface ReorderRoomsBody {
+  orderedIds: number[];
+}
+
+export type GetRoomsParams = {
+  featured?: boolean;
+};
+
+export type ReorderAdminRooms200 = {
+  message: string;
+};
+
+export type DeleteAdminRoom200 = {
+  message: string;
+};
+
 export type GetCarAvailabilityParams = {
   startDate?: string;
   endDate?: string;

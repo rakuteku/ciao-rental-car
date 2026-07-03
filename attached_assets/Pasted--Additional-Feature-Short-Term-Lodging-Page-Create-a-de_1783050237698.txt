@@ -1,0 +1,163 @@
+### Additional Feature: Short-Term Lodging Page
+
+Create a dedicated page for short-term lodging.
+
+## New Route
+
+`/lodging`
+
+This page represents all Airbnb / short-term accommodation available in the building.
+
+---
+
+## Front Page Update
+
+Update the "Short-term lodging" CTA on the homepage so it links directly to:
+
+`/lodging`
+
+instead of just scrolling to a section.
+
+---
+
+## Lodging Page Layout
+
+Design a premium, modern, mobile-friendly page suitable for vacation rentals.
+
+### Hero Section
+
+Title:
+**Short-Term Lodging in Sapporo**
+
+Subtitle:
+Stay in our all-in-one building in Sapporo with comfortable accommodation and optional rental car service, making your Hokkaido trip simple and convenient.
+
+Include a CTA button:
+
+**Book Your Stay**
+
+---
+
+### Available Rooms
+
+Display **5 rooms** in a responsive card/grid layout.
+
+Each room card should contain:
+
+* Cover image
+* Room name
+* Room type (Studio / 1LDK / 2LDK / etc.)
+* Maximum guests
+* Number of beds
+* Room size
+* Floor level
+* Short description
+* Starting price
+* Amenities
+* "View Details" button
+* "Book Now" button
+
+The cards should be generated dynamically so more rooms can easily be added later.
+
+---
+
+### Room Detail Page
+
+Create dynamic routing:
+
+`/lodging/[slug]`
+
+Each room should have its own page.
+
+Room detail page includes:
+
+* Image gallery
+* Room description
+* Amenities
+* Bed configuration
+* Maximum occupancy
+* Check-in / Check-out information
+* House rules
+* Location section
+* Rental car promotion
+* Inquiry / Booking CTA
+
+---
+
+### Admin Panel
+
+Add a new menu:
+
+**Lodging**
+
+Admin should be able to:
+
+* Add room
+* Edit room
+* Delete room
+* Reorder rooms
+* Upload multiple images
+* Change cover image
+* Edit room title
+* Edit URL slug
+* Edit description
+* Edit room type
+* Edit price
+* Edit amenities
+* Edit maximum guests
+* Edit beds
+* Edit floor level
+* Toggle Featured Room
+* Toggle Published / Draft
+
+---
+
+### SEO
+
+Each room should have editable:
+
+* URL slug
+* Meta title
+* Meta description
+* Open Graph title
+* Open Graph description
+* Open Graph image
+
+Automatically generate sensible defaults if left empty.
+
+---
+
+### Sitemap
+
+Automatically include:
+
+* `/lodging`
+* Every published room under `/lodging/[slug]`
+
+in `sitemap.xml`.
+
+---
+
+### Homepage Integration
+
+On the homepage (`/`), below the Lodging section, display the 5 featured rooms as preview cards with:
+
+* Cover image
+* Room name
+* Starting price
+* Maximum guests
+* "View Room" button
+
+The "View All Rooms" button should navigate to:
+
+`/lodging`
+
+---
+
+### Future Scalability
+
+Do **not** hardcode the number of rooms.
+
+Although the building currently has **5 rooms**, design the system so any number of rooms can be added later through the admin panel without requiring code changes.
+
+All lodging data should come from the same CMS/database used by the admin panel, ensuring the homepage, `/lodging`, room detail pages, SEO metadata, and sitemap stay synchronized automatically.

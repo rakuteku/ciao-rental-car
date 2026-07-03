@@ -13,6 +13,8 @@ import { RentalCarHome } from "@/pages/rentalcar/index";
 import { CarsPage } from "@/pages/rentalcar/cars/index";
 import { CarDetailPage } from "@/pages/rentalcar/cars/detail";
 import { BookingSuccessPage } from "@/pages/rentalcar/booking/success";
+import { LodgingPage } from "@/pages/lodging/index";
+import { LodgingDetailPage } from "@/pages/lodging/detail";
 
 import { AdminLogin } from "@/pages/admin/login";
 import { AdminDashboard } from "@/pages/admin/dashboard";
@@ -20,6 +22,7 @@ import { AdminFleet } from "@/pages/admin/fleet";
 import { AdminBookings } from "@/pages/admin/bookings";
 import { AdminContent } from "@/pages/admin/content";
 import { AdminSeo } from "@/pages/admin/seo";
+import { AdminLodging } from "@/pages/admin/lodging";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +47,8 @@ function Router() {
       <Route path="/rentalcar/cars" component={() => <MainLayout><CarsPage /></MainLayout>} />
       <Route path="/rentalcar/cars/:id" component={() => <MainLayout><CarDetailPage /></MainLayout>} />
       <Route path="/rentalcar/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
+      <Route path="/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
+      <Route path="/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
 
       {/* Admin Auth Route */}
       <Route path="/admin/login" component={AdminLogin} />
@@ -51,6 +56,7 @@ function Router() {
       {/* Protected Admin Routes */}
       <Route path="/admin/dashboard" component={() => <AdminLayout><AdminDashboard /></AdminLayout>} />
       <Route path="/admin/fleet" component={() => <AdminLayout><AdminFleet /></AdminLayout>} />
+      <Route path="/admin/lodging" component={() => <AdminLayout><AdminLodging /></AdminLayout>} />
       <Route path="/admin/bookings" component={() => <AdminLayout><AdminBookings /></AdminLayout>} />
       <Route path="/admin/content" component={() => <AdminLayout><AdminContent /></AdminLayout>} />
       <Route path="/admin/seo" component={() => <AdminLayout><AdminSeo /></AdminLayout>} />

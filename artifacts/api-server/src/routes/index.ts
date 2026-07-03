@@ -6,6 +6,7 @@ import availabilityRouter from "./availability";
 import adminRouter from "./admin";
 import contentRouter from "./content";
 import seoRouter from "./seo";
+import roomsRouter from "./rooms";
 import sitemapRouter from "./sitemap";
 
 const router: IRouter = Router();
@@ -17,6 +18,7 @@ router.use(availabilityRouter);
 router.use(adminRouter);
 router.use(contentRouter);
 router.use(seoRouter);
+router.use(roomsRouter);
 router.use(sitemapRouter);
 
 export default router;
