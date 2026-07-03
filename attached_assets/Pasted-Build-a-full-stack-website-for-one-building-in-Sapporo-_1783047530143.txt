@@ -1,0 +1,144 @@
+Build a full-stack website for one building in Sapporo, Hokkaido that offers:
+
+1. Airbnb / short-term lodging
+2. Monthly short-term stay
+3. Rental car service
+
+The concept/motto is:
+
+“All-in-one package in Hokkaido — lodging and rental car service in one place.”
+
+Location:
+https://maps.app.goo.gl/jXg1LcZRwXcRoTVY9
+
+Main requirement:
+The website should feel like a local Hokkaido travel/lodging service, not only a room booking website.
+
+Pages and routing:
+
+1. Front page: `/`
+2. Rental car page: `/rentalcar`
+3. Admin panel: `/admin`
+
+Front page `/`:
+
+Create a modern, clean, mobile-friendly landing page.
+
+Hero section:
+
+* Main headline: “All-in-one stay in Hokkaido”
+* Subheadline: “Stay, travel, and explore Sapporo with lodging and rental car service in one building.”
+* Mention direct access from New Chitose Airport.
+* Add two clear CTA buttons:
+
+  * “Short-term lodging”
+  * “I want to rent a car”
+
+The CTA buttons should scroll or link to the correct sections/pages.
+
+Front page sections:
+
+* Lodging overview
+* Monthly short-term stay overview
+* Rental car overview
+* Location / access section
+* Google Maps embed or map link using the provided location
+* Why choose us section:
+
+  * Located in Sapporo, Hokkaido
+  * Convenient for airport arrival
+  * Stay and car rental in one package
+  * Good for families, groups, long stays, and Hokkaido road trips
+* Contact / inquiry CTA section
+
+Rental car page `/rentalcar`:
+
+I already created the car rental page. Move or route it properly so it is accessible at `/rentalcar`.
+
+Make the page editable from the admin panel.
+
+Rental car page should include:
+
+* Hero section
+* Car rental plans
+* Pricing table
+* Included items
+* Optional add-ons
+* Pick-up / return information
+* Important notes
+* Inquiry CTA
+
+Admin panel `/admin`:
+
+Create an admin panel where I can edit website content without touching code.
+
+Admin should allow editing:
+
+* Front page hero title, subtitle, CTA text
+* Front page lodging content
+* Front page monthly stay content
+* Front page rental car content
+* Access/location text
+* Rental car pricing
+* Rental car plan descriptions
+* Rental car add-ons
+* Rental car important notes
+* SEO fields for each page
+
+SEO management:
+
+For each page, allow admin to edit:
+
+* URL slug
+* Meta title
+* Meta description
+* SEO keywords
+* Open Graph title
+* Open Graph description
+* Open Graph image
+
+Generate good default SEO content for:
+
+Front page:
+
+* URL: `/`
+* Meta title: “All-in-One Stay & Rental Car in Sapporo, Hokkaido”
+* Meta description: “Stay in Sapporo and rent a car from the same building. Convenient lodging, monthly stays, and rental car service with easy access from New Chitose Airport.”
+
+Rental car page:
+
+* URL: `/rentalcar`
+* Meta title: “Rental Car in Sapporo, Hokkaido | Easy Airport Access”
+* Meta description: “Rent a car in Sapporo for your Hokkaido trip. Convenient car rental plans for families, groups, and long-stay guests.”
+
+Sitemap:
+
+Create automatic sitemap generation.
+
+Requirements:
+
+* Generate `/sitemap.xml`
+* Include `/`, `/rentalcar`, and any future public pages
+* Include last modified date
+* Make it ready for Google Search Console and Bing Webmaster Tools submission
+* Also create `/robots.txt` that points to the sitemap
+
+Technical requirements:
+
+* Use the existing project stack.
+* Do not break the existing rental car page design.
+* Make all pages fully responsive.
+* Keep the design clean, premium, and suitable for Hokkaido tourism.
+* Use reusable components where possible.
+* Use database-backed content if the project already uses a database.
+* If no database exists, create a simple CMS/content storage structure that can later be migrated to a database.
+* Add proper error handling and loading states.
+* Make sure admin updates immediately affect the public pages.
+* Protect admin routes if authentication already exists. If not, create a simple placeholder admin protection structure and clearly mark where real authentication should be added later.
+* Keep code organized and easy to maintain.
+
+Important:
+Do not remove existing features.
+Do not rename unrelated routes.
+Do not overwrite existing rental car content unless needed for routing.
+Only add or modify what is necessary for this all-in-one lodging + rental car website.
