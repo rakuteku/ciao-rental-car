@@ -1,1 +1,3 @@
 - [CIAO location data](ciao-location.md) — real-world address/coords for CIAO Sapporo building, used for maps embeds across the site.
+- [Orval barrel export fix](orval-barrel-fix.md) — `lib/api-zod/src/index.ts` codegen adds a broken export line that must be removed after every `orval` run.
+- [Well-known files via Vite proxy](well-known-files-vite-proxy.md) — pattern for serving `/robots.txt` and `/sitemap.xml` from a backend API through a Vite dev/preview plugin, in a monorepo where the frontend and API are separate services behind a shared proxy.

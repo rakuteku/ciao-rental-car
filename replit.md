@@ -46,7 +46,8 @@ Full-stack all-in-one Hokkaido travel site for CIAO, a Sapporo-based building of
 - `/admin/dashboard` — stats overview
 - `/admin/fleet` — fleet management (CRUD for cars)
 - `/admin/bookings` — view all bookings
-- Admin CMS for front-page content/SEO/sitemap is a planned follow-up (not yet built)
+- `/admin/content` — edit page content (Home Page / Rental Car Page tabs: hero, lodging, monthly stay, rental car overview, why-choose-us, location, contact, pricing table, plans, add-ons, important notes). Changes reflect immediately on public pages.
+- `/admin/seo` — edit per-page SEO metadata (Home Page / Rental Car Page tabs: URL slug, meta title, meta description, keywords, Open Graph title/description/image). Feeds `/sitemap.xml` and public `<head>` meta tags.
 
 ## Features
 
@@ -70,6 +71,8 @@ Full-stack all-in-one Hokkaido travel site for CIAO, a Sapporo-based building of
 - `GET /api/cars/:id/availability` — get car availability
 - `POST /api/bookings` — create booking (server-side applies per-car airport fees)
 - `GET /api/content/:page` — get content blob for a page (auto-seeds defaults on first call)
+- `GET /api/seo/:page` — get SEO metadata for a page (auto-seeds defaults on first call)
+- `GET /sitemap.xml` — dynamically generated sitemap (from SEO slugs), `GET /robots.txt` — robots file referencing the sitemap (served via a Vite dev/preview proxy plugin in `vite.config.ts`, proxied to the API server)
 - `POST /api/admin/login` — admin login
 - `POST /api/admin/logout` — admin logout
 - `GET /api/admin/me` — check auth status
@@ -80,6 +83,8 @@ Full-stack all-in-one Hokkaido travel site for CIAO, a Sapporo-based building of
 - `DELETE /api/admin/cars/:id` — delete car
 - `POST /api/admin/cars/:id/availability` — set date availability
 - `GET /api/admin/stats` — dashboard statistics
+- `PUT /api/admin/content/:page` — update page content blob (allowlisted pages only: `home`, `rentalcar`)
+- `PUT /api/admin/seo/:page` — update page SEO metadata (allowlisted pages only)
 
 ## Airport Fee Logic
 

@@ -5,6 +5,8 @@ import bookingsRouter from "./bookings";
 import availabilityRouter from "./availability";
 import adminRouter from "./admin";
 import contentRouter from "./content";
+import seoRouter from "./seo";
+import sitemapRouter from "./sitemap";
 
 const router: IRouter = Router();
 
@@ -14,5 +16,7 @@ router.use(bookingsRouter);
 router.use(availabilityRouter);
 router.use(adminRouter);
 router.use(contentRouter);
+router.use(seoRouter);
+router.use(sitemapRouter);
 
 export default router;

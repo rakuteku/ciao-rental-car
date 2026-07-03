@@ -8,6 +8,7 @@ import {
   SetCarAvailabilityParams,
   SetCarAvailabilityBody,
 } from "@workspace/api-zod";
+import { requireAdminAuth } from "../middlewares/admin-auth";
 
 const router: IRouter = Router();
 
@@ -30,7 +31,7 @@ router.get("/cars/:id/availability", async (req, res): Promise<void> => {
   res.json(GetCarAvailabilityResponse.parse(rows));
 });
 
-router.post("/admin/cars/:id/availability", async (req, res): Promise<void> => {
+router.post("/admin/cars/:id/availability", requireAdminAuth, async (req, res): Promise<void> => {
   const params = SetCarAvailabilityParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });

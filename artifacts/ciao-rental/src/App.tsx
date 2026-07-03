@@ -18,6 +18,8 @@ import { AdminLogin } from "@/pages/admin/login";
 import { AdminDashboard } from "@/pages/admin/dashboard";
 import { AdminFleet } from "@/pages/admin/fleet";
 import { AdminBookings } from "@/pages/admin/bookings";
+import { AdminContent } from "@/pages/admin/content";
+import { AdminSeo } from "@/pages/admin/seo";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +52,8 @@ function Router() {
       <Route path="/admin/dashboard" component={() => <AdminLayout><AdminDashboard /></AdminLayout>} />
       <Route path="/admin/fleet" component={() => <AdminLayout><AdminFleet /></AdminLayout>} />
       <Route path="/admin/bookings" component={() => <AdminLayout><AdminBookings /></AdminLayout>} />
+      <Route path="/admin/content" component={() => <AdminLayout><AdminContent /></AdminLayout>} />
+      <Route path="/admin/seo" component={() => <AdminLayout><AdminSeo /></AdminLayout>} />
 
       <Route component={() => <MainLayout><NotFound /></MainLayout>} />
     </Switch>

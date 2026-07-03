@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Building2, CalendarClock, Car as CarIcon, MapPin, Mail, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGetPageContent } from "@workspace/api-client-react";
+import { useSeoMeta } from "@/hooks/use-seo-meta";
 
 interface WhyItem {
   title: string;
@@ -21,6 +22,7 @@ interface HomeContent {
 export function Home() {
   const { data, isLoading } = useGetPageContent("home");
   const content = data?.content as HomeContent | undefined;
+  useSeoMeta("home");
 
   if (isLoading || !content) {
     return (

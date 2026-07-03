@@ -148,6 +148,34 @@ export interface PageContent {
   content: PageContentContent;
 }
 
+export type UpdateContentBodyContent = { [key: string]: unknown };
+
+export interface UpdateContentBody {
+  content: UpdateContentBodyContent;
+}
+
+export interface PageSeo {
+  page: string;
+  slug: string;
+  metaTitle: string;
+  metaDescription: string;
+  keywords: string[];
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  updatedAt: string;
+}
+
+export interface UpdateSeoBody {
+  slug: string;
+  metaTitle: string;
+  metaDescription: string;
+  keywords: string[];
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+}
+
 export type GetCarAvailabilityParams = {
   startDate?: string;
   endDate?: string;

@@ -5,6 +5,7 @@ import {
   CreateBookingBody,
   GetAdminBookingsResponse,
 } from "@workspace/api-zod";
+import { requireAdminAuth } from "../middlewares/admin-auth";
 
 const AIRPORT_LOCATION = "New Chitose Airport";
 
@@ -57,7 +58,7 @@ router.post("/bookings", async (req, res): Promise<void> => {
   });
 });
 
-router.get("/admin/bookings", async (_req, res): Promise<void> => {
+router.get("/admin/bookings", requireAdminAuth, async (_req, res): Promise<void> => {
   const rows = await db
     .select({
       id: bookingsTable.id,

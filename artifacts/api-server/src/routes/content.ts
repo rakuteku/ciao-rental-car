@@ -1,11 +1,19 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, pageContentTable } from "@workspace/db";
-import { GetPageContentParams, GetPageContentResponse } from "@workspace/api-zod";
+import {
+  GetPageContentParams,
+  GetPageContentResponse,
+  UpdateAdminContentParams,
+  UpdateAdminContentBody,
+} from "@workspace/api-zod";
+import { requireAdminAuth } from "../middlewares/admin-auth";
 
 const router: IRouter = Router();
 
-const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
+export const KNOWN_PAGES = ["home", "rentalcar"] as const;
+
+export const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
   home: {
     hero: {
       title: "All-in-one stay in Hokkaido",
@@ -62,15 +70,53 @@ const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
       ctaText: "Contact Us",
     },
   },
+  rentalcar: {
+    pricingTable: {
+      title: "Rental Pricing",
+      description: "Transparent daily rates with no hidden fees. Airport pickup/drop-off fees vary by vehicle.",
+      rows: [
+        { label: "Compact Cars", value: "From ¥6,000 / day" },
+        { label: "Sedans", value: "From ¥9,000 / day" },
+        { label: "Minivans & SUVs", value: "From ¥13,000 / day" },
+      ],
+    },
+    plans: [
+      {
+        name: "Standard Plan",
+        description: "Daily rental with basic liability insurance included.",
+        price: "Included in daily rate",
+      },
+      {
+        name: "Premium Protection Plan",
+        description: "Adds full collision damage waiver and roadside assistance for total peace of mind.",
+        price: "+¥1,500 / day",
+      },
+    ],
+    addOns: [
+      { name: "Child Safety Seat", description: "Rear-facing or booster seat, installed on request.", price: "¥800 / day" },
+      { name: "Winter Tire Upgrade", description: "Studless winter tires for snowy Hokkaido roads.", price: "¥1,000 / day" },
+      { name: "Portable Wi-Fi Router", description: "Stay connected on the road with unlimited data.", price: "¥600 / day" },
+    ],
+    importantNotes: [
+      "A valid driver's license (and International Driving Permit for overseas visitors) is required at pickup.",
+      "Vehicles must be returned with a full tank of fuel or a refueling fee applies.",
+      "Winter driving in Hokkaido can be challenging — we recommend the Winter Tire Upgrade from November to March.",
+      "Cancellations within 24 hours of pickup may incur a cancellation fee.",
+    ],
+  },
 };
 
-async function getOrSeedContent(page: string): Promise<Record<string, unknown>> {
+async function getOrSeedContent(page: string): Promise<Record<string, unknown> | null> {
   const [existing] = await db.select().from(pageContentTable).where(eq(pageContentTable.page, page));
   if (existing) {
     return existing.content;
   }
 
-  const defaults = DEFAULT_CONTENT[page] ?? {};
+  if (!(page in DEFAULT_CONTENT)) {
+    return null;
+  }
+
+  const defaults = DEFAULT_CONTENT[page];
   const [created] = await db
     .insert(pageContentTable)
     .values({ page, content: defaults })
@@ -93,7 +139,42 @@ router.get("/content/:page", async (req, res): Promise<void> => {
   }
 
   const content = await getOrSeedContent(params.data.page);
+  if (content === null) {
+    res.status(404).json({ error: "Unknown page" });
+    return;
+  }
+
   res.json(GetPageContentResponse.parse({ page: params.data.page, content }));
+});
+
+router.put("/admin/content/:page", requireAdminAuth, async (req, res): Promise<void> => {
+  const params = UpdateAdminContentParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  if (!(params.data.page in DEFAULT_CONTENT)) {
+    res.status(400).json({ error: "Unknown page" });
+    return;
+  }
+
+  const body = UpdateAdminContentBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const [updated] = await db
+    .insert(pageContentTable)
+    .values({ page: params.data.page, content: body.data.content })
+    .onConflictDoUpdate({
+      target: pageContentTable.page,
+      set: { content: body.data.content, updatedAt: new Date() },
+    })
+    .returning();
+
+  res.json(GetPageContentResponse.parse({ page: params.data.page, content: updated.content }));
 });
 
 export default router;

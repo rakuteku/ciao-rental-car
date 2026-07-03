@@ -6,6 +6,7 @@ import {
   AdminLoginResponse,
   GetAdminStatsResponse,
 } from "@workspace/api-zod";
+import { requireAdminAuth } from "../middlewares/admin-auth";
 
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "ciao2024";
@@ -44,7 +45,7 @@ router.get("/admin/me", async (req, res): Promise<void> => {
   res.json(AdminLoginResponse.parse({ authenticated: true, username: admin.username }));
 });
 
-router.get("/admin/stats", async (_req, res): Promise<void> => {
+router.get("/admin/stats", requireAdminAuth, async (_req, res): Promise<void> => {
   const [bookingStats] = await db
     .select({
       totalBookings: count(bookingsTable.id),

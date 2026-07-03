@@ -32,9 +32,12 @@ import type {
   GetCarAvailabilityParams,
   HealthStatus,
   PageContent,
+  PageSeo,
   SetAvailabilityBody,
   SetCarAvailability200,
   UpdateCarBody,
+  UpdateContentBody,
+  UpdateSeoBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -133,6 +136,268 @@ export function useGetPageContent<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Returns SEO fields for a given page key (e.g. "home", "rentalcar")
+ * @summary Get SEO metadata for a page
+ */
+export const getGetPageSeoUrl = (page: string) => {
+  return `/api/seo/${page}`;
+};
+
+export const getPageSeo = async (
+  page: string,
+  options?: RequestInit,
+): Promise<PageSeo> => {
+  return customFetch<PageSeo>(getGetPageSeoUrl(page), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPageSeoQueryKey = (page: string) => {
+  return [`/api/seo/${page}`] as const;
+};
+
+export const getGetPageSeoQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPageSeo>>,
+  TError = ErrorType<unknown>,
+>(
+  page: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPageSeo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPageSeoQueryKey(page);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPageSeo>>> = ({
+    signal,
+  }) => getPageSeo(page, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!page,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPageSeo>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPageSeoQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPageSeo>>
+>;
+export type GetPageSeoQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get SEO metadata for a page
+ */
+
+export function useGetPageSeo<
+  TData = Awaited<ReturnType<typeof getPageSeo>>,
+  TError = ErrorType<unknown>,
+>(
+  page: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPageSeo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPageSeoQueryOptions(page, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update content for a page (admin)
+ */
+export const getUpdateAdminContentUrl = (page: string) => {
+  return `/api/admin/content/${page}`;
+};
+
+export const updateAdminContent = async (
+  page: string,
+  updateContentBody: UpdateContentBody,
+  options?: RequestInit,
+): Promise<PageContent> => {
+  return customFetch<PageContent>(getUpdateAdminContentUrl(page), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateContentBody),
+  });
+};
+
+export const getUpdateAdminContentMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminContent>>,
+    TError,
+    { page: string; data: BodyType<UpdateContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdminContent>>,
+  TError,
+  { page: string; data: BodyType<UpdateContentBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAdminContent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdminContent>>,
+    { page: string; data: BodyType<UpdateContentBody> }
+  > = (props) => {
+    const { page, data } = props ?? {};
+
+    return updateAdminContent(page, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdminContentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAdminContent>>
+>;
+export type UpdateAdminContentMutationBody = BodyType<UpdateContentBody>;
+export type UpdateAdminContentMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update content for a page (admin)
+ */
+export const useUpdateAdminContent = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminContent>>,
+    TError,
+    { page: string; data: BodyType<UpdateContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdminContent>>,
+  TError,
+  { page: string; data: BodyType<UpdateContentBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAdminContentMutationOptions(options));
+};
+
+/**
+ * @summary Update SEO metadata for a page (admin)
+ */
+export const getUpdateAdminSeoUrl = (page: string) => {
+  return `/api/admin/seo/${page}`;
+};
+
+export const updateAdminSeo = async (
+  page: string,
+  updateSeoBody: UpdateSeoBody,
+  options?: RequestInit,
+): Promise<PageSeo> => {
+  return customFetch<PageSeo>(getUpdateAdminSeoUrl(page), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSeoBody),
+  });
+};
+
+export const getUpdateAdminSeoMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminSeo>>,
+    TError,
+    { page: string; data: BodyType<UpdateSeoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdminSeo>>,
+  TError,
+  { page: string; data: BodyType<UpdateSeoBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAdminSeo"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdminSeo>>,
+    { page: string; data: BodyType<UpdateSeoBody> }
+  > = (props) => {
+    const { page, data } = props ?? {};
+
+    return updateAdminSeo(page, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdminSeoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAdminSeo>>
+>;
+export type UpdateAdminSeoMutationBody = BodyType<UpdateSeoBody>;
+export type UpdateAdminSeoMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update SEO metadata for a page (admin)
+ */
+export const useUpdateAdminSeo = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminSeo>>,
+    TError,
+    { page: string; data: BodyType<UpdateSeoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdminSeo>>,
+  TError,
+  { page: string; data: BodyType<UpdateSeoBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAdminSeoMutationOptions(options));
+};
 
 /**
  * Returns server health status

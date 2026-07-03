@@ -21,6 +21,71 @@ export const GetPageContentResponse = zod.object({
 });
 
 /**
+ * Returns SEO fields for a given page key (e.g. "home", "rentalcar")
+ * @summary Get SEO metadata for a page
+ */
+export const GetPageSeoParams = zod.object({
+  page: zod.coerce.string(),
+});
+
+export const GetPageSeoResponse = zod.object({
+  page: zod.string(),
+  slug: zod.string(),
+  metaTitle: zod.string(),
+  metaDescription: zod.string(),
+  keywords: zod.array(zod.string()),
+  ogTitle: zod.string(),
+  ogDescription: zod.string(),
+  ogImage: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update content for a page (admin)
+ */
+export const UpdateAdminContentParams = zod.object({
+  page: zod.coerce.string(),
+});
+
+export const UpdateAdminContentBody = zod.object({
+  content: zod.record(zod.string(), zod.unknown()),
+});
+
+export const UpdateAdminContentResponse = zod.object({
+  page: zod.string(),
+  content: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
+ * @summary Update SEO metadata for a page (admin)
+ */
+export const UpdateAdminSeoParams = zod.object({
+  page: zod.coerce.string(),
+});
+
+export const UpdateAdminSeoBody = zod.object({
+  slug: zod.string(),
+  metaTitle: zod.string(),
+  metaDescription: zod.string(),
+  keywords: zod.array(zod.string()),
+  ogTitle: zod.string(),
+  ogDescription: zod.string(),
+  ogImage: zod.string(),
+});
+
+export const UpdateAdminSeoResponse = zod.object({
+  page: zod.string(),
+  slug: zod.string(),
+  metaTitle: zod.string(),
+  metaDescription: zod.string(),
+  keywords: zod.array(zod.string()),
+  ogTitle: zod.string(),
+  ogDescription: zod.string(),
+  ogImage: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */

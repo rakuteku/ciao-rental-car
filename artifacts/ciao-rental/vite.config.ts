@@ -1,8 +1,58 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin, type ViteDevServer, type PreviewServer } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+
+function seoWellKnownFiles(): Plugin {
+  const handle = async (
+    req: import("http").IncomingMessage,
+    res: import("http").ServerResponse,
+    next: () => void,
+  ): Promise<void> => {
+    const url = req.url ?? "";
+    const isRobots = url === "/robots.txt" || url.startsWith("/robots.txt?");
+    const isSitemap = url === "/sitemap.xml" || url.startsWith("/sitemap.xml?");
+
+    if (!isRobots && !isSitemap) {
+      next();
+      return;
+    }
+
+    try {
+      const host = req.headers.host ?? "localhost";
+      const proto = (req.headers["x-forwarded-proto"] as string | undefined) ?? "http";
+      const origin = `${proto}://${host}`;
+      const target = isRobots ? "robots.txt" : "sitemap.xml";
+      const upstream = await fetch(
+        `http://localhost:80/api/${target}?origin=${encodeURIComponent(origin)}`,
+      );
+      const body = await upstream.text();
+      res.statusCode = upstream.status;
+      res.setHeader(
+        "content-type",
+        upstream.headers.get("content-type") ?? "text/plain",
+      );
+      res.end(body);
+    } catch {
+      next();
+    }
+  };
+
+  return {
+    name: "seo-well-known-files",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((req, res, next) => {
+        void handle(req, res, next);
+      });
+    },
+    configurePreviewServer(server: PreviewServer) {
+      server.middlewares.use((req, res, next) => {
+        void handle(req, res, next);
+      });
+    },
+  };
+}
 
 const rawPort = process.env.PORT;
 
@@ -32,6 +82,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
+    seoWellKnownFiles(),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [

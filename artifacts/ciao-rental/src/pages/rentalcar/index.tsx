@@ -12,8 +12,33 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { LOCATIONS } from "@/lib/constants";
-import { useGetCars } from "@workspace/api-client-react";
+import { useGetCars, useGetPageContent } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
+import { useSeoMeta } from "@/hooks/use-seo-meta";
+
+interface PricingRow {
+  label: string;
+  value: string;
+}
+
+interface Plan {
+  name: string;
+  description: string;
+  price: string;
+}
+
+interface AddOn {
+  name: string;
+  description: string;
+  price: string;
+}
+
+interface RentalCarContent {
+  pricingTable: { title: string; description: string; rows: PricingRow[] };
+  plans: Plan[];
+  addOns: AddOn[];
+  importantNotes: string[];
+}
 
 const searchSchema = z.object({
   pickupLocation: z.string({ required_error: "Please select a pickup location" }),
@@ -25,6 +50,9 @@ const searchSchema = z.object({
 export function RentalCarHome() {
   const [, setLocation] = useLocation();
   const { data: cars, isLoading } = useGetCars();
+  const { data: contentData } = useGetPageContent("rentalcar");
+  const content = contentData?.content as RentalCarContent | undefined;
+  useSeoMeta("rentalcar");
 
   const form = useForm<z.infer<typeof searchSchema>>({
     resolver: zodResolver(searchSchema),
@@ -239,6 +267,68 @@ export function RentalCarHome() {
           )}
         </div>
       </section>
+
+      {/* Pricing, Plans, Add-ons */}
+      {content && (
+        <section className="py-24 border-b">
+          <div className="container space-y-16">
+            <div className="space-y-4 max-w-2xl">
+              <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">Pricing</p>
+              <h2 className="text-3xl font-serif font-bold tracking-tight">{content.pricingTable.title}</h2>
+              <p className="text-muted-foreground leading-relaxed">{content.pricingTable.description}</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {content.pricingTable.rows.map((row) => (
+                <div key={row.label} className="border p-6 space-y-1">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{row.label}</p>
+                  <p className="text-xl font-serif font-semibold">{row.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-6">
+              <h3 className="text-2xl font-serif font-bold tracking-tight">Insurance Plans</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {content.plans.map((plan) => (
+                  <div key={plan.name} className="border p-6 space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <h4 className="font-semibold">{plan.name}</h4>
+                      <span className="text-sm font-medium tabular-nums">{plan.price}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{plan.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <h3 className="text-2xl font-serif font-bold tracking-tight">Add-Ons</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {content.addOns.map((addOn) => (
+                  <div key={addOn.name} className="border p-6 space-y-2">
+                    <div className="flex items-baseline justify-between">
+                      <h4 className="font-semibold text-sm">{addOn.name}</h4>
+                      <span className="text-sm font-medium tabular-nums">{addOn.price}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{addOn.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {content.importantNotes.length > 0 && (
+              <div className="bg-muted/40 border p-6 space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wide">Important Notes</h3>
+                <ul className="space-y-2 list-disc list-inside text-sm text-muted-foreground">
+                  {content.importantNotes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Why Book With CIAO */}
       <section className="py-20 bg-muted/40">

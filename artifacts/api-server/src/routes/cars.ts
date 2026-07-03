@@ -11,6 +11,7 @@ import {
   CreateAdminCarBody,
   DeleteAdminCarParams,
 } from "@workspace/api-zod";
+import { requireAdminAuth } from "../middlewares/admin-auth";
 
 const router: IRouter = Router();
 
@@ -35,12 +36,12 @@ router.get("/cars/:id", async (req, res): Promise<void> => {
   res.json(GetCarResponse.parse(car));
 });
 
-router.get("/admin/cars", async (_req, res): Promise<void> => {
+router.get("/admin/cars", requireAdminAuth, async (_req, res): Promise<void> => {
   const cars = await db.select().from(carsTable).orderBy(carsTable.id);
   res.json(GetCarsResponse.parse(cars));
 });
 
-router.post("/admin/cars", async (req, res): Promise<void> => {
+router.post("/admin/cars", requireAdminAuth, async (req, res): Promise<void> => {
   const body = CreateAdminCarBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -65,7 +66,7 @@ router.post("/admin/cars", async (req, res): Promise<void> => {
   res.status(201).json(GetCarResponse.parse(car));
 });
 
-router.put("/admin/cars/:id", async (req, res): Promise<void> => {
+router.put("/admin/cars/:id", requireAdminAuth, async (req, res): Promise<void> => {
   const params = UpdateAdminCarParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -115,7 +116,7 @@ router.put("/admin/cars/:id", async (req, res): Promise<void> => {
   res.json(UpdateAdminCarResponse.parse(car));
 });
 
-router.delete("/admin/cars/:id", async (req, res): Promise<void> => {
+router.delete("/admin/cars/:id", requireAdminAuth, async (req, res): Promise<void> => {
   const params = DeleteAdminCarParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
