@@ -2,7 +2,7 @@
 
 ## Overview
 
-Full-stack rental car reservation web app for CIAO Rental Car, a Sapporo-based car rental service.
+Full-stack all-in-one Hokkaido travel site for CIAO, a Sapporo-based building offering short-term lodging, monthly stays, and rental car service ("All-in-one package in Hokkaido"). The front page (`/`) is a DB-backed overview of all three services; the original rental car booking flow lives under `/rentalcar`. An admin CMS for editing content, SEO, and sitemap/robots is planned as a follow-up.
 
 ## Stack
 
@@ -32,17 +32,26 @@ Full-stack rental car reservation web app for CIAO Rental Car, a Sapporo-based c
 - Password: `ciao2024`
 - URL: `/admin/login`
 
+## Site Routes
+
+- `/` — all-in-one front page: hero, lodging overview, monthly stay overview, rental car overview, "Why Choose Us", location/access (Google Maps embed), contact — all content served from `GET /api/content/home`
+- `/rentalcar` — rental car search + featured vehicles (formerly the site's home page)
+- `/rentalcar/cars` — full fleet listing
+- `/rentalcar/cars/:id` — car detail + booking form
+- `/rentalcar/booking/success` — booking confirmation
+
 ## Admin Panel Routes
 
 - `/admin/login` — login page
 - `/admin/dashboard` — stats overview
 - `/admin/fleet` — fleet management (CRUD for cars)
 - `/admin/bookings` — view all bookings
+- Admin CMS for front-page content/SEO/sitemap is a planned follow-up (not yet built)
 
 ## Features
 
-1. **Landing Page** — Hero with Sapporo winter photo, booking form, car listings, "Why CIAO" section
-2. **Car Listings** — Fleet of vehicles, each showing model, name, year, capacity, fuel efficiency, price
+1. **All-in-One Front Page** — Hero, lodging/monthly-stay/rental-car overviews, why-choose-us, location/access map, contact — content pulled from the `page_content` table
+2. **Rental Car Search & Listings** — Fleet of vehicles at `/rentalcar`, each showing model, name, year, capacity, fuel efficiency, price
 3. **Booking Flow** — Car detail page, date picker, location dropdowns, per-car airport fee breakdown
 4. **Airport Fee Pricing** — Per-car fees applied when New Chitose Airport is selected (pickup/drop-off)
 5. **Fleet Management** — Admin CRUD: add/edit/delete cars with all fields including per-car airport fees, image URLs, availability toggles and date overrides
@@ -52,6 +61,7 @@ Full-stack rental car reservation web app for CIAO Rental Car, a Sapporo-based c
 - `cars` — id, model, name, year, passenger_capacity, fuel_efficiency, price_per_day, airport_pickup_fee, airport_dropoff_fee, image_urls (jsonb), image_url, is_available, description
 - `bookings` — id, car_id, pickup_date, return_date, pickup_location, return_location, name, email, phone, airport_pickup_fee, airport_dropoff_fee, total_price, created_at
 - `availability` — id, car_id, date, is_available
+- `page_content` — id, page (unique key e.g. "home"), content (jsonb, structured section data), updated_at — seeded with defaults on first read if missing
 
 ## API Endpoints
 
@@ -59,6 +69,7 @@ Full-stack rental car reservation web app for CIAO Rental Car, a Sapporo-based c
 - `GET /api/cars/:id` — get car details
 - `GET /api/cars/:id/availability` — get car availability
 - `POST /api/bookings` — create booking (server-side applies per-car airport fees)
+- `GET /api/content/:page` — get content blob for a page (auto-seeds defaults on first call)
 - `POST /api/admin/login` — admin login
 - `POST /api/admin/logout` — admin logout
 - `GET /api/admin/me` — check auth status

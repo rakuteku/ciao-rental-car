@@ -8,6 +8,19 @@
 import * as zod from "zod";
 
 /**
+ * Returns the editable content blob for a given page key (e.g. "home", "rentalcar")
+ * @summary Get content for a page
+ */
+export const GetPageContentParams = zod.object({
+  page: zod.coerce.string(),
+});
+
+export const GetPageContentResponse = zod.object({
+  page: zod.string(),
+  content: zod.record(zod.string(), zod.unknown()),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */

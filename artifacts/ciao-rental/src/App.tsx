@@ -9,9 +9,10 @@ import { Footer } from "@/components/layout/Footer";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 
 import { Home } from "@/pages/home";
-import { CarsPage } from "@/pages/cars/index";
-import { CarDetailPage } from "@/pages/cars/detail";
-import { BookingSuccessPage } from "@/pages/booking/success";
+import { RentalCarHome } from "@/pages/rentalcar/index";
+import { CarsPage } from "@/pages/rentalcar/cars/index";
+import { CarDetailPage } from "@/pages/rentalcar/cars/detail";
+import { BookingSuccessPage } from "@/pages/rentalcar/booking/success";
 
 import { AdminLogin } from "@/pages/admin/login";
 import { AdminDashboard } from "@/pages/admin/dashboard";
@@ -37,9 +38,10 @@ function Router() {
     <Switch>
       {/* Public Routes */}
       <Route path="/" component={() => <MainLayout><Home /></MainLayout>} />
-      <Route path="/cars" component={() => <MainLayout><CarsPage /></MainLayout>} />
-      <Route path="/cars/:id" component={() => <MainLayout><CarDetailPage /></MainLayout>} />
-      <Route path="/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
+      <Route path="/rentalcar" component={() => <MainLayout><RentalCarHome /></MainLayout>} />
+      <Route path="/rentalcar/cars" component={() => <MainLayout><CarsPage /></MainLayout>} />
+      <Route path="/rentalcar/cars/:id" component={() => <MainLayout><CarDetailPage /></MainLayout>} />
+      <Route path="/rentalcar/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
 
       {/* Admin Auth Route */}
       <Route path="/admin/login" component={AdminLogin} />

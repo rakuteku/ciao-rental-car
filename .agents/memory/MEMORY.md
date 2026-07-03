@@ -1,0 +1,1 @@
+- [CIAO location data](ciao-location.md) — real-world address/coords for CIAO Sapporo building, used for maps embeds across the site.

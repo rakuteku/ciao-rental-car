@@ -31,6 +31,7 @@ import type {
   ErrorResponse,
   GetCarAvailabilityParams,
   HealthStatus,
+  PageContent,
   SetAvailabilityBody,
   SetCarAvailability200,
   UpdateCarBody,
@@ -44,6 +45,94 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * Returns the editable content blob for a given page key (e.g. "home", "rentalcar")
+ * @summary Get content for a page
+ */
+export const getGetPageContentUrl = (page: string) => {
+  return `/api/content/${page}`;
+};
+
+export const getPageContent = async (
+  page: string,
+  options?: RequestInit,
+): Promise<PageContent> => {
+  return customFetch<PageContent>(getGetPageContentUrl(page), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPageContentQueryKey = (page: string) => {
+  return [`/api/content/${page}`] as const;
+};
+
+export const getGetPageContentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPageContent>>,
+  TError = ErrorType<unknown>,
+>(
+  page: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPageContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetPageContentQueryKey(page);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPageContent>>> = ({
+    signal,
+  }) => getPageContent(page, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!page,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPageContent>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPageContentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPageContent>>
+>;
+export type GetPageContentQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get content for a page
+ */
+
+export function useGetPageContent<
+  TData = Awaited<ReturnType<typeof getPageContent>>,
+  TError = ErrorType<unknown>,
+>(
+  page: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPageContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPageContentQueryOptions(page, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Returns server health status

@@ -33,7 +33,7 @@ export function CarsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {cars?.map((car) => (
-              <Link key={car.id} href={`/cars/${car.id}`} className="group block">
+              <Link key={car.id} href={`/rentalcar/cars/${car.id}`} className="group block">
                 <div className="overflow-hidden bg-muted aspect-[4/3]">
                   <img
                     src={car.imageUrls?.[0] || car.imageUrl}

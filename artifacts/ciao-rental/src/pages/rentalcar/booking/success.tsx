@@ -14,10 +14,10 @@ export function BookingSuccessPage() {
           Thank you for choosing CIAO Rental Car. We have sent your booking details to your email address.
         </p>
         <div className="pt-6 border-t flex flex-col gap-3">
-          <Link href="/">
+          <Link href="/rentalcar">
             <Button className="w-full">Return Home</Button>
           </Link>
-          <Link href="/cars">
+          <Link href="/rentalcar/cars">
             <Button variant="outline" className="w-full">View Fleet</Button>
           </Link>
         </div>

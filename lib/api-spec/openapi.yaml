@@ -18,7 +18,29 @@ tags:
     description: Availability operations
   - name: admin
     description: Admin operations
+  - name: content
+    description: Page content operations
 paths:
+  /content/{page}:
+    get:
+      operationId: getPageContent
+      tags: [content]
+      summary: Get content for a page
+      description: Returns the editable content blob for a given page key (e.g. "home", "rentalcar")
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Page content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageContent"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -677,3 +699,15 @@ components:
           type: string
       required:
         - error
+
+    PageContent:
+      type: object
+      properties:
+        page:
+          type: string
+        content:
+          type: object
+          additionalProperties: true
+      required:
+        - page
+        - content

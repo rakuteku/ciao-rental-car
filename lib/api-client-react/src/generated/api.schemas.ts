@@ -141,6 +141,13 @@ export interface ErrorResponse {
   error: string;
 }
 
+export type PageContentContent = { [key: string]: unknown };
+
+export interface PageContent {
+  page: string;
+  content: PageContentContent;
+}
+
 export type GetCarAvailabilityParams = {
   startDate?: string;
   endDate?: string;

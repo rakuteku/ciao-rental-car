@@ -11,11 +11,11 @@ export function Navbar() {
       <div className="container flex h-14 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <span className="text-lg font-bold font-serif tracking-widest uppercase">Ciao</span>
-          <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden sm:inline-block pt-0.5">Rental Car · Sapporo</span>
+          <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden sm:inline-block pt-0.5">Sapporo · Hokkaido</span>
         </Link>
         <nav className="flex items-center gap-6">
-          <Link href="/cars" className="text-xs tracking-[0.15em] uppercase font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Our Fleet
+          <Link href="/rentalcar" className="text-xs tracking-[0.15em] uppercase font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Rental Car
           </Link>
           {admin?.authenticated ? (
             <>

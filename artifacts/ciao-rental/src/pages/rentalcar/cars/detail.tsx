@@ -93,7 +93,7 @@ export function CarDetailPage() {
     }, {
       onSuccess: () => {
         toast({ title: "Booking successful", description: "Your car has been reserved." });
-        setLocation("/booking/success");
+        setLocation("/rentalcar/booking/success");
       },
       onError: () => {
         toast({ title: "Booking failed", description: "There was an error processing your booking.", variant: "destructive" });
