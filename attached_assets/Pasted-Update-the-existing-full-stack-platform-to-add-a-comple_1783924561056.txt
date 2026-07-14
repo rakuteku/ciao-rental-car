@@ -1,0 +1,1125 @@
+Update the existing full-stack platform to add a complete rental car management and booking workflow.
+
+Important context:
+
+* The lodging frontend is already built.
+* The rental car frontend is already built.
+* The admin panel is already built.
+* Do not rebuild, replace, or redesign the existing pages unnecessarily.
+* Preserve the current UI/UX, authentication, database structure, routing, and existing lodging functions.
+* Extend the current system using reusable components and clean database migrations.
+* The rental car workflow must work consistently across both the customer-facing frontend and the admin panel.
+
+The initial fleet is:
+
+* 2 Toyota Alphard
+* 1 Toyota Sienta
+
+However, the system must allow the admin to add unlimited cars in the future.
+
+# Main Objectives
+
+1. Allow admin users to easily add, edit, duplicate, publish, unpublish, archive, and manage rental cars.
+2. Allow admin users to manage each car’s availability through an easy calendar interface.
+3. Connect rental car inventory and availability directly to the customer-facing booking flow.
+4. Prevent double bookings.
+5. Keep booking, payment, customer, vehicle, and availability data synchronized between the frontend and admin panel.
+6. Make the full workflow mobile-friendly for both customers and admin users.
+
+# Admin Panel Navigation
+
+Add or complete the following rental car sections inside the existing admin panel:
+
+* Rental Car Dashboard
+* Cars
+* Availability Calendar
+* Reservations
+* Customers and Drivers
+* Payments
+* Pickups
+* Returns
+* Inspections
+* Maintenance
+* Pricing and Add-ons
+* Rental Settings
+
+Use the existing admin layout, navigation style, permissions, tables, buttons, forms, and visual design.
+
+# 1. Admin Car Management
+
+Create a rental car management page such as:
+
+`/admin/rental-cars`
+
+Display all vehicles in a responsive table or card view.
+
+Each vehicle should show:
+
+* Main photo
+* Internal vehicle name
+* Public listing title
+* Brand
+* Model
+* Trim
+* Vehicle class
+* Registration plate
+* Year
+* Seating capacity
+* Luggage capacity
+* Transmission
+* Fuel type
+* Drive type
+* Current mileage
+* Daily price
+* Current status
+* Next booking
+* Availability status
+* Published or unpublished status
+
+Available actions:
+
+* View
+* Edit
+* Duplicate
+* Manage availability
+* View reservations
+* Block dates
+* Set maintenance
+* Publish or unpublish
+* Archive
+
+Add filters for:
+
+* Published
+* Unpublished
+* Available
+* Reserved
+* In use
+* Cleaning
+* Maintenance
+* Archived
+* Alphard
+* Sienta
+* Vehicle class
+
+Add search by:
+
+* Vehicle name
+* Model
+* Plate number
+* Internal ID
+
+# 2. Add and Edit Car Form
+
+Create an easy multi-section form for adding or editing cars.
+
+Recommended route:
+
+`/admin/rental-cars/new`
+
+and
+
+`/admin/rental-cars/[id]/edit`
+
+Sections:
+
+## Basic Information
+
+* Internal vehicle name
+* Public listing title
+* URL slug
+* Brand
+* Model
+* Trim
+* Year
+* Color
+* Plate number
+* VIN or chassis number
+* Vehicle class
+* Public description
+* Internal notes
+
+The internal vehicle name should help distinguish identical vehicles.
+
+Example:
+
+* Toyota Alphard 01
+* Toyota Alphard 02
+* Toyota Sienta 01
+
+## Vehicle Specifications
+
+* Number of seats
+* Recommended passengers
+* Maximum passengers
+* Small luggage capacity
+* Large luggage capacity
+* Number of doors
+* Transmission
+* Fuel type
+* Drive type
+* Engine size
+* Current mileage
+* Fuel policy
+* Smoking policy
+* Pet policy
+
+## Hokkaido and Winter Features
+
+Use selectable checkboxes for:
+
+* 4WD
+* Winter tires
+* Snow brush
+* Ice scraper
+* Ski or snowboard friendly
+* Ski rack
+* Large luggage space
+* ETC device
+* ETC card available
+* Navigation system
+* Apple CarPlay
+* Android Auto
+* USB charging
+* Bluetooth
+* Rear camera
+* Child-seat compatible
+
+## Photos
+
+Allow:
+
+* Drag-and-drop upload
+* Multiple photo upload
+* Photo reordering
+* Main photo selection
+* Photo deletion
+* Image captions
+* Mobile preview
+* Desktop preview
+
+## Pricing
+
+Support:
+
+* Base daily price
+* Weekend price
+* Public holiday price
+* High-season price
+* Winter-season price
+* Weekly discount
+* Monthly discount
+* Minimum rental duration
+* Maximum rental duration
+* Cleaning fee
+* Delivery fee
+* Late-return fee
+* Extra mileage fee
+* Security deposit or pre-authorization amount
+* Tax inclusion setting
+* Manual price override
+
+## Pickup and Return
+
+Allow each car to use global settings or vehicle-specific settings for:
+
+* Pickup location
+* Return location
+* New Chitose Airport delivery
+* Sapporo hotel delivery
+* Different return location
+* Business hours
+* After-hours pickup
+* After-hours return
+* Delivery lead time
+* Delivery fee
+
+## Required Documents
+
+Admin can configure whether the booking requires:
+
+* Japanese driver’s license
+* Foreign driver’s license
+* International Driving Permit
+* Passport
+* Residence card
+* Selfie
+* Additional-driver documents
+
+## SEO
+
+* Meta title
+* Meta description
+* Canonical URL
+* Open Graph title
+* Open Graph description
+* Social sharing image
+
+## Publishing
+
+* Draft
+* Published
+* Unpublished
+* Archived
+* Featured
+* Display order
+
+Validate all required fields before publishing.
+
+Allow saving incomplete vehicles as drafts.
+
+# 3. Availability Calendar
+
+Create an availability calendar such as:
+
+`/admin/rental-cars/availability`
+
+The calendar must support:
+
+* Day view
+* Week view
+* Month view
+* Vehicle timeline view
+* Filter by vehicle
+* Filter by vehicle type
+* Filter by booking status
+
+Use clear availability states:
+
+* Available
+* Pending reservation
+* Confirmed reservation
+* Picked up
+* Cleaning
+* Maintenance
+* Admin blocked
+* Unavailable
+* Returned late
+
+Admin must be able to:
+
+* Click and drag to block multiple dates
+* Select start and end date/time
+* Choose one or multiple vehicles
+* Add a reason
+* Add internal notes
+* Create repeating availability blocks
+* Edit blocks
+* Delete blocks
+* Assign maintenance
+* Assign cleaning time
+* Create a manual reservation
+* Move a reservation when allowed
+
+Examples of blocking reasons:
+
+* Maintenance
+* Inspection
+* Cleaning
+* Personal use
+* Accident repair
+* Vehicle registration
+* Shaken
+* Insurance renewal
+* Other
+
+Availability must work using both date and time, not date only.
+
+Example:
+
+A car returned at 10:00 cannot automatically be available for another booking at 10:00 unless the configured turnaround buffer allows it.
+
+# 4. Turnaround Buffer
+
+Add configurable rental buffer rules.
+
+Examples:
+
+* Cleaning buffer after return
+* Preparation buffer before pickup
+* Airport delivery travel buffer
+* Late-night return buffer
+
+Allow a global default and vehicle-specific overrides.
+
+The availability calculation must include these buffers.
+
+# 5. Frontend Search Workflow
+
+Connect the existing rental car search form to live vehicle availability.
+
+Customer inputs:
+
+* Pickup location
+* Return location
+* Pickup date
+* Pickup time
+* Return date
+* Return time
+* Number of adults
+* Number of children
+* Number of babies
+* Number of large luggage items
+* Number of small luggage items
+
+Optional filters:
+
+* Vehicle class
+* Number of seats
+* Alphard
+* Sienta
+* 4WD
+* Winter tires
+* Child seat
+* Airport delivery
+* Hotel delivery
+* Ski or snowboard luggage
+* Price range
+
+Search results must only show vehicles that:
+
+* Are published
+* Are not archived
+* Match the passenger capacity
+* Match the luggage requirements
+* Support the selected pickup and return locations
+* Are available for the entire selected period
+* Are not blocked for maintenance or admin use
+* Have enough buffer time before and after adjacent bookings
+
+Do not show unavailable cars as bookable.
+
+Optionally show unavailable cars in a separate section with the label:
+
+“Not available for your selected dates”
+
+# 6. Rental Car Listing Page
+
+Each car card should display:
+
+* Main photo
+* Vehicle name
+* Vehicle class
+* Seats
+* Recommended number of passengers
+* Large and small luggage capacity
+* Transmission
+* 4WD status
+* Winter tire status
+* Pickup location
+* Estimated total price
+* Price per day
+* Key features
+* Availability status
+
+The total price shown must be calculated using:
+
+* Pickup and return date/time
+* Base rental price
+* Weekend rates
+* Holiday rates
+* Seasonal rates
+* Rental duration
+* Delivery or return fees
+* Selected mandatory fees
+* Taxes
+* Discounts
+
+Pass all search values to the vehicle detail page.
+
+# 7. Vehicle Detail Page
+
+Preserve the selected:
+
+* Pickup location
+* Return location
+* Pickup date and time
+* Return date and time
+* Passenger count
+* Luggage count
+
+Show:
+
+* Photo gallery
+* Vehicle details
+* Seating layout
+* Luggage guidance
+* Winter features
+* Included equipment
+* Pickup instructions
+* Return instructions
+* Rental policies
+* Cancellation policy
+* Insurance summary
+* Available add-ons
+* Live price breakdown
+* Availability confirmation
+* Reserve button
+
+Before proceeding, recheck availability on the server.
+
+Do not rely only on the frontend availability result.
+
+# 8. Add-ons
+
+Create admin-manageable rental add-ons.
+
+Examples:
+
+* Child seat
+* Baby seat
+* Junior seat
+* Additional driver
+* ETC card
+* Pocket Wi-Fi
+* Airport delivery
+* Hotel delivery
+* Ski rack
+* Snow chains
+* Extra insurance
+* Unlimited mileage
+* Early pickup
+* Late return
+
+Each add-on should support:
+
+* Name
+* Description
+* Image
+* Pricing type
+* Flat fee
+* Per-day fee
+* Per-rental fee
+* Per-unit fee
+* Quantity
+* Maximum quantity
+* Inventory limit
+* Vehicle compatibility
+* Required or optional
+* Published or unpublished
+
+Prevent overbooking of limited add-ons such as child seats.
+
+# 9. Customer Booking Workflow
+
+Use the following frontend flow:
+
+1. Search available cars
+2. Select car
+3. Review vehicle details
+4. Select add-ons
+5. Enter primary driver information
+6. Add additional drivers
+7. Upload required documents
+8. Enter pickup and return details
+9. Review booking summary
+10. Accept rental terms
+11. Pay
+12. Receive booking confirmation
+13. Complete online check-in
+14. Pick up car
+15. Return car
+16. Receive final receipt and deposit result
+
+Display a clear progress indicator throughout checkout.
+
+# 10. Driver Information
+
+Collect:
+
+* Full legal name
+* Name in Roman letters
+* Date of birth
+* Nationality
+* Country of residence
+* Address
+* Email
+* Phone number
+* Emergency contact
+* Flight number, when airport delivery is selected
+* Accommodation name or address, when hotel delivery is selected
+
+Document uploads:
+
+* Driver’s license front
+* Driver’s license back
+* International Driving Permit
+* Passport photo page
+* Residence card when applicable
+* Selfie when required
+
+Support additional drivers.
+
+Each additional driver must have a separate document status.
+
+# 11. Document Verification
+
+In admin, show verification statuses:
+
+* Not submitted
+* Submitted
+* Under review
+* Approved
+* Rejected
+* Resubmission required
+* Expired
+
+Admin can:
+
+* Preview files
+* Approve documents
+* Reject documents
+* Enter rejection reason
+* Request resubmission
+* Add internal notes
+* Record license expiration date
+* Record International Driving Permit expiration date
+
+Customer must see the current document status in their dashboard.
+
+# 12. Reservation Creation and Locking
+
+When a customer begins checkout:
+
+* Create a temporary availability hold.
+* Hold the selected vehicle for a configurable period, such as 15 minutes.
+* Show a countdown during checkout.
+* Automatically release the hold if checkout expires.
+* Convert the hold into a reservation after successful payment.
+* Prevent another customer from reserving the same vehicle during the hold.
+
+Use database transactions or equivalent server-side locking to prevent race conditions and double bookings.
+
+# 13. Reservation Statuses
+
+Use structured reservation statuses:
+
+* Draft
+* Temporary hold
+* Pending payment
+* Payment failed
+* Pending admin approval
+* Pending document review
+* Documents rejected
+* Confirmed
+* Preparing vehicle
+* Ready for pickup
+* Picked up
+* In rental
+* Return due
+* Overdue
+* Returned
+* Inspection pending
+* Additional payment required
+* Completed
+* Cancelled by customer
+* Cancelled by admin
+* No-show
+
+Payment status must be separate:
+
+* Unpaid
+* Partially paid
+* Paid
+* Payment failed
+* Refund pending
+* Partially refunded
+* Fully refunded
+* Deposit authorized
+* Deposit captured
+* Deposit released
+
+# 14. Admin Reservation Management
+
+Create a reservation page such as:
+
+`/admin/rental-car-reservations`
+
+Display:
+
+* Booking ID
+* Customer
+* Vehicle
+* Pickup date and time
+* Return date and time
+* Pickup location
+* Return location
+* Booking status
+* Document status
+* Payment status
+* Total amount
+* Outstanding balance
+* Date created
+
+Filters:
+
+* Today’s pickups
+* Today’s returns
+* Upcoming
+* Pending payment
+* Pending documents
+* Pending approval
+* Confirmed
+* In rental
+* Overdue
+* Returned
+* Cancelled
+* Completed
+
+Admin actions:
+
+* View booking
+* Edit booking
+* Change assigned vehicle
+* Approve or reject
+* Request documents
+* Record payment
+* Send payment link
+* Refund
+* Cancel
+* Extend rental
+* Start pickup
+* Start return
+* Add internal note
+* Resend confirmation
+* Download agreement
+* Download invoice
+
+Changing a vehicle or rental period must rerun the availability validation.
+
+# 15. Manual Admin Reservation
+
+Allow staff to create bookings for:
+
+* Phone reservations
+* Walk-in customers
+* Partner referrals
+* Airbnb guests
+* Primostay lodging guests
+* Corporate customers
+
+Admin selects:
+
+* Customer
+* Vehicle
+* Pickup and return
+* Add-ons
+* Custom pricing
+* Discount
+* Payment method
+* Booking status
+* Internal source
+
+Before saving, validate availability.
+
+# 16. Payment Workflow
+
+Use the existing payment integration when available.
+
+Support:
+
+* Full payment
+* Partial deposit
+* Pay-later booking
+* Admin payment link
+* Security deposit or card pre-authorization
+* Additional post-rental charges
+* Refunds
+* Partial refunds
+
+Store:
+
+* Rental subtotal
+* Add-ons
+* Delivery fees
+* Discounts
+* Tax
+* Security deposit
+* Paid amount
+* Outstanding amount
+* Refund amount
+* Final total
+
+Do not store raw credit card data.
+
+Payment webhook events must update reservation and payment statuses automatically.
+
+# 17. Booking Confirmation
+
+After successful booking, show:
+
+* Booking number
+* Vehicle
+* Pickup and return information
+* Total paid
+* Outstanding amount
+* Required documents
+* Document deadline
+* Online check-in link
+* Rental agreement
+* Contact information
+* Directions
+* QR code
+
+Send confirmation by email.
+
+Prepare the notification structure for:
+
+* Japanese
+* English
+* Traditional Chinese
+
+# 18. Customer Dashboard
+
+Add rental car reservations to the existing customer dashboard.
+
+Customers can:
+
+* View upcoming rentals
+* View past rentals
+* View booking details
+* Upload documents
+* Check verification status
+* Download invoice
+* Download receipt
+* Download rental agreement
+* Complete online check-in
+* Request cancellation
+* Request rental extension
+* View pickup instructions
+* View return instructions
+* Contact support
+
+Keep lodging and rental car bookings clearly separated while allowing both to appear in one account.
+
+# 19. Pickup Workflow
+
+Create an admin pickup checklist.
+
+Steps:
+
+1. Confirm customer identity
+2. Confirm driver’s license
+3. Confirm International Driving Permit when applicable
+4. Confirm payment
+5. Confirm security deposit
+6. Record pickup mileage
+7. Record fuel level
+8. Upload exterior photos
+9. Upload interior photos
+10. Mark existing damage
+11. Confirm add-ons
+12. Customer signs vehicle condition report
+13. Customer signs rental agreement when not already signed
+14. Mark vehicle as picked up
+
+After completion:
+
+* Reservation becomes “In rental”
+* Vehicle becomes “In use”
+* Availability stays blocked until the return process is completed
+
+# 20. Return Workflow
+
+Create an admin return checklist.
+
+Steps:
+
+1. Record return time
+2. Record return mileage
+3. Record fuel level
+4. Upload exterior photos
+5. Upload interior photos
+6. Check damage
+7. Check cleanliness
+8. Check missing add-ons
+9. Calculate extra mileage
+10. Calculate late-return fees
+11. Calculate fuel charges
+12. Calculate cleaning charges
+13. Calculate damage charges
+14. Create additional payment request when needed
+15. Release or capture the security deposit
+16. Mark the reservation as completed
+17. Mark the vehicle for cleaning or available status
+
+Do not immediately mark the vehicle as available when a cleaning buffer is required.
+
+# 21. Vehicle Status Automation
+
+Vehicle status should update automatically based on operations.
+
+Examples:
+
+* Confirmed upcoming reservation: Reserved
+* Pickup completed: In use
+* Return submitted: Inspection pending
+* Inspection completed with cleaning needed: Cleaning
+* Cleaning completed: Available
+* Maintenance block active: Maintenance
+* Accident reported: Unavailable
+
+Allow admin override with a required reason.
+
+# 22. Maintenance Management
+
+Create maintenance records for each vehicle.
+
+Fields:
+
+* Vehicle
+* Maintenance type
+* Description
+* Service provider
+* Scheduled date
+* Start time
+* End time
+* Mileage
+* Cost
+* Receipt
+* Status
+* Internal notes
+
+Maintenance must automatically block vehicle availability.
+
+Track reminders for:
+
+* Oil change
+* Tire change
+* Winter tire installation
+* Winter tire removal
+* Shaken
+* Insurance expiry
+* Registration renewal
+* General inspection
+* Cleaning
+* Repairs
+
+# 23. Pricing and Seasonal Rules
+
+Allow admin to create pricing rules for:
+
+* Weekdays
+* Fridays
+* Saturdays
+* Sundays
+* Public holidays
+* Holiday eves
+* Golden Week
+* Obon
+* Silver Week
+* New Year
+* Winter high season
+* Ski season
+* Custom date ranges
+
+Rules can apply to:
+
+* All vehicles
+* Vehicle class
+* Specific vehicle
+
+Define priority so the system knows which rule wins when multiple rules overlap.
+
+Show the final calculation clearly in frontend and admin.
+
+# 24. Cancellation Workflow
+
+Allow configurable cancellation policies.
+
+Store:
+
+* Cancellation deadline
+* Refund percentage
+* Non-refundable fees
+* Admin cancellation reason
+* Customer cancellation reason
+* Refund status
+
+When cancelled:
+
+* Release the vehicle availability
+* Release limited add-ons
+* Cancel temporary holds
+* Process or queue the correct refund
+* Notify customer and admin
+
+# 25. Notifications
+
+Create event-based notifications for:
+
+* New booking
+* Payment completed
+* Payment failed
+* Booking confirmed
+* Document upload received
+* Document approved
+* Document rejected
+* Pickup reminder
+* Return reminder
+* Rental overdue
+* Extension request
+* Cancellation request
+* Refund completed
+* Additional payment required
+* Security deposit released
+
+Notifications should be triggered by backend events rather than page actions only.
+
+# 26. Database Requirements
+
+Add or adapt relational database models for:
+
+* RentalVehicle
+* RentalVehicleImage
+* RentalVehicleFeature
+* RentalVehiclePricing
+* RentalSeasonalPricingRule
+* RentalAvailabilityBlock
+* RentalReservation
+* RentalReservationHold
+* RentalReservationAddOn
+* RentalAddOn
+* RentalAddOnInventory
+* RentalDriver
+* RentalDriverDocument
+* RentalPayment
+* RentalRefund
+* RentalInspection
+* RentalInspectionPhoto
+* RentalDamage
+* RentalMaintenance
+* RentalStatusHistory
+* RentalNotification
+* RentalLocation
+* RentalAgreement
+* RentalAuditLog
+
+Do not duplicate existing customer, user, authentication, payment, or media models when they can safely be reused.
+
+Use proper foreign keys, indexes, timestamps, soft deletion where appropriate, and status history.
+
+# 27. Data Integrity
+
+Implement server-side protections:
+
+* Prevent overlapping confirmed reservations
+* Prevent overlapping temporary holds
+* Prevent bookings during maintenance
+* Prevent booking unpublished vehicles
+* Prevent booking archived vehicles
+* Prevent invalid pickup and return times
+* Prevent return time before pickup time
+* Prevent passenger count above capacity
+* Prevent insufficient add-on inventory
+* Prevent duplicate webhook processing
+* Recalculate pricing on the server before payment
+* Revalidate availability before payment confirmation
+
+Never trust totals or availability sent only from the browser.
+
+# 28. Audit Log
+
+Record important admin actions:
+
+* Vehicle created
+* Vehicle edited
+* Vehicle published
+* Availability blocked
+* Booking edited
+* Vehicle changed
+* Price overridden
+* Payment manually recorded
+* Refund created
+* Documents approved or rejected
+* Pickup completed
+* Return completed
+* Status manually overridden
+
+Store:
+
+* Admin user
+* Action
+* Record type
+* Record ID
+* Previous value
+* New value
+* Timestamp
+
+# 29. Initial Seed Data
+
+Create initial vehicle records as drafts without using fake registration or legal document data:
+
+* Toyota Alphard 01
+* Toyota Alphard 02
+* Toyota Sienta 01
+
+Use placeholder photos and clearly marked placeholder values only where information is not yet available.
+
+Do not invent:
+
+* Plate numbers
+* VIN numbers
+* Insurance numbers
+* Shaken expiry dates
+* License information
+
+# 30. Testing
+
+Create tests for:
+
+* Availability search
+* Overlapping booking prevention
+* Temporary booking holds
+* Hold expiration
+* Seasonal price calculation
+* Add-on inventory
+* Booking creation
+* Payment webhook handling
+* Cancellation and availability release
+* Vehicle status changes
+* Pickup workflow
+* Return workflow
+* Maintenance blocking
+* Passenger-capacity validation
+* Server-side price recalculation
+
+Test edge cases involving two customers trying to book the same vehicle at the same time.
+
+# 31. Implementation Rules
+
+Before coding:
+
+1. Inspect the existing project structure.
+2. Identify the existing frontend rental car routes.
+3. Identify the existing admin layout and reusable components.
+4. Identify existing authentication, user, customer, media, payment, notification, and booking-related models.
+5. Reuse existing systems wherever safe.
+6. Prepare database migrations without deleting existing data.
+7. Do not rename or remove existing routes unless necessary.
+8. Do not break lodging functionality.
+9. Do not replace the existing design system.
+10. Do not insert mock frontend-only functionality.
+
+All rental car forms, filters, calendars, availability checks, pricing, reservations, payments, and statuses must be connected to the real database and backend APIs.
+
+# Definition of Done
+
+The task is complete when:
+
+* Admin can add and edit unlimited rental cars.
+* Admin can upload and reorder vehicle photos.
+* Admin can publish and unpublish vehicles.
+* Admin can manage date-and-time availability from a calendar.
+* Maintenance and manual blocks affect frontend availability.
+* Customers can search using live availability.
+* Unavailable vehicles cannot be booked.
+* Temporary checkout holds prevent double booking.
+* Customers can complete the full booking and payment flow.
+* Reservations appear immediately in admin.
+* Admin can manage documents, pickup, return, inspections, and payments.
+* Vehicle status updates correctly throughout the rental lifecycle.
+* Cancellation releases the vehicle correctly.
+* Rental car bookings appear in the customer dashboard.
+* Existing lodging pages and admin features continue working.
+* The complete workflow works on desktop and mobile.
