@@ -196,6 +196,9 @@ importers:
       pino-http:
         specifier: ^10
         version: 10.5.0
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@types/cookie-parser':
         specifier: ^1.4.10
@@ -645,6 +648,12 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../lib/db
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(@types/pg@8.18.0)(pg@8.20.0)
       tsx:
         specifier: 'catalog:'
         version: 4.21.0

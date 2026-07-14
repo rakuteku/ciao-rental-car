@@ -8,6 +8,10 @@ import contentRouter from "./content";
 import seoRouter from "./seo";
 import roomsRouter from "./rooms";
 import sitemapRouter from "./sitemap";
+import rentalVehiclesRouter from "./rental-vehicles";
+import rentalAvailabilityBlocksRouter from "./rental-availability-blocks";
+import rentalAddonsRouter from "./rental-addons";
+import rentalReservationsRouter from "./rental-reservations";
 
 const router: IRouter = Router();
 
@@ -20,5 +24,9 @@ router.use(contentRouter);
 router.use(seoRouter);
 router.use(roomsRouter);
 router.use(sitemapRouter);
+router.use(rentalVehiclesRouter);
+router.use(rentalAvailabilityBlocksRouter);
+router.use(rentalAddonsRouter);
+router.use(rentalReservationsRouter);
 
 export default router;

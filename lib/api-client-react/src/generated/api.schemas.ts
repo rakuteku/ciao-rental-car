@@ -259,6 +259,414 @@ export interface ReorderRoomsBody {
   orderedIds: number[];
 }
 
+export interface RentalVehicleImage {
+  id: number;
+  vehicleId: number;
+  url: string;
+  /** @nullable */
+  caption?: string | null;
+  sortOrder: number;
+  isCover: boolean;
+  createdAt: string;
+}
+
+export interface RentalVehicle {
+  id: number;
+  internalName: string;
+  publicTitle: string;
+  slug: string;
+  brand: string;
+  model: string;
+  /** @nullable */
+  trim?: string | null;
+  year: number;
+  /** @nullable */
+  color?: string | null;
+  vehicleClass: string;
+  description: string;
+  seats: number;
+  recommendedPassengers: number;
+  maxPassengers: number;
+  smallLuggageCapacity: number;
+  largeLuggageCapacity: number;
+  doors: number;
+  transmission: string;
+  fuelType: string;
+  driveType: string;
+  /** @nullable */
+  engineSize?: string | null;
+  fuelPolicy: string;
+  smokingPolicy: string;
+  petPolicy: string;
+  status: string;
+  featured: boolean;
+  sortOrder: number;
+  has4wd: boolean;
+  hasWinterTires: boolean;
+  hasSnowBrush: boolean;
+  hasIceScraper: boolean;
+  isSkiFriendly: boolean;
+  hasSkiRack: boolean;
+  hasHeatedSeats: boolean;
+  hasHeatedSteering: boolean;
+  hasEtc: boolean;
+  hasNavigation: boolean;
+  hasBackupCamera: boolean;
+  hasBluetooth: boolean;
+  hasUsbPort: boolean;
+  metaTitle: string;
+  metaDescription: string;
+  ogTitle: string;
+  ogDescription: string;
+  ogImage: string;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  deletedAt?: string | null;
+  images: RentalVehicleImage[];
+}
+
+export interface RentalVehiclePricing {
+  id: number;
+  vehicleId: number;
+  basePrice: number;
+  /** @nullable */
+  weekendPrice?: number | null;
+  /** @nullable */
+  holidayPrice?: number | null;
+  weeklyDiscountPct: number;
+  monthlyDiscountPct: number;
+  minDays: number;
+  cleaningFee: number;
+  deliveryFee: number;
+  lateReturnFee: number;
+  securityDeposit: number;
+  taxIncluded: boolean;
+  taxRate: number;
+  airportPickupFee: number;
+  airportDropoffFee: number;
+}
+
+export type RentalVehicleDetail = RentalVehicle & {
+  pricing?: RentalVehiclePricing | null;
+};
+
+export interface RentalVehicleSearchResult {
+  available: RentalVehicle[];
+  unavailable: RentalVehicle[];
+}
+
+export interface RentalAddon {
+  id: number;
+  name: string;
+  description: string;
+  /** @nullable */
+  image?: string | null;
+  pricingType: string;
+  flatFee: number;
+  perDayFee: number;
+  perUnitFee: number;
+  maxQty: number;
+  /** @nullable */
+  inventoryLimit?: number | null;
+  required: boolean;
+  published: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RentalAvailabilityBlock {
+  id: number;
+  vehicleId: number;
+  startAt: string;
+  endAt: string;
+  reason: string;
+  /** @nullable */
+  notes?: string | null;
+  isRecurring: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RentalReservation {
+  id: number;
+  vehicleId: number;
+  /** @nullable */
+  primaryDriverId?: number | null;
+  pickupAt: string;
+  returnAt: string;
+  pickupLocation: string;
+  returnLocation: string;
+  status: string;
+  paymentStatus: string;
+  subtotal: number;
+  addonsTotal: number;
+  deliveryFee: number;
+  discount: number;
+  tax: number;
+  securityDeposit: number;
+  paidAmount: number;
+  outstanding: number;
+  refundAmount: number;
+  finalTotal: number;
+  source: string;
+  /** @nullable */
+  internalNotes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  deletedAt?: string | null;
+}
+
+export interface RentalDriver {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  /** @nullable */
+  romanizedName?: string | null;
+  /** @nullable */
+  nationality?: string | null;
+  /** @nullable */
+  flightNumber?: string | null;
+  /** @nullable */
+  accommodation?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RentalReservationAddon {
+  id: number;
+  reservationId: number;
+  addonId: number;
+  qty: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export type RentalReservationDetail = RentalReservation & {
+  driver?: RentalDriver | null;
+  addons?: RentalReservationAddon[];
+};
+
+export interface RentalHold {
+  id: number;
+  holdId: number;
+  vehicleId: number;
+  pickupAt: string;
+  returnAt: string;
+  heldUntil: string;
+  /** @nullable */
+  releasedAt?: string | null;
+  createdAt: string;
+}
+
+export interface DayRate {
+  date: string;
+  baseRate: number;
+  appliedRate: number;
+  /** @nullable */
+  ruleApplied?: string | null;
+}
+
+export interface RentalPriceBreakdown {
+  days: number;
+  dayRates: DayRate[];
+  subtotal: number;
+  deliveryFee: number;
+  airportPickupFee: number;
+  airportDropoffFee: number;
+  addonsTotal: number;
+  discount: number;
+  tax: number;
+  securityDeposit: number;
+  finalTotal: number;
+  taxIncluded: boolean;
+  currency: string;
+}
+
+export type RentalReservationWithPricing = RentalReservation & {
+  pricing?: RentalPriceBreakdown;
+};
+
+export interface CreateHoldBody {
+  vehicleId: number;
+  pickupAt: string;
+  returnAt: string;
+  sessionToken?: string;
+}
+
+export interface CreateReservationDriverBody {
+  fullName: string;
+  email: string;
+  phone: string;
+  romanizedName?: string;
+  nationality?: string;
+  flightNumber?: string;
+  accommodation?: string;
+}
+
+export interface CreateReservationAddonBody {
+  addonId: number;
+  qty: number;
+}
+
+export interface CreateReservationBody {
+  holdId: number;
+  vehicleId: number;
+  pickupAt: string;
+  returnAt: string;
+  pickupLocation: string;
+  returnLocation: string;
+  driver: CreateReservationDriverBody;
+  addons?: CreateReservationAddonBody[];
+  source?: string;
+}
+
+export interface PriceCalculateBody {
+  vehicleId: number;
+  pickupAt: string;
+  returnAt: string;
+  pickupLocation?: string;
+  returnLocation?: string;
+  addons?: CreateReservationAddonBody[];
+}
+
+export interface CreateRentalVehicleBody {
+  internalName: string;
+  publicTitle: string;
+  slug?: string;
+  brand: string;
+  model: string;
+  trim?: string;
+  year: number;
+  color?: string;
+  vehicleClass?: string;
+  description?: string;
+  seats?: number;
+  recommendedPassengers?: number;
+  maxPassengers?: number;
+  smallLuggageCapacity?: number;
+  largeLuggageCapacity?: number;
+  doors?: number;
+  transmission?: string;
+  fuelType?: string;
+  driveType?: string;
+  engineSize?: string;
+  status?: string;
+  featured?: boolean;
+  sortOrder?: number;
+  has4wd?: boolean;
+  hasWinterTires?: boolean;
+  hasSnowBrush?: boolean;
+  hasIceScraper?: boolean;
+  isSkiFriendly?: boolean;
+  hasSkiRack?: boolean;
+  hasHeatedSeats?: boolean;
+  hasHeatedSteering?: boolean;
+  hasEtc?: boolean;
+  hasNavigation?: boolean;
+  hasBackupCamera?: boolean;
+  hasBluetooth?: boolean;
+  hasUsbPort?: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+}
+
+export interface UpdateRentalVehicleBody {
+  internalName?: string;
+  publicTitle?: string;
+  slug?: string;
+  brand?: string;
+  model?: string;
+  trim?: string;
+  year?: number;
+  color?: string;
+  vehicleClass?: string;
+  description?: string;
+  seats?: number;
+  recommendedPassengers?: number;
+  maxPassengers?: number;
+  smallLuggageCapacity?: number;
+  largeLuggageCapacity?: number;
+  doors?: number;
+  transmission?: string;
+  fuelType?: string;
+  driveType?: string;
+  engineSize?: string;
+  status?: string;
+  featured?: boolean;
+  sortOrder?: number;
+  has4wd?: boolean;
+  hasWinterTires?: boolean;
+  hasSnowBrush?: boolean;
+  hasIceScraper?: boolean;
+  isSkiFriendly?: boolean;
+  hasSkiRack?: boolean;
+  hasHeatedSeats?: boolean;
+  hasHeatedSteering?: boolean;
+  hasEtc?: boolean;
+  hasNavigation?: boolean;
+  hasBackupCamera?: boolean;
+  hasBluetooth?: boolean;
+  hasUsbPort?: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+}
+
+export interface AddVehicleImageBody {
+  url: string;
+  caption?: string;
+  isCover?: boolean;
+}
+
+export interface ReorderImagesBody {
+  orderedIds: number[];
+}
+
+export interface CreateAvailabilityBlockBody {
+  vehicleId: number;
+  startAt: string;
+  endAt: string;
+  reason?: string;
+  notes?: string;
+  isRecurring?: boolean;
+  recurrenceRule?: string;
+  createdBy?: string;
+}
+
+export interface UpdateReservationBody {
+  status?: string;
+  paymentStatus?: string;
+  /** @nullable */
+  internalNotes?: string | null;
+  paidAmount?: number;
+  refundAmount?: number;
+}
+
+export interface CreateAddonBody {
+  name: string;
+  description?: string;
+  image?: string;
+  pricingType?: string;
+  flatFee?: number;
+  perDayFee?: number;
+  perUnitFee?: number;
+  maxQty?: number;
+  inventoryLimit?: number;
+  vehicleCompatibility?: string[];
+  required?: boolean;
+  published?: boolean;
+  sortOrder?: number;
+}
+
 export type GetRoomsParams = {
   featured?: boolean;
 };
@@ -285,5 +693,47 @@ export type DeleteAdminCar200 = {
 };
 
 export type SetCarAvailability200 = {
+  message: string;
+};
+
+export type SearchRentalVehiclesParams = {
+  pickupAt?: string;
+  returnAt?: string;
+  pickupLocation?: string;
+  returnLocation?: string;
+  adults?: number;
+  children?: number;
+  luggageLarge?: number;
+  luggageSmall?: number;
+  vehicleClass?: string;
+  transmission?: string;
+};
+
+export type DeleteAdminRentalVehicle200 = {
+  message: string;
+};
+
+export type ReorderAdminRentalVehicleImages200 = {
+  message: string;
+};
+
+export type DeleteAdminRentalVehicleImage200 = {
+  message: string;
+};
+
+export type GetAdminRentalAvailabilityBlocksParams = {
+  vehicleId?: number;
+};
+
+export type DeleteAdminRentalAvailabilityBlock200 = {
+  message: string;
+};
+
+export type GetAdminRentalReservationsParams = {
+  status?: string;
+  vehicleId?: number;
+};
+
+export type DeleteAdminRentalAddon200 = {
   message: string;
 };

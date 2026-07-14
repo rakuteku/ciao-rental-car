@@ -22,6 +22,8 @@ tags:
     description: Page content operations
   - name: rooms
     description: Lodging room operations
+  - name: rental
+    description: Rental car operations (new rich schema)
 paths:
   /rooms:
     get:
@@ -645,6 +647,914 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminStats"
 
+  /rental/vehicles/search:
+    get:
+      operationId: searchRentalVehicles
+      tags: [rental]
+      summary: Search available rental vehicles
+      parameters:
+        - name: pickupAt
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: returnAt
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: pickupLocation
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: returnLocation
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: adults
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: children
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: luggageLarge
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: luggageSmall
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: vehicleClass
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: transmission
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Available and unavailable vehicles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehicleSearchResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rental/vehicles:
+    get:
+      operationId: getRentalVehicles
+      tags: [rental]
+      summary: List published rental vehicles
+      responses:
+        "200":
+          description: List of rental vehicles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RentalVehicle"
+
+  /rental/vehicles/{slug}:
+    get:
+      operationId: getRentalVehicle
+      tags: [rental]
+      summary: Get a rental vehicle by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Vehicle details with pricing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehicleDetail"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rental/addons:
+    get:
+      operationId: getRentalAddons
+      tags: [rental]
+      summary: List published rental add-ons
+      responses:
+        "200":
+          description: List of add-ons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RentalAddon"
+
+  /rental/reservations/hold:
+    post:
+      operationId: createRentalHold
+      tags: [rental]
+      summary: Create a temporary vehicle hold
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHoldBody"
+      responses:
+        "201":
+          description: Hold created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalHold"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Vehicle not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rental/reservations:
+    post:
+      operationId: createRentalReservation
+      tags: [rental]
+      summary: Create a reservation from a hold
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReservationBody"
+      responses:
+        "201":
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalReservationWithPricing"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Vehicle no longer available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rental/pricing/calculate:
+    post:
+      operationId: calculateRentalPrice
+      tags: [rental]
+      summary: Calculate rental price breakdown
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PriceCalculateBody"
+      responses:
+        "200":
+          description: Price breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalPriceBreakdown"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/vehicles:
+    get:
+      operationId: getAdminRentalVehicles
+      tags: [admin]
+      summary: List all rental vehicles (admin, incl. drafts)
+      responses:
+        "200":
+          description: List of rental vehicles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RentalVehicle"
+    post:
+      operationId: createAdminRentalVehicle
+      tags: [admin]
+      summary: Create a new rental vehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRentalVehicleBody"
+      responses:
+        "201":
+          description: Vehicle created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehicle"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/vehicles/{id}:
+    put:
+      operationId: updateAdminRentalVehicle
+      tags: [admin]
+      summary: Update a rental vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRentalVehicleBody"
+      responses:
+        "200":
+          description: Updated vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehicle"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminRentalVehicle
+      tags: [admin]
+      summary: Soft-delete a rental vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vehicle deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/vehicles/{id}/duplicate:
+    post:
+      operationId: duplicateAdminRentalVehicle
+      tags: [admin]
+      summary: Duplicate a rental vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Duplicated vehicle (draft)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehicle"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/vehicles/{id}/images:
+    post:
+      operationId: addAdminRentalVehicleImage
+      tags: [admin]
+      summary: Add an image to a vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddVehicleImageBody"
+      responses:
+        "201":
+          description: Image added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehicleImage"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/vehicles/{id}/images/reorder:
+    put:
+      operationId: reorderAdminRentalVehicleImages
+      tags: [admin]
+      summary: Reorder vehicle images
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderImagesBody"
+      responses:
+        "200":
+          description: Images reordered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+
+  /admin/rental/vehicles/{id}/images/{imgId}:
+    delete:
+      operationId: deleteAdminRentalVehicleImage
+      tags: [admin]
+      summary: Delete a vehicle image
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: imgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Image deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "404":
+          description: Image not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/vehicles/{id}/images/{imgId}/cover:
+    put:
+      operationId: setAdminRentalVehicleCoverImage
+      tags: [admin]
+      summary: Set a vehicle image as cover
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: imgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cover image updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehicleImage"
+        "404":
+          description: Image not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/availability-blocks:
+    get:
+      operationId: getAdminRentalAvailabilityBlocks
+      tags: [admin]
+      summary: List availability blocks (admin)
+      parameters:
+        - name: vehicleId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of availability blocks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RentalAvailabilityBlock"
+    post:
+      operationId: createAdminRentalAvailabilityBlock
+      tags: [admin]
+      summary: Create an availability block
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAvailabilityBlockBody"
+      responses:
+        "201":
+          description: Block created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalAvailabilityBlock"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/availability-blocks/{id}:
+    put:
+      operationId: updateAdminRentalAvailabilityBlock
+      tags: [admin]
+      summary: Update an availability block
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAvailabilityBlockBody"
+      responses:
+        "200":
+          description: Block updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalAvailabilityBlock"
+        "404":
+          description: Block not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminRentalAvailabilityBlock
+      tags: [admin]
+      summary: Delete an availability block
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Block deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "404":
+          description: Block not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/reservations:
+    get:
+      operationId: getAdminRentalReservations
+      tags: [admin]
+      summary: List all reservations (admin)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: vehicleId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of reservations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RentalReservation"
+
+  /admin/rental/reservations/{id}:
+    get:
+      operationId: getAdminRentalReservation
+      tags: [admin]
+      summary: Get a reservation with driver and addons
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reservation detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalReservationDetail"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateAdminRentalReservation
+      tags: [admin]
+      summary: Update a reservation (status, payment, notes)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReservationBody"
+      responses:
+        "200":
+          description: Updated reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalReservation"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/reservations/{id}/confirm:
+    post:
+      operationId: confirmAdminRentalReservation
+      tags: [admin]
+      summary: Confirm a reservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reservation confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalReservation"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/reservations/{id}/cancel:
+    post:
+      operationId: cancelAdminRentalReservation
+      tags: [admin]
+      summary: Cancel a reservation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reservation cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalReservation"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/reservations/{id}/start-pickup:
+    post:
+      operationId: startPickupAdminRentalReservation
+      tags: [admin]
+      summary: Mark vehicle as dispatched for pickup
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalReservation"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/reservations/{id}/complete-pickup:
+    post:
+      operationId: completePickupAdminRentalReservation
+      tags: [admin]
+      summary: Mark rental as started (in rental)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalReservation"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/reservations/{id}/start-return:
+    post:
+      operationId: startReturnAdminRentalReservation
+      tags: [admin]
+      summary: Mark return as initiated
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalReservation"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/reservations/{id}/complete-return:
+    post:
+      operationId: completeReturnAdminRentalReservation
+      tags: [admin]
+      summary: Mark return as completed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalReservation"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/addons:
+    get:
+      operationId: getAdminRentalAddons
+      tags: [admin]
+      summary: List all add-ons (admin)
+      responses:
+        "200":
+          description: List of add-ons
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RentalAddon"
+    post:
+      operationId: createAdminRentalAddon
+      tags: [admin]
+      summary: Create a new add-on
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAddonBody"
+      responses:
+        "201":
+          description: Add-on created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalAddon"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/addons/{id}:
+    put:
+      operationId: updateAdminRentalAddon
+      tags: [admin]
+      summary: Update an add-on
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAddonBody"
+      responses:
+        "200":
+          description: Updated add-on
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalAddon"
+        "404":
+          description: Add-on not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminRentalAddon
+      tags: [admin]
+      summary: Delete an add-on
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Add-on deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+        "404":
+          description: Add-on not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -1255,3 +2165,948 @@ components:
             type: integer
       required:
         - orderedIds
+
+    RentalVehicleImage:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicleId:
+          type: integer
+        url:
+          type: string
+        caption:
+          type: ["string", "null"]
+        sortOrder:
+          type: integer
+        isCover:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - vehicleId
+        - url
+        - sortOrder
+        - isCover
+        - createdAt
+
+    RentalVehicle:
+      type: object
+      properties:
+        id:
+          type: integer
+        internalName:
+          type: string
+        publicTitle:
+          type: string
+        slug:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        trim:
+          type: ["string", "null"]
+        year:
+          type: integer
+        color:
+          type: ["string", "null"]
+        vehicleClass:
+          type: string
+        description:
+          type: string
+        seats:
+          type: integer
+        recommendedPassengers:
+          type: integer
+        maxPassengers:
+          type: integer
+        smallLuggageCapacity:
+          type: integer
+        largeLuggageCapacity:
+          type: integer
+        doors:
+          type: integer
+        transmission:
+          type: string
+        fuelType:
+          type: string
+        driveType:
+          type: string
+        engineSize:
+          type: ["string", "null"]
+        fuelPolicy:
+          type: string
+        smokingPolicy:
+          type: string
+        petPolicy:
+          type: string
+        status:
+          type: string
+        featured:
+          type: boolean
+        sortOrder:
+          type: integer
+        has4wd:
+          type: boolean
+        hasWinterTires:
+          type: boolean
+        hasSnowBrush:
+          type: boolean
+        hasIceScraper:
+          type: boolean
+        isSkiFriendly:
+          type: boolean
+        hasSkiRack:
+          type: boolean
+        hasHeatedSeats:
+          type: boolean
+        hasHeatedSteering:
+          type: boolean
+        hasEtc:
+          type: boolean
+        hasNavigation:
+          type: boolean
+        hasBackupCamera:
+          type: boolean
+        hasBluetooth:
+          type: boolean
+        hasUsbPort:
+          type: boolean
+        metaTitle:
+          type: string
+        metaDescription:
+          type: string
+        ogTitle:
+          type: string
+        ogDescription:
+          type: string
+        ogImage:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        deletedAt:
+          type: ["string", "null"]
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/RentalVehicleImage"
+      required:
+        - id
+        - internalName
+        - publicTitle
+        - slug
+        - brand
+        - model
+        - year
+        - vehicleClass
+        - description
+        - seats
+        - recommendedPassengers
+        - maxPassengers
+        - smallLuggageCapacity
+        - largeLuggageCapacity
+        - doors
+        - transmission
+        - fuelType
+        - driveType
+        - fuelPolicy
+        - smokingPolicy
+        - petPolicy
+        - status
+        - featured
+        - sortOrder
+        - has4wd
+        - hasWinterTires
+        - hasSnowBrush
+        - hasIceScraper
+        - isSkiFriendly
+        - hasSkiRack
+        - hasHeatedSeats
+        - hasHeatedSteering
+        - hasEtc
+        - hasNavigation
+        - hasBackupCamera
+        - hasBluetooth
+        - hasUsbPort
+        - metaTitle
+        - metaDescription
+        - ogTitle
+        - ogDescription
+        - ogImage
+        - createdAt
+        - updatedAt
+        - images
+
+    RentalVehiclePricing:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicleId:
+          type: integer
+        basePrice:
+          type: number
+        weekendPrice:
+          type: ["number", "null"]
+        holidayPrice:
+          type: ["number", "null"]
+        weeklyDiscountPct:
+          type: number
+        monthlyDiscountPct:
+          type: number
+        minDays:
+          type: integer
+        cleaningFee:
+          type: number
+        deliveryFee:
+          type: number
+        lateReturnFee:
+          type: number
+        securityDeposit:
+          type: number
+        taxIncluded:
+          type: boolean
+        taxRate:
+          type: number
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
+      required:
+        - id
+        - vehicleId
+        - basePrice
+        - weeklyDiscountPct
+        - monthlyDiscountPct
+        - minDays
+        - cleaningFee
+        - deliveryFee
+        - lateReturnFee
+        - securityDeposit
+        - taxIncluded
+        - taxRate
+        - airportPickupFee
+        - airportDropoffFee
+
+    RentalVehicleDetail:
+      allOf:
+        - $ref: "#/components/schemas/RentalVehicle"
+        - type: object
+          properties:
+            pricing:
+              oneOf:
+                - $ref: "#/components/schemas/RentalVehiclePricing"
+                - type: "null"
+
+    RentalVehicleSearchResult:
+      type: object
+      properties:
+        available:
+          type: array
+          items:
+            $ref: "#/components/schemas/RentalVehicle"
+        unavailable:
+          type: array
+          items:
+            $ref: "#/components/schemas/RentalVehicle"
+      required:
+        - available
+        - unavailable
+
+    RentalAddon:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        image:
+          type: ["string", "null"]
+        pricingType:
+          type: string
+        flatFee:
+          type: number
+        perDayFee:
+          type: number
+        perUnitFee:
+          type: number
+        maxQty:
+          type: integer
+        inventoryLimit:
+          type: ["integer", "null"]
+        required:
+          type: boolean
+        published:
+          type: boolean
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - description
+        - pricingType
+        - flatFee
+        - perDayFee
+        - perUnitFee
+        - maxQty
+        - required
+        - published
+        - sortOrder
+        - createdAt
+        - updatedAt
+
+    RentalAvailabilityBlock:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicleId:
+          type: integer
+        startAt:
+          type: string
+        endAt:
+          type: string
+        reason:
+          type: string
+        notes:
+          type: ["string", "null"]
+        isRecurring:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - vehicleId
+        - startAt
+        - endAt
+        - reason
+        - isRecurring
+        - createdAt
+        - updatedAt
+
+    RentalReservation:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicleId:
+          type: integer
+        primaryDriverId:
+          type: ["integer", "null"]
+        pickupAt:
+          type: string
+        returnAt:
+          type: string
+        pickupLocation:
+          type: string
+        returnLocation:
+          type: string
+        status:
+          type: string
+        paymentStatus:
+          type: string
+        subtotal:
+          type: number
+        addonsTotal:
+          type: number
+        deliveryFee:
+          type: number
+        discount:
+          type: number
+        tax:
+          type: number
+        securityDeposit:
+          type: number
+        paidAmount:
+          type: number
+        outstanding:
+          type: number
+        refundAmount:
+          type: number
+        finalTotal:
+          type: number
+        source:
+          type: string
+        internalNotes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        deletedAt:
+          type: ["string", "null"]
+      required:
+        - id
+        - vehicleId
+        - pickupAt
+        - returnAt
+        - pickupLocation
+        - returnLocation
+        - status
+        - paymentStatus
+        - subtotal
+        - addonsTotal
+        - deliveryFee
+        - discount
+        - tax
+        - securityDeposit
+        - paidAmount
+        - outstanding
+        - refundAmount
+        - finalTotal
+        - source
+        - createdAt
+        - updatedAt
+
+    RentalDriver:
+      type: object
+      properties:
+        id:
+          type: integer
+        fullName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        romanizedName:
+          type: ["string", "null"]
+        nationality:
+          type: ["string", "null"]
+        flightNumber:
+          type: ["string", "null"]
+        accommodation:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - fullName
+        - email
+        - phone
+        - createdAt
+        - updatedAt
+
+    RentalReservationAddon:
+      type: object
+      properties:
+        id:
+          type: integer
+        reservationId:
+          type: integer
+        addonId:
+          type: integer
+        qty:
+          type: integer
+        unitPrice:
+          type: number
+        totalPrice:
+          type: number
+      required:
+        - id
+        - reservationId
+        - addonId
+        - qty
+        - unitPrice
+        - totalPrice
+
+    RentalReservationDetail:
+      allOf:
+        - $ref: "#/components/schemas/RentalReservation"
+        - type: object
+          properties:
+            driver:
+              oneOf:
+                - $ref: "#/components/schemas/RentalDriver"
+                - type: "null"
+            addons:
+              type: array
+              items:
+                $ref: "#/components/schemas/RentalReservationAddon"
+
+    RentalHold:
+      type: object
+      properties:
+        id:
+          type: integer
+        holdId:
+          type: integer
+        vehicleId:
+          type: integer
+        pickupAt:
+          type: string
+        returnAt:
+          type: string
+        heldUntil:
+          type: string
+        releasedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - holdId
+        - vehicleId
+        - pickupAt
+        - returnAt
+        - heldUntil
+        - createdAt
+
+    DayRate:
+      type: object
+      properties:
+        date:
+          type: string
+        baseRate:
+          type: number
+        appliedRate:
+          type: number
+        ruleApplied:
+          type: ["string", "null"]
+      required:
+        - date
+        - baseRate
+        - appliedRate
+
+    RentalPriceBreakdown:
+      type: object
+      properties:
+        days:
+          type: integer
+        dayRates:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayRate"
+        subtotal:
+          type: number
+        deliveryFee:
+          type: number
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
+        addonsTotal:
+          type: number
+        discount:
+          type: number
+        tax:
+          type: number
+        securityDeposit:
+          type: number
+        finalTotal:
+          type: number
+        taxIncluded:
+          type: boolean
+        currency:
+          type: string
+      required:
+        - days
+        - dayRates
+        - subtotal
+        - deliveryFee
+        - airportPickupFee
+        - airportDropoffFee
+        - addonsTotal
+        - discount
+        - tax
+        - securityDeposit
+        - finalTotal
+        - taxIncluded
+        - currency
+
+    RentalReservationWithPricing:
+      allOf:
+        - $ref: "#/components/schemas/RentalReservation"
+        - type: object
+          properties:
+            pricing:
+              $ref: "#/components/schemas/RentalPriceBreakdown"
+
+    CreateHoldBody:
+      type: object
+      properties:
+        vehicleId:
+          type: integer
+        pickupAt:
+          type: string
+        returnAt:
+          type: string
+        sessionToken:
+          type: string
+      required:
+        - vehicleId
+        - pickupAt
+        - returnAt
+
+    CreateReservationDriverBody:
+      type: object
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        romanizedName:
+          type: string
+        nationality:
+          type: string
+        flightNumber:
+          type: string
+        accommodation:
+          type: string
+      required:
+        - fullName
+        - email
+        - phone
+
+    CreateReservationAddonBody:
+      type: object
+      properties:
+        addonId:
+          type: integer
+        qty:
+          type: integer
+      required:
+        - addonId
+        - qty
+
+    CreateReservationBody:
+      type: object
+      properties:
+        holdId:
+          type: integer
+        vehicleId:
+          type: integer
+        pickupAt:
+          type: string
+        returnAt:
+          type: string
+        pickupLocation:
+          type: string
+        returnLocation:
+          type: string
+        driver:
+          $ref: "#/components/schemas/CreateReservationDriverBody"
+        addons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateReservationAddonBody"
+        source:
+          type: string
+      required:
+        - holdId
+        - vehicleId
+        - pickupAt
+        - returnAt
+        - pickupLocation
+        - returnLocation
+        - driver
+
+    PriceCalculateBody:
+      type: object
+      properties:
+        vehicleId:
+          type: integer
+        pickupAt:
+          type: string
+        returnAt:
+          type: string
+        pickupLocation:
+          type: string
+        returnLocation:
+          type: string
+        addons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateReservationAddonBody"
+      required:
+        - vehicleId
+        - pickupAt
+        - returnAt
+
+    CreateRentalVehicleBody:
+      type: object
+      properties:
+        internalName:
+          type: string
+        publicTitle:
+          type: string
+        slug:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        trim:
+          type: string
+        year:
+          type: integer
+        color:
+          type: string
+        vehicleClass:
+          type: string
+        description:
+          type: string
+        seats:
+          type: integer
+        recommendedPassengers:
+          type: integer
+        maxPassengers:
+          type: integer
+        smallLuggageCapacity:
+          type: integer
+        largeLuggageCapacity:
+          type: integer
+        doors:
+          type: integer
+        transmission:
+          type: string
+        fuelType:
+          type: string
+        driveType:
+          type: string
+        engineSize:
+          type: string
+        status:
+          type: string
+        featured:
+          type: boolean
+        sortOrder:
+          type: integer
+        has4wd:
+          type: boolean
+        hasWinterTires:
+          type: boolean
+        hasSnowBrush:
+          type: boolean
+        hasIceScraper:
+          type: boolean
+        isSkiFriendly:
+          type: boolean
+        hasSkiRack:
+          type: boolean
+        hasHeatedSeats:
+          type: boolean
+        hasHeatedSteering:
+          type: boolean
+        hasEtc:
+          type: boolean
+        hasNavigation:
+          type: boolean
+        hasBackupCamera:
+          type: boolean
+        hasBluetooth:
+          type: boolean
+        hasUsbPort:
+          type: boolean
+        metaTitle:
+          type: string
+        metaDescription:
+          type: string
+        ogTitle:
+          type: string
+        ogDescription:
+          type: string
+        ogImage:
+          type: string
+      required:
+        - internalName
+        - publicTitle
+        - brand
+        - model
+        - year
+
+    UpdateRentalVehicleBody:
+      type: object
+      properties:
+        internalName:
+          type: string
+        publicTitle:
+          type: string
+        slug:
+          type: string
+        brand:
+          type: string
+        model:
+          type: string
+        trim:
+          type: string
+        year:
+          type: integer
+        color:
+          type: string
+        vehicleClass:
+          type: string
+        description:
+          type: string
+        seats:
+          type: integer
+        recommendedPassengers:
+          type: integer
+        maxPassengers:
+          type: integer
+        smallLuggageCapacity:
+          type: integer
+        largeLuggageCapacity:
+          type: integer
+        doors:
+          type: integer
+        transmission:
+          type: string
+        fuelType:
+          type: string
+        driveType:
+          type: string
+        engineSize:
+          type: string
+        status:
+          type: string
+        featured:
+          type: boolean
+        sortOrder:
+          type: integer
+        has4wd:
+          type: boolean
+        hasWinterTires:
+          type: boolean
+        hasSnowBrush:
+          type: boolean
+        hasIceScraper:
+          type: boolean
+        isSkiFriendly:
+          type: boolean
+        hasSkiRack:
+          type: boolean
+        hasHeatedSeats:
+          type: boolean
+        hasHeatedSteering:
+          type: boolean
+        hasEtc:
+          type: boolean
+        hasNavigation:
+          type: boolean
+        hasBackupCamera:
+          type: boolean
+        hasBluetooth:
+          type: boolean
+        hasUsbPort:
+          type: boolean
+        metaTitle:
+          type: string
+        metaDescription:
+          type: string
+        ogTitle:
+          type: string
+        ogDescription:
+          type: string
+        ogImage:
+          type: string
+
+    AddVehicleImageBody:
+      type: object
+      properties:
+        url:
+          type: string
+        caption:
+          type: string
+        isCover:
+          type: boolean
+      required:
+        - url
+
+    ReorderImagesBody:
+      type: object
+      properties:
+        orderedIds:
+          type: array
+          items:
+            type: integer
+      required:
+        - orderedIds
+
+    CreateAvailabilityBlockBody:
+      type: object
+      properties:
+        vehicleId:
+          type: integer
+        startAt:
+          type: string
+        endAt:
+          type: string
+        reason:
+          type: string
+        notes:
+          type: string
+        isRecurring:
+          type: boolean
+        recurrenceRule:
+          type: string
+        createdBy:
+          type: string
+      required:
+        - vehicleId
+        - startAt
+        - endAt
+
+    UpdateReservationBody:
+      type: object
+      properties:
+        status:
+          type: string
+        paymentStatus:
+          type: string
+        internalNotes:
+          type: ["string", "null"]
+        paidAmount:
+          type: number
+        refundAmount:
+          type: number
+
+    CreateAddonBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+        pricingType:
+          type: string
+        flatFee:
+          type: number
+        perDayFee:
+          type: number
+        perUnitFee:
+          type: number
+        maxQty:
+          type: integer
+        inventoryLimit:
+          type: integer
+        vehicleCompatibility:
+          type: array
+          items:
+            type: string
+        required:
+          type: boolean
+        published:
+          type: boolean
+        sortOrder:
+          type: integer
+      required:
+        - name
