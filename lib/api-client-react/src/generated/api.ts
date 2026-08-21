@@ -43,6 +43,7 @@ import type {
   ErrorResponse,
   GetAdminRentalAvailabilityBlocksParams,
   GetAdminRentalReservationsParams,
+  GetAdminRentalTurnaroundBuffer200,
   GetCarAvailabilityParams,
   GetRoomsParams,
   HealthStatus,
@@ -4205,6 +4206,86 @@ export const useCreateAdminRentalAvailabilityBlock = <
 };
 
 /**
+ * @summary Get turnaround buffer duration (admin)
+ */
+export const getGetAdminRentalTurnaroundBufferUrl = () => {
+  return `/api/admin/rental/settings/turnaround-buffer`;
+};
+
+export const getAdminRentalTurnaroundBuffer = async (
+  options?: RequestInit,
+): Promise<GetAdminRentalTurnaroundBuffer200> => {
+  return customFetch<GetAdminRentalTurnaroundBuffer200>(
+    getGetAdminRentalTurnaroundBufferUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAdminRentalTurnaroundBufferQueryKey = () => {
+  return [`/api/admin/rental/settings/turnaround-buffer`] as const;
+};
+
+export const getGetAdminRentalTurnaroundBufferQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminRentalTurnaroundBuffer>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalTurnaroundBuffer>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAdminRentalTurnaroundBufferQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminRentalTurnaroundBuffer>>
+  > = ({ signal }) =>
+    getAdminRentalTurnaroundBuffer({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalTurnaroundBuffer>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminRentalTurnaroundBufferQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminRentalTurnaroundBuffer>>
+>;
+export type GetAdminRentalTurnaroundBufferQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get turnaround buffer duration (admin)
+ */
+
+export function useGetAdminRentalTurnaroundBuffer<
+  TData = Awaited<ReturnType<typeof getAdminRentalTurnaroundBuffer>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalTurnaroundBuffer>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminRentalTurnaroundBufferQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Update an availability block
  */
 export const getUpdateAdminRentalAvailabilityBlockUrl = (id: number) => {
@@ -4385,6 +4466,101 @@ export const useDeleteAdminRentalAvailabilityBlock = <
 > => {
   return useMutation(
     getDeleteAdminRentalAvailabilityBlockMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Update this and future availability blocks in a recurring series
+ */
+export const getUpdateAdminRentalAvailabilityBlockFutureUrl = (id: number) => {
+  return `/api/admin/rental/availability-blocks/${id}/future`;
+};
+
+export const updateAdminRentalAvailabilityBlockFuture = async (
+  id: number,
+  createAvailabilityBlockBody: CreateAvailabilityBlockBody,
+  options?: RequestInit,
+): Promise<RentalAvailabilityBlock> => {
+  return customFetch<RentalAvailabilityBlock>(
+    getUpdateAdminRentalAvailabilityBlockFutureUrl(id),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createAvailabilityBlockBody),
+    },
+  );
+};
+
+export const getUpdateAdminRentalAvailabilityBlockFutureMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRentalAvailabilityBlockFuture>>,
+    TError,
+    { id: number; data: BodyType<CreateAvailabilityBlockBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdminRentalAvailabilityBlockFuture>>,
+  TError,
+  { id: number; data: BodyType<CreateAvailabilityBlockBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAdminRentalAvailabilityBlockFuture"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdminRentalAvailabilityBlockFuture>>,
+    { id: number; data: BodyType<CreateAvailabilityBlockBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAdminRentalAvailabilityBlockFuture(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdminRentalAvailabilityBlockFutureMutationResult =
+  NonNullable<
+    Awaited<ReturnType<typeof updateAdminRentalAvailabilityBlockFuture>>
+  >;
+export type UpdateAdminRentalAvailabilityBlockFutureMutationBody =
+  BodyType<CreateAvailabilityBlockBody>;
+export type UpdateAdminRentalAvailabilityBlockFutureMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update this and future availability blocks in a recurring series
+ */
+export const useUpdateAdminRentalAvailabilityBlockFuture = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRentalAvailabilityBlockFuture>>,
+    TError,
+    { id: number; data: BodyType<CreateAvailabilityBlockBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdminRentalAvailabilityBlockFuture>>,
+  TError,
+  { id: number; data: BodyType<CreateAvailabilityBlockBody> },
+  TContext
+> => {
+  return useMutation(
+    getUpdateAdminRentalAvailabilityBlockFutureMutationOptions(options),
   );
 };
 

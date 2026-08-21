@@ -1734,6 +1734,7 @@ export const GetAdminRentalAvailabilityBlocksResponseItem = zod.object({
   reason: zod.string(),
   notes: zod.string().nullish(),
   isRecurring: zod.boolean(),
+  recurrenceRule: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -1753,6 +1754,17 @@ export const CreateAdminRentalAvailabilityBlockBody = zod.object({
   isRecurring: zod.boolean().optional(),
   recurrenceRule: zod.string().optional(),
   createdBy: zod.string().optional(),
+});
+
+/**
+ * @summary Get turnaround buffer duration (admin)
+ */
+export const getAdminRentalTurnaroundBufferResponseTurnaroundBufferHoursMin = 0;
+
+export const GetAdminRentalTurnaroundBufferResponse = zod.object({
+  turnaroundBufferHours: zod
+    .number()
+    .min(getAdminRentalTurnaroundBufferResponseTurnaroundBufferHoursMin),
 });
 
 /**
@@ -1781,6 +1793,7 @@ export const UpdateAdminRentalAvailabilityBlockResponse = zod.object({
   reason: zod.string(),
   notes: zod.string().nullish(),
   isRecurring: zod.boolean(),
+  recurrenceRule: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string(),
 });
@@ -1794,6 +1807,37 @@ export const DeleteAdminRentalAvailabilityBlockParams = zod.object({
 
 export const DeleteAdminRentalAvailabilityBlockResponse = zod.object({
   message: zod.string(),
+});
+
+/**
+ * @summary Update this and future availability blocks in a recurring series
+ */
+export const UpdateAdminRentalAvailabilityBlockFutureParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminRentalAvailabilityBlockFutureBody = zod.object({
+  vehicleId: zod.number(),
+  startAt: zod.string(),
+  endAt: zod.string(),
+  reason: zod.string().optional(),
+  notes: zod.string().optional(),
+  isRecurring: zod.boolean().optional(),
+  recurrenceRule: zod.string().optional(),
+  createdBy: zod.string().optional(),
+});
+
+export const UpdateAdminRentalAvailabilityBlockFutureResponse = zod.object({
+  id: zod.number(),
+  vehicleId: zod.number(),
+  startAt: zod.string(),
+  endAt: zod.string(),
+  reason: zod.string(),
+  notes: zod.string().nullish(),
+  isRecurring: zod.boolean(),
+  recurrenceRule: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
 });
 
 /**

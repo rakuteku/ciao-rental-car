@@ -430,6 +430,8 @@ export interface RentalAvailabilityBlock {
   /** @nullable */
   notes?: string | null;
   isRecurring: boolean;
+  /** @nullable */
+  recurrenceRule?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -837,6 +839,11 @@ export type DeleteAdminRentalVehicleImage200 = {
 
 export type GetAdminRentalAvailabilityBlocksParams = {
   vehicleId?: number;
+};
+
+export type GetAdminRentalTurnaroundBuffer200 = {
+  /** @minimum 0 */
+  turnaroundBufferHours: number;
 };
 
 export type DeleteAdminRentalAvailabilityBlock200 = {

@@ -1280,6 +1280,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/rental/settings/turnaround-buffer:
+    get:
+      operationId: getAdminRentalTurnaroundBuffer
+      tags: [admin]
+      summary: Get turnaround buffer duration (admin)
+      responses:
+        "200":
+          description: The current turnaround buffer in hours
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [turnaroundBufferHours]
+                properties:
+                  turnaroundBufferHours:
+                    type: number
+                    minimum: 0
+
   /admin/rental/availability-blocks/{id}:
     put:
       operationId: updateAdminRentalAvailabilityBlock
@@ -1334,6 +1352,37 @@ paths:
                   - message
         "404":
           description: Block not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/availability-blocks/{id}/future:
+    put:
+      operationId: updateAdminRentalAvailabilityBlockFuture
+      tags: [admin]
+      summary: Update this and future availability blocks in a recurring series
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAvailabilityBlockBody"
+      responses:
+        "200":
+          description: Recurring series updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalAvailabilityBlock"
+        "400":
+          description: Invalid recurring series or interval
           content:
             application/json:
               schema:
@@ -2663,6 +2712,8 @@ components:
           type: ["string", "null"]
         isRecurring:
           type: boolean
+        recurrenceRule:
+          type: [string, "null"]
         createdAt:
           type: string
         updatedAt:

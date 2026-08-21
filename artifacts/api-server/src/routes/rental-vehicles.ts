@@ -17,7 +17,7 @@ import { z } from "zod/v4";
 
 let _bufferHoursCache: { value: number; expiresAt: number } | null = null;
 
-async function getTurnaroundBufferHours(
+export async function getTurnaroundBufferHours(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   client: any = db,
 ): Promise<number> {

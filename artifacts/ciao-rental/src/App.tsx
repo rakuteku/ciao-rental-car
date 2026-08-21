@@ -25,6 +25,7 @@ import { AdminSeo } from "@/pages/admin/seo";
 import { AdminLodging } from "@/pages/admin/lodging";
 import { AdminRentalCars } from "@/pages/admin/rental-cars/index";
 import { AdminRentalCarEdit } from "@/pages/admin/rental-cars/edit";
+import { AdminRentalAvailability } from "@/pages/admin/rental-cars/availability";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ function Router() {
       {/* Rental Cars Admin */}
       <Route path="/admin/rental-cars/new" component={() => <AdminLayout><AdminRentalCarEdit isNew /></AdminLayout>} />
       <Route path="/admin/rental-cars/:id/edit" component={() => <AdminLayout><AdminRentalCarEdit /></AdminLayout>} />
+      <Route path="/admin/rental-cars/availability" component={() => <AdminLayout><AdminRentalAvailability /></AdminLayout>} />
       <Route path="/admin/rental-cars" component={() => <AdminLayout><AdminRentalCars /></AdminLayout>} />
       <Route path="/admin/rental-cars/:section" component={() => <AdminLayout><AdminRentalCars /></AdminLayout>} />
 
