@@ -507,6 +507,7 @@ export interface RentalHold {
   /** @nullable */
   releasedAt?: string | null;
   createdAt: string;
+  expired: boolean;
 }
 
 export interface DayRate {
@@ -537,10 +538,18 @@ export type RentalReservationWithPricing = RentalReservation & {
   pricing?: RentalPriceBreakdown;
 };
 
+export interface CreateReservationAddonBody {
+  addonId: number;
+  qty: number;
+}
+
 export interface CreateHoldBody {
   vehicleId: number;
   pickupAt: string;
   returnAt: string;
+  pickupLocation?: string;
+  returnLocation?: string;
+  addons?: CreateReservationAddonBody[];
   sessionToken?: string;
 }
 
@@ -549,15 +558,37 @@ export interface CreateReservationDriverBody {
   email: string;
   phone: string;
   romanizedName?: string;
+  dateOfBirth?: string;
   nationality?: string;
+  residenceCountry?: string;
+  address?: string;
+  emergencyContact?: string;
   flightNumber?: string;
   accommodation?: string;
 }
 
-export interface CreateReservationAddonBody {
-  addonId: number;
-  qty: number;
+export type CreateReservationDocumentBodyDocType =
+  (typeof CreateReservationDocumentBodyDocType)[keyof typeof CreateReservationDocumentBodyDocType];
+
+export const CreateReservationDocumentBodyDocType = {
+  drivers_license: "drivers_license",
+  passport: "passport",
+  international_license: "international_license",
+  insurance: "insurance",
+  credit_card: "credit_card",
+  other: "other",
+} as const;
+
+export interface CreateReservationDocumentBody {
+  docType: CreateReservationDocumentBodyDocType;
+  fileUrl: string;
 }
+
+export type CreateReservationBodyAdditionalDriversItem = {
+  fullName: string;
+  email: string;
+  phone: string;
+};
 
 export interface CreateReservationBody {
   holdId: number;
@@ -568,6 +599,8 @@ export interface CreateReservationBody {
   returnLocation: string;
   driver: CreateReservationDriverBody;
   addons?: CreateReservationAddonBody[];
+  additionalDrivers?: CreateReservationBodyAdditionalDriversItem[];
+  documents?: CreateReservationDocumentBody[];
   source?: string;
 }
 
@@ -817,12 +850,19 @@ export type SearchRentalVehiclesParams = {
   returnAt?: string;
   pickupLocation?: string;
   returnLocation?: string;
+  slug?: string;
   adults?: number;
   children?: number;
+  babies?: number;
   luggageLarge?: number;
   luggageSmall?: number;
   vehicleClass?: string;
   transmission?: string;
+  has4wd?: boolean;
+  winterTires?: boolean;
+  skiLuggage?: boolean;
+  childSeat?: boolean;
+  airportDelivery?: boolean;
 };
 
 export type DeleteAdminRentalVehicle200 = {

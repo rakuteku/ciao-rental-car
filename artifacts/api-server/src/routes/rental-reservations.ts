@@ -6,13 +6,14 @@ import {
   rentalReservationHoldsTable,
   rentalVehiclesTable,
   rentalDriversTable,
+  rentalDriverDocumentsTable,
   rentalReservationAddonsTable,
   rentalAddonsTable,
   rentalSettingsTable,
 } from "@workspace/db";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { calculatePrice } from "../lib/rental-pricing";
-import { isVehicleAvailable } from "./rental-vehicles";
+import { isVehicleAvailable, isVehicleServiceable } from "./rental-vehicles";
 import { z } from "zod/v4";
 
 const router: IRouter = Router();
@@ -37,8 +38,9 @@ function serializeReservation(res: typeof rentalReservationsTable.$inferSelect) 
 }
 
 function serializeHold(hold: typeof rentalReservationHoldsTable.$inferSelect) {
+  const { sessionToken: _sessionToken, reservationId: _reservationId, ...publicHold } = hold;
   return {
-    ...hold,
+    ...publicHold,
     pickupAt: hold.pickupAt.toISOString(),
     returnAt: hold.returnAt.toISOString(),
     heldUntil: hold.heldUntil.toISOString(),
@@ -51,6 +53,16 @@ const HoldSchema = z.object({
   vehicleId: z.coerce.number().int(),
   pickupAt: z.string(),
   returnAt: z.string(),
+  pickupLocation: z.string().optional(),
+  returnLocation: z.string().optional(),
+  addons: z
+    .array(
+      z.object({
+        addonId: z.coerce.number().int(),
+        qty: z.coerce.number().int().min(1).default(1),
+      }),
+    )
+    .optional(),
   sessionToken: z.string().optional(),
 });
 
@@ -77,6 +89,7 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
   const vehicleId = body.data.vehicleId;
 
   const holdExpiryMinutes = await getHoldExpiryMinutes();
+  (req.session as typeof req.session & { rentalHoldSession?: boolean }).rentalHoldSession = true;
 
   let hold: typeof rentalReservationHoldsTable.$inferSelect;
   try {
@@ -100,6 +113,12 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
         throw err;
       }
 
+      if (!isVehicleServiceable(vehicle, body.data.pickupLocation, body.data.returnLocation)) {
+        const err = new Error("Vehicle is not available at the selected pickup or return location") as Error & { status: number };
+        err.status = 409;
+        throw err;
+      }
+
       const available = await isVehicleAvailable(vehicleId, pickupAt, returnAt, undefined, undefined, tx);
       if (!available) {
         const err = new Error("Vehicle is not available for the selected dates") as Error & { status: number };
@@ -116,7 +135,7 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
           pickupAt,
           returnAt,
           heldUntil,
-          sessionToken: body.data.sessionToken ?? null,
+          sessionToken: req.sessionID,
         })
         .returning();
 
@@ -128,7 +147,32 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
     return;
   }
 
-  res.status(201).json({ ...serializeHold(hold), holdId: hold.id });
+  res.status(201).json({ ...serializeHold(hold), holdId: hold.id, expired: false });
+});
+
+router.get("/rental/reservations/holds/:holdId", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.holdId) ? req.params.holdId[0] : req.params.holdId;
+  const holdId = parseInt(rawId, 10);
+  if (isNaN(holdId)) {
+    res.status(400).json({ error: "Invalid hold ID" });
+    return;
+  }
+
+  const [hold] = await db
+    .select()
+    .from(rentalReservationHoldsTable)
+    .where(and(eq(rentalReservationHoldsTable.id, holdId), eq(rentalReservationHoldsTable.sessionToken, req.sessionID)));
+
+  if (!hold) {
+    res.status(404).json({ error: "Hold not found" });
+    return;
+  }
+
+  res.json({
+    ...serializeHold(hold),
+    holdId: hold.id,
+    expired: hold.releasedAt != null || hold.heldUntil <= new Date(),
+  });
 });
 
 const CreateReservationSchema = z.object({
@@ -141,10 +185,23 @@ const CreateReservationSchema = z.object({
     email: z.string().email(),
     phone: z.string().min(1),
     romanizedName: z.string().optional(),
+    dateOfBirth: z.string().date().optional(),
     nationality: z.string().optional(),
+    residenceCountry: z.string().optional(),
+    address: z.string().optional(),
+    emergencyContact: z.string().optional(),
     flightNumber: z.string().optional(),
     accommodation: z.string().optional(),
   }),
+  additionalDrivers: z.array(z.object({
+    fullName: z.string().min(1),
+    email: z.string().email(),
+    phone: z.string().min(1),
+  })).optional(),
+  documents: z.array(z.object({
+    docType: z.enum(["drivers_license", "passport", "international_license", "insurance", "credit_card", "other"]),
+    fileUrl: z.string().url(),
+  })).optional(),
   addons: z
     .array(
       z.object({
@@ -168,7 +225,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
   const [preHold] = await db
     .select()
     .from(rentalReservationHoldsTable)
-    .where(eq(rentalReservationHoldsTable.id, body.data.holdId));
+    .where(and(eq(rentalReservationHoldsTable.id, body.data.holdId), eq(rentalReservationHoldsTable.sessionToken, req.sessionID)));
 
   if (!preHold || preHold.vehicleId !== vehicleId || preHold.releasedAt != null) {
     res.status(400).json({ error: "Invalid or expired hold" });
@@ -200,7 +257,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
       const [hold] = await tx
         .select()
         .from(rentalReservationHoldsTable)
-        .where(eq(rentalReservationHoldsTable.id, body.data.holdId));
+        .where(and(eq(rentalReservationHoldsTable.id, body.data.holdId), eq(rentalReservationHoldsTable.sessionToken, req.sessionID)));
 
       if (!hold || hold.vehicleId !== vehicleId || hold.releasedAt != null) {
         const err = new Error("Invalid or expired hold") as Error & { status: number };
@@ -216,6 +273,17 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
 
       const canonicalPickupAt = hold.pickupAt;
       const canonicalReturnAt = hold.returnAt;
+
+      const [vehicle] = await tx
+        .select()
+        .from(rentalVehiclesTable)
+        .where(and(eq(rentalVehiclesTable.id, vehicleId), isNull(rentalVehiclesTable.deletedAt)));
+
+      if (!vehicle || !isVehicleServiceable(vehicle, body.data.pickupLocation, body.data.returnLocation)) {
+        const err = new Error("Vehicle is not available at the selected pickup or return location") as Error & { status: number };
+        err.status = 409;
+        throw err;
+      }
 
       const available = await isVehicleAvailable(vehicleId, canonicalPickupAt, canonicalReturnAt, hold.id, undefined, tx);
       if (!available) {
@@ -283,11 +351,25 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
           email: body.data.driver.email,
           phone: body.data.driver.phone,
           romanizedName: body.data.driver.romanizedName ?? null,
+          dob: body.data.driver.dateOfBirth ?? null,
           nationality: body.data.driver.nationality ?? null,
+          country: body.data.driver.residenceCountry ?? null,
+          address: body.data.driver.address ?? null,
+          emergencyContact: body.data.driver.emergencyContact ?? null,
           flightNumber: body.data.driver.flightNumber ?? null,
           accommodation: body.data.driver.accommodation ?? null,
         })
         .returning();
+
+      if (body.data.additionalDrivers?.length) {
+        await tx.insert(rentalDriversTable).values(
+          body.data.additionalDrivers.map((additional) => ({
+            fullName: additional.fullName,
+            email: additional.email,
+            phone: additional.phone,
+          })),
+        );
+      }
 
       const [reservation] = await tx
         .insert(rentalReservationsTable)
@@ -320,6 +402,18 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
             qty: a.qty,
             unitPrice: a.unitPrice,
             totalPrice: a.totalPrice,
+          })),
+        );
+      }
+
+      if (body.data.documents?.length) {
+        await tx.insert(rentalDriverDocumentsTable).values(
+          body.data.documents.map((document) => ({
+            driverId: driver.id,
+            reservationId: reservation.id,
+            docType: document.docType,
+            fileUrl: document.fileUrl,
+            status: "submitted" as const,
           })),
         );
       }
@@ -548,6 +642,16 @@ router.post("/rental/pricing/calculate", async (req, res): Promise<void> => {
   }
   if (returnAt <= pickupAt) {
     res.status(400).json({ error: "Return date must be after pickup date" });
+    return;
+  }
+
+  const [vehicle] = await db
+    .select()
+    .from(rentalVehiclesTable)
+    .where(and(eq(rentalVehiclesTable.id, body.data.vehicleId), isNull(rentalVehiclesTable.deletedAt)));
+
+  if (!vehicle || !isVehicleServiceable(vehicle, body.data.pickupLocation, body.data.returnLocation)) {
+    res.status(409).json({ error: "Vehicle is not available at the selected pickup or return location" });
     return;
   }
 

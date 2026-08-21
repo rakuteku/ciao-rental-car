@@ -12,6 +12,7 @@ import { Home } from "@/pages/home";
 import { RentalCarHome } from "@/pages/rentalcar/index";
 import { CarsPage } from "@/pages/rentalcar/cars/index";
 import { CarDetailPage } from "@/pages/rentalcar/cars/detail";
+import { CheckoutPage } from "@/pages/rentalcar/checkout/index";
 import { BookingSuccessPage } from "@/pages/rentalcar/booking/success";
 import { LodgingPage } from "@/pages/lodging/index";
 import { LodgingDetailPage } from "@/pages/lodging/detail";
@@ -48,7 +49,9 @@ function Router() {
       <Route path="/" component={() => <MainLayout><Home /></MainLayout>} />
       <Route path="/rentalcar" component={() => <MainLayout><RentalCarHome /></MainLayout>} />
       <Route path="/rentalcar/cars" component={() => <MainLayout><CarsPage /></MainLayout>} />
-      <Route path="/rentalcar/cars/:id" component={() => <MainLayout><CarDetailPage /></MainLayout>} />
+      <Route path="/rentalcar/cars/:slug" component={() => <MainLayout><CarDetailPage /></MainLayout>} />
+      <Route path="/rentalcar/checkout" component={() => <MainLayout><CheckoutPage /></MainLayout>} />
+      <Route path="/rentalcar/booking/confirmation" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
       <Route path="/rentalcar/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
       <Route path="/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
       <Route path="/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />

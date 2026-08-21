@@ -150,17 +150,41 @@ async function isVehicleAvailable(
   return true;
 }
 
+export function isVehicleServiceable(
+  vehicle: RentalVehicle,
+  pickupLocation?: string,
+  returnLocation?: string,
+): boolean {
+  if (vehicle.useGlobalPickupSettings) return true;
+
+  const supportsPickup = !pickupLocation ||
+    !vehicle.pickupLocations?.length ||
+    vehicle.pickupLocations.includes(pickupLocation);
+  const supportsReturn = !returnLocation ||
+    !vehicle.returnLocations?.length ||
+    vehicle.returnLocations.includes(returnLocation);
+
+  return supportsPickup && supportsReturn;
+}
+
 const SearchQuerySchema = z.object({
   pickupAt: z.string().optional(),
   returnAt: z.string().optional(),
   pickupLocation: z.string().optional(),
   returnLocation: z.string().optional(),
+  slug: z.string().optional(),
   adults: z.coerce.number().optional(),
   children: z.coerce.number().optional(),
+  babies: z.coerce.number().optional(),
   luggageLarge: z.coerce.number().optional(),
   luggageSmall: z.coerce.number().optional(),
   vehicleClass: z.string().optional(),
   transmission: z.string().optional(),
+  has4wd: z.enum(["true", "false"]).optional(),
+  winterTires: z.enum(["true", "false"]).optional(),
+  skiLuggage: z.enum(["true", "false"]).optional(),
+  childSeat: z.enum(["true", "false"]).optional(),
+  airportDelivery: z.enum(["true", "false"]).optional(),
 });
 
 router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
@@ -170,9 +194,27 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
     return;
   }
 
-  const { pickupAt, returnAt, adults, children, luggageLarge, luggageSmall, vehicleClass, transmission } = query.data;
+  const {
+    pickupAt,
+    returnAt,
+    pickupLocation,
+    returnLocation,
+    adults,
+    children,
+    babies,
+    luggageLarge,
+    luggageSmall,
+    vehicleClass,
+    transmission,
+    slug,
+    has4wd,
+    winterTires,
+    skiLuggage,
+    childSeat,
+    airportDelivery,
+  } = query.data;
 
-  const totalPassengers = (adults ?? 0) + (children ?? 0);
+  const totalPassengers = (adults ?? 0) + (children ?? 0) + (babies ?? 0);
 
   let vehicleQuery = db
     .select()
@@ -194,8 +236,19 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
   const unavailable: typeof vehicles = [];
 
   for (const v of vehicles) {
+    if (slug && v.slug !== slug) continue;
+    if (!isVehicleServiceable(v, pickupLocation, returnLocation)) continue;
     if (vehicleClass && v.vehicleClass !== vehicleClass) continue;
     if (transmission && v.transmission !== transmission) continue;
+    if (has4wd === "true" && !v.has4wd) continue;
+    if (winterTires === "true" && !v.hasWinterTires) continue;
+    if (skiLuggage === "true" && !v.isSkiFriendly && !v.hasSkiRack) continue;
+    if (childSeat === "true" && !v.hasChildSeatCompatible) continue;
+    if (
+      airportDelivery === "true" &&
+      !v.pickupLocations?.includes("New Chitose Airport") &&
+      !v.useGlobalPickupSettings
+    ) continue;
     if (totalPassengers > 0 && v.maxPassengers < totalPassengers) continue;
     if ((luggageLarge ?? 0) > v.largeLuggageCapacity) continue;
     if ((luggageSmall ?? 0) > v.smallLuggageCapacity) continue;

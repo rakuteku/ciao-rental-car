@@ -673,12 +673,22 @@ paths:
           required: false
           schema:
             type: string
+        - name: slug
+          in: query
+          required: false
+          schema:
+            type: string
         - name: adults
           in: query
           required: false
           schema:
             type: integer
         - name: children
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: babies
           in: query
           required: false
           schema:
@@ -703,6 +713,31 @@ paths:
           required: false
           schema:
             type: string
+        - name: has4wd
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: winterTires
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: skiLuggage
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: childSeat
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: airportDelivery
+          in: query
+          required: false
+          schema:
+            type: boolean
       responses:
         "200":
           description: Available and unavailable vehicles
@@ -804,6 +839,31 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Vehicle not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rental/reservations/holds/{holdId}:
+    get:
+      operationId: getRentalHold
+      tags: [rental]
+      summary: Get temporary vehicle hold status
+      parameters:
+        - name: holdId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Temporary hold
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalHold"
+        "404":
+          description: Hold not found
           content:
             application/json:
               schema:
@@ -2889,6 +2949,8 @@ components:
           type: ["string", "null"]
         createdAt:
           type: string
+        expired:
+          type: boolean
       required:
         - id
         - holdId
@@ -2897,6 +2959,7 @@ components:
         - returnAt
         - heldUntil
         - createdAt
+        - expired
 
     DayRate:
       type: object
@@ -2977,6 +3040,14 @@ components:
           type: string
         returnAt:
           type: string
+        pickupLocation:
+          type: string
+        returnLocation:
+          type: string
+        addons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateReservationAddonBody"
         sessionToken:
           type: string
       required:
@@ -2995,7 +3066,15 @@ components:
           type: string
         romanizedName:
           type: string
+        dateOfBirth:
+          type: string
         nationality:
+          type: string
+        residenceCountry:
+          type: string
+        address:
+          type: string
+        emergencyContact:
           type: string
         flightNumber:
           type: string
@@ -3016,6 +3095,17 @@ components:
       required:
         - addonId
         - qty
+
+    CreateReservationDocumentBody:
+      type: object
+      properties:
+        docType:
+          type: string
+          enum: [drivers_license, passport, international_license, insurance, credit_card, other]
+        fileUrl:
+          type: string
+          format: uri
+      required: [docType, fileUrl]
 
     CreateReservationBody:
       type: object
@@ -3038,6 +3128,22 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CreateReservationAddonBody"
+        additionalDrivers:
+          type: array
+          items:
+            type: object
+            properties:
+              fullName:
+                type: string
+              email:
+                type: string
+              phone:
+                type: string
+            required: [fullName, email, phone]
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateReservationDocumentBody"
         source:
           type: string
       required:

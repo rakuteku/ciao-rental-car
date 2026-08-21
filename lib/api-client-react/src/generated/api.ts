@@ -2668,6 +2668,93 @@ export const useCreateRentalHold = <
 };
 
 /**
+ * @summary Get temporary vehicle hold status
+ */
+export const getGetRentalHoldUrl = (holdId: number) => {
+  return `/api/rental/reservations/holds/${holdId}`;
+};
+
+export const getRentalHold = async (
+  holdId: number,
+  options?: RequestInit,
+): Promise<RentalHold> => {
+  return customFetch<RentalHold>(getGetRentalHoldUrl(holdId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRentalHoldQueryKey = (holdId: number) => {
+  return [`/api/rental/reservations/holds/${holdId}`] as const;
+};
+
+export const getGetRentalHoldQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRentalHold>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  holdId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRentalHold>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetRentalHoldQueryKey(holdId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getRentalHold>>> = ({
+    signal,
+  }) => getRentalHold(holdId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!holdId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRentalHold>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRentalHoldQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRentalHold>>
+>;
+export type GetRentalHoldQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get temporary vehicle hold status
+ */
+
+export function useGetRentalHold<
+  TData = Awaited<ReturnType<typeof getRentalHold>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  holdId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRentalHold>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRentalHoldQueryOptions(holdId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Create a reservation from a hold
  */
 export const getCreateRentalReservationUrl = () => {

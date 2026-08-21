@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { LOCATIONS } from "@/lib/constants";
 import { useGetCars, useGetPageContent } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
@@ -45,6 +47,21 @@ const searchSchema = z.object({
   returnLocation: z.string({ required_error: "Please select a return location" }),
   pickupDate: z.date({ required_error: "Please select a pickup date" }),
   returnDate: z.date({ required_error: "Please select a return date" }),
+  pickupTime: z.string().min(1),
+  returnTime: z.string().min(1),
+  adults: z.coerce.number().min(1),
+  children: z.coerce.number().min(0),
+  babies: z.coerce.number().min(0),
+  luggageLarge: z.coerce.number().min(0),
+  luggageSmall: z.coerce.number().min(0),
+  vehicleClass: z.string().optional(),
+  has4wd: z.boolean().optional(),
+  winterTires: z.boolean().optional(),
+  childSeat: z.boolean().optional(),
+  airportDelivery: z.boolean().optional(),
+  skiLuggage: z.boolean().optional(),
+  minPrice: z.coerce.number().min(0).optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
 });
 
 export function RentalCarHome() {
@@ -59,15 +76,49 @@ export function RentalCarHome() {
     defaultValues: {
       pickupLocation: LOCATIONS[0],
       returnLocation: LOCATIONS[0],
+      pickupTime: "10:00",
+      returnTime: "10:00",
+      adults: 2,
+      children: 0,
+      babies: 0,
+      luggageLarge: 0,
+      luggageSmall: 0,
+      minPrice: 0,
+      maxPrice: 100000,
     },
   });
 
   function onSubmit(data: z.infer<typeof searchSchema>) {
+    const pickupAt = new Date(data.pickupDate);
+    const returnAt = new Date(data.returnDate);
+    const [pickupHours, pickupMinutes] = data.pickupTime.split(":").map(Number);
+    const [returnHours, returnMinutes] = data.returnTime.split(":").map(Number);
+    pickupAt.setHours(pickupHours, pickupMinutes, 0, 0);
+    returnAt.setHours(returnHours, returnMinutes, 0, 0);
+    if (returnAt <= pickupAt) {
+      form.setError("returnDate", { message: "Return must be after pickup" });
+      return;
+    }
     const params = new URLSearchParams({
       pickupLocation: data.pickupLocation,
       returnLocation: data.returnLocation,
-      pickupDate: data.pickupDate.toISOString(),
-      returnDate: data.returnDate.toISOString(),
+      pickupAt: pickupAt.toISOString(),
+      returnAt: returnAt.toISOString(),
+      pickupDate: pickupAt.toISOString(),
+      returnDate: returnAt.toISOString(),
+      pickupTime: data.pickupTime,
+      returnTime: data.returnTime,
+      adults: String(data.adults),
+      children: String(data.children),
+      babies: String(data.babies),
+      luggageLarge: String(data.luggageLarge),
+      luggageSmall: String(data.luggageSmall),
+      minPrice: String(data.minPrice ?? 0),
+      maxPrice: String(data.maxPrice ?? 100000),
+    });
+    if (data.vehicleClass && data.vehicleClass !== "any") params.set("vehicleClass", data.vehicleClass);
+    (["has4wd", "winterTires", "childSeat", "airportDelivery", "skiLuggage"] as const).forEach((filter) => {
+      if (data[filter]) params.set(filter, "true");
     });
     setLocation(`/rentalcar/cars?${params.toString()}`);
   }
@@ -213,8 +264,89 @@ export function RentalCarHome() {
                     </FormItem>
                   )}
                 />
-                {/* 5. Search Button */}
-                <Button type="submit" data-testid="button-search" className="w-full sm:col-span-2 lg:col-span-1" size="lg">Search Vehicles</Button>
+                <FormField
+                  control={form.control}
+                  name="pickupTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pickup Time</FormLabel>
+                      <FormControl><Input type="time" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="returnTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Return Time</FormLabel>
+                      <FormControl><Input type="time" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="sm:col-span-2 lg:col-span-5 grid grid-cols-2 md:grid-cols-5 gap-3 border-t pt-4">
+                  {([
+                    ["adults", "Adults", 1],
+                    ["children", "Children", 0],
+                    ["babies", "Babies", 0],
+                    ["luggageLarge", "Large luggage", 0],
+                    ["luggageSmall", "Small luggage", 0],
+                  ] as const).map(([name, label, min]) => (
+                    <FormField key={name} control={form.control} name={name} render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">{label}</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={min} step={1} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} />
+                        </FormControl>
+                      </FormItem>
+                    )} />
+                  ))}
+                </div>
+                <div className="sm:col-span-2 lg:col-span-5 border-t pt-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Optional filters</p>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span>¥</span>
+                      <FormField control={form.control} name="minPrice" render={({ field }) => <FormItem><FormControl><Input aria-label="Minimum daily price" className="w-24 h-8" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
+                      <span>to</span>
+                      <FormField control={form.control} name="maxPrice" render={({ field }) => <FormItem><FormControl><Input aria-label="Maximum daily price" className="w-24 h-8" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
+                      <span>/day</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <FormField control={form.control} name="vehicleClass" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Vehicle class</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Any" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="any">Any class</SelectItem>
+                            <SelectItem value="compact">Compact</SelectItem>
+                            <SelectItem value="suv">SUV</SelectItem>
+                            <SelectItem value="minivan">Minivan</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )} />
+                    {([
+                      ["has4wd", "4WD"],
+                      ["winterTires", "Winter tires"],
+                      ["childSeat", "Child seat"],
+                      ["airportDelivery", "Airport delivery"],
+                      ["skiLuggage", "Ski luggage"],
+                    ] as const).map(([name, label]) => (
+                      <FormField key={name} control={form.control} name={name} render={({ field }) => (
+                        <FormItem className="flex flex-row items-center gap-2 space-y-0 pt-6">
+                          <FormControl><Checkbox checked={Boolean(field.value)} onCheckedChange={field.onChange} /></FormControl>
+                          <FormLabel className="text-xs font-normal">{label}</FormLabel>
+                        </FormItem>
+                      )} />
+                    ))}
+                  </div>
+                </div>
+                <Button type="submit" data-testid="button-search" className="w-full sm:col-span-2 lg:col-span-5" size="lg">Search Vehicles</Button>
               </form>
             </Form>
           </Card>

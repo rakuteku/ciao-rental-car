@@ -1,14 +1,21 @@
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, useSearch } from "wouter";
+import { useEffect, useRef, useState } from "react";
 import { format, differenceInDays, addDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { CalendarIcon, Users, CreditCard, Shield, MapPin, CheckCircle2, Fuel } from "lucide-react";
+import { CalendarIcon, Users, CreditCard, Shield, MapPin, CheckCircle2, Fuel, AlertTriangle, Luggage, Snowflake } from "lucide-react";
 
-import { useGetCar, useGetCarAvailability, useCreateBooking, getGetCarQueryKey, getGetCarAvailabilityQueryKey } from "@workspace/api-client-react";
+import {
+  useGetRentalVehicle,
+  useCreateRentalHold,
+  getGetRentalVehicleQueryKey,
+  useCalculateRentalPrice,
+  useGetRentalAddons,
+  useSearchRentalVehicles,
+} from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -18,47 +25,42 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { LOCATIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-
-const AIRPORT_LOCATION = "New Chitose Airport";
+import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
 
 const bookingSchema = z.object({
   pickupLocation: z.string({ required_error: "Pickup location is required" }),
   returnLocation: z.string({ required_error: "Return location is required" }),
   pickupDate: z.date({ required_error: "Pickup date is required" }),
   returnDate: z.date({ required_error: "Return date is required" }),
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
 });
 
 export function CarDetailPage() {
   const params = useParams();
-  const id = parseInt(params.id || "0", 10);
+  const slug = params.slug || "";
+  const searchString = useSearch();
+  const searchParams = new URLSearchParams(searchString);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { setDraft } = useCheckoutDraft();
 
-  const { data: car, isLoading } = useGetCar(id, {
-    query: { enabled: !!id, queryKey: getGetCarQueryKey(id) }
+  const { data: car, isLoading } = useGetRentalVehicle(slug, {
+    query: { enabled: !!slug, queryKey: getGetRentalVehicleQueryKey(slug) }
   });
 
-  const { data: availability } = useGetCarAvailability(id, {
-    startDate: new Date().toISOString(),
-  }, {
-    query: { enabled: !!id, queryKey: getGetCarAvailabilityQueryKey(id) }
-  });
+  const createHold = useCreateRentalHold();
+  const { data: addons } = useGetRentalAddons();
+  const [selectedAddons, setSelectedAddons] = useState<Record<number, number>>({});
 
-  const createBooking = useCreateBooking();
+  const defaultPickupDate = searchParams.get("pickupAt") ? new Date(searchParams.get("pickupAt")!) : searchParams.get("pickupDate") ? new Date(searchParams.get("pickupDate")!) : new Date();
+  const defaultReturnDate = searchParams.get("returnAt") ? new Date(searchParams.get("returnAt")!) : searchParams.get("returnDate") ? new Date(searchParams.get("returnDate")!) : addDays(new Date(), 3);
 
   const form = useForm<z.infer<typeof bookingSchema>>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      pickupLocation: LOCATIONS[0],
-      returnLocation: LOCATIONS[0],
-      pickupDate: new Date(),
-      returnDate: addDays(new Date(), 3),
-      name: "",
-      email: "",
-      phone: "",
+      pickupLocation: searchParams.get("pickupLocation") || LOCATIONS[0],
+      returnLocation: searchParams.get("returnLocation") || LOCATIONS[0],
+      pickupDate: defaultPickupDate,
+      returnDate: defaultReturnDate,
     },
   });
 
@@ -66,51 +68,83 @@ export function CarDetailPage() {
   const returnDate = form.watch("returnDate");
   const pickupLocation = form.watch("pickupLocation");
   const returnLocation = form.watch("returnLocation");
+  const availabilitySearch = useSearchRentalVehicles({
+    slug,
+    pickupAt: pickupDate?.toISOString(),
+    returnAt: returnDate?.toISOString(),
+  });
+  const isStillAvailable = availabilitySearch.data
+    ? availabilitySearch.data.available.some((vehicle) => vehicle.id === car?.id)
+    : true;
 
-  const days = pickupDate && returnDate
-    ? Math.max(1, differenceInDays(returnDate, pickupDate))
-    : 1;
+  const calculatePrice = useCalculateRentalPrice();
+  const priceData = calculatePrice.data;
 
-  const airportPickupFee = car && pickupLocation === AIRPORT_LOCATION ? car.airportPickupFee : 0;
-  const airportDropoffFee = car && returnLocation === AIRPORT_LOCATION ? car.airportDropoffFee : 0;
-  const rentalCost = car ? car.pricePerDay * days : 0;
-  const totalPrice = rentalCost + airportPickupFee + airportDropoffFee;
+  const calculateRef = useRef(calculatePrice.mutate);
+  calculateRef.current = calculatePrice.mutate;
+
+  useEffect(() => {
+    if (car?.id && pickupDate && returnDate && pickupLocation && returnLocation) {
+      calculateRef.current({
+        data: {
+          vehicleId: car.id,
+          pickupAt: pickupDate.toISOString(),
+          returnAt: returnDate.toISOString(),
+          pickupLocation: pickupLocation,
+          returnLocation: returnLocation,
+          addons: Object.entries(selectedAddons)
+            .filter(([, qty]) => qty > 0)
+            .map(([addonId, qty]) => ({ addonId: Number(addonId), qty })),
+        }
+      });
+    }
+  }, [car?.id, pickupDate, returnDate, pickupLocation, returnLocation, selectedAddons]);
+
 
   function onSubmit(data: z.infer<typeof bookingSchema>) {
     if (!car) return;
 
-    createBooking.mutate({
+    createHold.mutate({
       data: {
-        carId: car.id,
-        pickupDate: data.pickupDate.toISOString(),
-        returnDate: data.returnDate.toISOString(),
+        vehicleId: car.id,
+        pickupAt: data.pickupDate.toISOString(),
+        returnAt: data.returnDate.toISOString(),
         pickupLocation: data.pickupLocation,
         returnLocation: data.returnLocation,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
+        addons: Object.entries(selectedAddons)
+          .filter(([, qty]) => qty > 0)
+          .map(([addonId, qty]) => ({ addonId: Number(addonId), qty })),
       }
     }, {
-      onSuccess: () => {
-        toast({ title: "Booking successful", description: "Your car has been reserved." });
-        setLocation("/rentalcar/booking/success");
+      onSuccess: (hold) => {
+        setDraft({
+          vehicleId: car.id,
+          vehicleSlug: car.slug,
+          pickupAt: data.pickupDate.toISOString(),
+          returnAt: data.returnDate.toISOString(),
+          pickupLocation: data.pickupLocation,
+          returnLocation: data.returnLocation,
+          holdId: hold.holdId,
+          heldUntil: hold.heldUntil,
+          addons: Object.entries(selectedAddons)
+            .filter(([, qty]) => qty > 0)
+            .map(([addonId, qty]) => ({ addonId: Number(addonId), qty })),
+          driver: { fullName: "", email: "", phone: "" }
+        });
+        setLocation("/rentalcar/checkout");
       },
       onError: () => {
-        toast({ title: "Booking failed", description: "There was an error processing your booking.", variant: "destructive" });
+        toast({ title: "Booking failed", description: "This vehicle is no longer available for these dates.", variant: "destructive" });
       }
     });
   }
 
   const isDateUnavailable = (date: Date) => {
     if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true;
-    if (!availability) return false;
-    const dateStr = format(date, "yyyy-MM-dd");
-    const found = availability.find(a => a.date.startsWith(dateStr));
-    if (found && !found.isAvailable) return true;
-    return false;
+    return false; // Real availability logic would go here if API provided it simply
   };
 
-  const displayImage = car?.imageUrls?.[0] || car?.imageUrl || "";
+  const displayImage = car?.images?.[0]?.url || "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80";
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -126,31 +160,41 @@ export function CarDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           <div className="lg:col-span-2 space-y-8">
+            {!isStillAvailable && (
+              <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+                <AlertTriangle className="h-5 w-5 shrink-0" />
+                This vehicle is no longer available for the selected dates. Please return to results and choose another option.
+              </div>
+            )}
             <div className="rounded-xl overflow-hidden bg-background border shadow-sm">
               <div className="aspect-[16/9] relative bg-muted">
                 <img
                   src={displayImage}
-                  alt={`${car.model} ${car.name}`}
+                  alt={`${car.brand} ${car.model}`}
                   className="object-cover w-full h-full"
                 />
               </div>
               <div className="p-6 md:p-8 space-y-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-sm text-muted-foreground font-medium tracking-wide uppercase">{car.model} · {car.year}</p>
-                    <h1 className="text-3xl font-serif font-bold mt-1">{car.name}</h1>
+                    <p className="text-sm text-muted-foreground font-medium tracking-wide uppercase">{car.brand} · {car.year}</p>
+                    <h1 className="text-3xl font-serif font-bold mt-1">{car.publicTitle || car.model}</h1>
                     <div className="flex flex-wrap gap-3 mt-3">
                       <Badge variant="secondary" className="gap-1">
-                        <Users className="w-3 h-3" /> {car.passengerCapacity} passengers
+                        <Users className="w-3 h-3" /> {car.seats} passengers
                       </Badge>
                       <Badge variant="secondary" className="gap-1">
-                        <Fuel className="w-3 h-3" /> {car.fuelEfficiency} km/L
+                        <Fuel className="w-3 h-3" /> {car.fuelType}
                       </Badge>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-mono font-bold">¥{car.pricePerDay.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground">per day</div>
+                    {car.pricing?.basePrice && (
+                      <>
+                        <div className="text-2xl font-mono font-bold">¥{car.pricing.basePrice.toLocaleString()}</div>
+                        <div className="text-sm text-muted-foreground">per day</div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -158,33 +202,9 @@ export function CarDetailPage() {
 
                 <div className="space-y-4">
                   <h3 className="font-bold text-lg">Description</h3>
-                  <p className="text-muted-foreground leading-relaxed">
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
                     {car.description || "A premium vehicle perfectly suited for exploring the scenic routes of Hokkaido. Features advanced safety systems, comfortable seating, and excellent handling in all weather conditions."}
                   </p>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-bold text-lg mb-4">Airport Service Fees</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Airport Pickup</p>
-                      {car.airportPickupFee > 0
-                        ? <p className="font-bold text-lg">¥{car.airportPickupFee.toLocaleString()}</p>
-                        : <p className="font-bold text-lg text-green-600">Free</p>
-                      }
-                      <p className="text-xs text-muted-foreground mt-1">New Chitose Airport pickup</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Airport Drop-off</p>
-                      {car.airportDropoffFee > 0
-                        ? <p className="font-bold text-lg">¥{car.airportDropoffFee.toLocaleString()}</p>
-                        : <p className="font-bold text-lg text-green-600">Free</p>
-                      }
-                      <p className="text-xs text-muted-foreground mt-1">New Chitose Airport drop-off</p>
-                    </div>
-                  </div>
                 </div>
 
                 <Separator />
@@ -219,6 +239,24 @@ export function CarDetailPage() {
                     </div>
                   </div>
                 </div>
+                <Separator />
+                <div className="space-y-4">
+                  <h3 className="font-bold text-lg">Hokkaido & winter ready</h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                    {[
+                      [car.has4wd, "4WD traction"],
+                      [car.hasWinterTires, "Winter tires"],
+                      [car.hasSnowBrush, "Snow brush"],
+                      [car.hasIceScraper, "Ice scraper"],
+                      [car.isSkiFriendly, "Ski friendly"],
+                      [car.hasHeatedSeats, "Heated seats"],
+                    ].filter(([included]) => included).map(([, label]) => <span key={String(label)} className="flex gap-2"><Snowflake className="h-4 w-4" />{label}</span>)}
+                  </div>
+                </div>
+                <div className="grid gap-5 border-t pt-6 text-sm text-muted-foreground">
+                  <div><h3 className="mb-1 font-bold text-foreground">Pickup & return</h3><p>We will send meeting instructions before your selected pickup time. Please return with the same fuel level.</p></div>
+                  <div><h3 className="mb-1 font-bold text-foreground">Policies & insurance</h3><p>Free cancellation is available before the policy cutoff. Standard collision coverage is included; security deposit terms are shown at checkout.</p></div>
+                </div>
               </div>
             </div>
           </div>
@@ -227,7 +265,7 @@ export function CarDetailPage() {
             <Card className="sticky top-24 shadow-lg border-primary/10">
               <CardHeader>
                 <CardTitle className="font-serif">Reserve this Vehicle</CardTitle>
-                <CardDescription>Fill out the form below to secure your booking</CardDescription>
+                <CardDescription>Select dates to check availability and calculate price</CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
@@ -325,53 +363,64 @@ export function CarDetailPage() {
                         )}
                       />
                     </div>
-
-                    <Separator className="my-4" />
-
-                    <div className="space-y-4">
-                      <FormField control={form.control} name="name" render={({ field }) => (
-                        <FormItem><FormLabel>Full Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="email" render={({ field }) => (
-                        <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="john@example.com" {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name="phone" render={({ field }) => (
-                        <FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="+81 11-123-4567" {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
+                    <div className="space-y-3 border-t pt-4">
+                      <div className="flex items-center justify-between"><h3 className="font-semibold">Add-ons</h3><span className="text-xs text-muted-foreground">Optional</span></div>
+                      {addons?.map((addon) => {
+                        const qty = selectedAddons[addon.id] ?? 0;
+                        const displayedPrice = addon.pricingType === "per_day" ? addon.perDayFee : addon.pricingType === "per_unit" ? addon.perUnitFee : addon.flatFee;
+                        return (
+                          <div key={addon.id} className="flex items-center justify-between gap-2 text-xs">
+                            <div><p className="font-medium">{addon.name}</p><p className="text-muted-foreground">¥{displayedPrice.toLocaleString()} {addon.pricingType === "per_day" ? "/ day" : ""}</p></div>
+                            <div className="flex items-center gap-1">
+                              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.max(0, qty - 1) }))}>−</Button>
+                              <span className="w-4 text-center">{qty}</span>
+                              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.min(addon.maxQty, qty + 1) }))}>+</Button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <div className="bg-muted p-4 rounded-lg mt-6 space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">
-                          Rental ({days} {days === 1 ? 'day' : 'days'} × ¥{car.pricePerDay.toLocaleString()})
-                        </span>
-                        <span className="tabular-nums">¥{rentalCost.toLocaleString()}</span>
-                      </div>
-                      {airportPickupFee > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Airport Pickup Fee</span>
-                          <span className="tabular-nums">¥{airportPickupFee.toLocaleString()}</span>
+                      {priceData ? (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              Rental ({priceData.days} {priceData.days === 1 ? 'day' : 'days'})
+                            </span>
+                            <span className="tabular-nums">¥{priceData.subtotal.toLocaleString()}</span>
+                          </div>
+                          {priceData.airportPickupFee > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Airport Pickup Fee</span>
+                              <span className="tabular-nums">¥{priceData.airportPickupFee.toLocaleString()}</span>
+                            </div>
+                          )}
+                          {priceData.airportDropoffFee > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Airport Drop-off Fee</span>
+                              <span className="tabular-nums">¥{priceData.airportDropoffFee.toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Insurance & Taxes</span>
+                            <span>Included</span>
+                          </div>
+                          <Separator className="my-2" />
+                          <div className="flex justify-between font-bold text-base">
+                            <span>Total</span>
+                            <span className="tabular-nums">¥{priceData.finalTotal.toLocaleString()}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-4 text-muted-foreground">
+                          {calculatePrice.isPending ? "Calculating price..." : "Select dates to see price"}
                         </div>
                       )}
-                      {airportDropoffFee > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Airport Drop-off Fee</span>
-                          <span className="tabular-nums">¥{airportDropoffFee.toLocaleString()}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Insurance & Taxes</span>
-                        <span>Included</span>
-                      </div>
-                      <Separator className="my-2" />
-                      <div className="flex justify-between font-bold text-base">
-                        <span>Total</span>
-                        <span className="tabular-nums">¥{totalPrice.toLocaleString()}</span>
-                      </div>
                     </div>
 
-                    <Button type="submit" className="w-full mt-4" size="lg" disabled={createBooking.isPending || !car.isAvailable}>
-                      {createBooking.isPending ? "Processing..." : car.isAvailable ? "Confirm Booking" : "Car Unavailable"}
+                    <Button type="submit" className="w-full mt-4" size="lg" disabled={createHold.isPending || calculatePrice.isPending || !priceData || !isStillAvailable}>
+                      {createHold.isPending ? "Holding Vehicle..." : "Continue to Booking"}
                     </Button>
 
                   </form>

@@ -2,3 +2,4 @@
 - [Orval barrel export fix](orval-barrel-fix.md) — `lib/api-zod/src/index.ts` codegen adds a broken export line that must be removed after every `orval` run.
 - [Well-known files via Vite proxy](well-known-files-vite-proxy.md) — pattern for serving `/robots.txt` and `/sitemap.xml` from a backend API through a Vite dev/preview plugin, in a monorepo where the frontend and API are separate services behind a shared proxy.
 - [pnpm install after new server routes](pnpm-install-new-routes.md) — adding new route files that import workspace deps (zod, drizzle-zod) requires running pnpm install --filter @workspace/api-server or esbuild fails to resolve them.
+- [Rental hold ownership](rental-hold-ownership.md) — temporary rental holds are browser-session-bound; status and conversion must require the same session.

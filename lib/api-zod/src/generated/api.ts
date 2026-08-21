@@ -563,12 +563,19 @@ export const SearchRentalVehiclesQueryParams = zod.object({
   returnAt: zod.coerce.string().optional(),
   pickupLocation: zod.coerce.string().optional(),
   returnLocation: zod.coerce.string().optional(),
+  slug: zod.coerce.string().optional(),
   adults: zod.coerce.number().optional(),
   children: zod.coerce.number().optional(),
+  babies: zod.coerce.number().optional(),
   luggageLarge: zod.coerce.number().optional(),
   luggageSmall: zod.coerce.number().optional(),
   vehicleClass: zod.coerce.string().optional(),
   transmission: zod.coerce.string().optional(),
+  has4wd: zod.coerce.boolean().optional(),
+  winterTires: zod.coerce.boolean().optional(),
+  skiLuggage: zod.coerce.boolean().optional(),
+  childSeat: zod.coerce.boolean().optional(),
+  airportDelivery: zod.coerce.boolean().optional(),
 });
 
 export const SearchRentalVehiclesResponse = zod.object({
@@ -1008,7 +1015,36 @@ export const CreateRentalHoldBody = zod.object({
   vehicleId: zod.number(),
   pickupAt: zod.string(),
   returnAt: zod.string(),
+  pickupLocation: zod.string().optional(),
+  returnLocation: zod.string().optional(),
+  addons: zod
+    .array(
+      zod.object({
+        addonId: zod.number(),
+        qty: zod.number(),
+      }),
+    )
+    .optional(),
   sessionToken: zod.string().optional(),
+});
+
+/**
+ * @summary Get temporary vehicle hold status
+ */
+export const GetRentalHoldParams = zod.object({
+  holdId: zod.coerce.number(),
+});
+
+export const GetRentalHoldResponse = zod.object({
+  id: zod.number(),
+  holdId: zod.number(),
+  vehicleId: zod.number(),
+  pickupAt: zod.string(),
+  returnAt: zod.string(),
+  heldUntil: zod.string(),
+  releasedAt: zod.string().nullish(),
+  createdAt: zod.string(),
+  expired: zod.boolean(),
 });
 
 /**
@@ -1026,7 +1062,11 @@ export const CreateRentalReservationBody = zod.object({
     email: zod.string(),
     phone: zod.string(),
     romanizedName: zod.string().optional(),
+    dateOfBirth: zod.string().optional(),
     nationality: zod.string().optional(),
+    residenceCountry: zod.string().optional(),
+    address: zod.string().optional(),
+    emergencyContact: zod.string().optional(),
     flightNumber: zod.string().optional(),
     accommodation: zod.string().optional(),
   }),
@@ -1035,6 +1075,30 @@ export const CreateRentalReservationBody = zod.object({
       zod.object({
         addonId: zod.number(),
         qty: zod.number(),
+      }),
+    )
+    .optional(),
+  additionalDrivers: zod
+    .array(
+      zod.object({
+        fullName: zod.string(),
+        email: zod.string(),
+        phone: zod.string(),
+      }),
+    )
+    .optional(),
+  documents: zod
+    .array(
+      zod.object({
+        docType: zod.enum([
+          "drivers_license",
+          "passport",
+          "international_license",
+          "insurance",
+          "credit_card",
+          "other",
+        ]),
+        fileUrl: zod.string().url(),
       }),
     )
     .optional(),
