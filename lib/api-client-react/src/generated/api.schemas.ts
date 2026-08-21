@@ -314,6 +314,41 @@ export interface RentalVehicle {
   hasBackupCamera: boolean;
   hasBluetooth: boolean;
   hasUsbPort: boolean;
+  hasLargeLuggageSpace: boolean;
+  hasEtcCard: boolean;
+  hasCarplay: boolean;
+  hasAndroidAuto: boolean;
+  hasChildSeatCompatible: boolean;
+  /** @nullable */
+  plate?: string | null;
+  /** @nullable */
+  vin?: string | null;
+  /** @nullable */
+  internalNotes?: string | null;
+  /** @nullable */
+  mileage?: number | null;
+  /** @nullable */
+  canonicalUrl?: string | null;
+  useGlobalPickupSettings: boolean;
+  /** @nullable */
+  pickupLocations?: string[] | null;
+  /** @nullable */
+  returnLocations?: string[] | null;
+  afterHoursPickup: boolean;
+  afterHoursReturn: boolean;
+  /** @nullable */
+  requiredDocuments?: string[] | null;
+  /** Manual operational state: available | cleaning | maintenance */
+  operationalStatus?: string;
+  /**
+   * Base price per day from pricing table (admin list only)
+   * @nullable
+   */
+  basePrice?: number | null;
+  /** @nullable */
+  deliveryLeadTimeHours?: number | null;
+  /** @nullable */
+  deliveryFeeOverride?: number | null;
   metaTitle: string;
   metaDescription: string;
   ogTitle: string;
@@ -334,17 +369,27 @@ export interface RentalVehiclePricing {
   weekendPrice?: number | null;
   /** @nullable */
   holidayPrice?: number | null;
+  /** @nullable */
+  highSeasonPrice?: number | null;
+  /** @nullable */
+  winterSeasonPrice?: number | null;
   weeklyDiscountPct: number;
   monthlyDiscountPct: number;
   minDays: number;
+  /** @nullable */
+  maxDays?: number | null;
   cleaningFee: number;
   deliveryFee: number;
   lateReturnFee: number;
+  extraMileageFee: number;
   securityDeposit: number;
   taxIncluded: boolean;
   taxRate: number;
   airportPickupFee: number;
   airportDropoffFee: number;
+  manualPriceOverride: boolean;
+  /** @nullable */
+  manualPriceValue?: number | null;
 }
 
 export type RentalVehicleDetail = RentalVehicle & {
@@ -542,8 +587,11 @@ export interface CreateRentalVehicleBody {
   trim?: string;
   year: number;
   color?: string;
+  plate?: string;
+  vin?: string;
   vehicleClass?: string;
   description?: string;
+  internalNotes?: string;
   seats?: number;
   recommendedPassengers?: number;
   maxPassengers?: number;
@@ -554,6 +602,10 @@ export interface CreateRentalVehicleBody {
   fuelType?: string;
   driveType?: string;
   engineSize?: string;
+  mileage?: number;
+  fuelPolicy?: string;
+  smokingPolicy?: string;
+  petPolicy?: string;
   status?: string;
   featured?: boolean;
   sortOrder?: number;
@@ -570,6 +622,20 @@ export interface CreateRentalVehicleBody {
   hasBackupCamera?: boolean;
   hasBluetooth?: boolean;
   hasUsbPort?: boolean;
+  hasLargeLuggageSpace?: boolean;
+  hasEtcCard?: boolean;
+  hasCarplay?: boolean;
+  hasAndroidAuto?: boolean;
+  hasChildSeatCompatible?: boolean;
+  canonicalUrl?: string;
+  useGlobalPickupSettings?: boolean;
+  pickupLocations?: string[];
+  returnLocations?: string[];
+  afterHoursPickup?: boolean;
+  afterHoursReturn?: boolean;
+  requiredDocuments?: string[];
+  deliveryLeadTimeHours?: number;
+  deliveryFeeOverride?: number;
   metaTitle?: string;
   metaDescription?: string;
   ogTitle?: string;
@@ -586,8 +652,11 @@ export interface UpdateRentalVehicleBody {
   trim?: string;
   year?: number;
   color?: string;
+  plate?: string;
+  vin?: string;
   vehicleClass?: string;
   description?: string;
+  internalNotes?: string;
   seats?: number;
   recommendedPassengers?: number;
   maxPassengers?: number;
@@ -598,6 +667,10 @@ export interface UpdateRentalVehicleBody {
   fuelType?: string;
   driveType?: string;
   engineSize?: string;
+  mileage?: number;
+  fuelPolicy?: string;
+  smokingPolicy?: string;
+  petPolicy?: string;
   status?: string;
   featured?: boolean;
   sortOrder?: number;
@@ -614,11 +687,52 @@ export interface UpdateRentalVehicleBody {
   hasBackupCamera?: boolean;
   hasBluetooth?: boolean;
   hasUsbPort?: boolean;
+  hasLargeLuggageSpace?: boolean;
+  hasEtcCard?: boolean;
+  hasCarplay?: boolean;
+  hasAndroidAuto?: boolean;
+  hasChildSeatCompatible?: boolean;
+  canonicalUrl?: string;
+  useGlobalPickupSettings?: boolean;
+  pickupLocations?: string[];
+  returnLocations?: string[];
+  afterHoursPickup?: boolean;
+  afterHoursReturn?: boolean;
+  requiredDocuments?: string[];
+  deliveryLeadTimeHours?: number;
+  deliveryFeeOverride?: number;
   metaTitle?: string;
   metaDescription?: string;
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+}
+
+export interface UpdateVehiclePricingBody {
+  basePrice?: number;
+  weekendPrice?: number;
+  holidayPrice?: number;
+  highSeasonPrice?: number;
+  winterSeasonPrice?: number;
+  weeklyDiscountPct?: number;
+  monthlyDiscountPct?: number;
+  minDays?: number;
+  maxDays?: number;
+  cleaningFee?: number;
+  deliveryFee?: number;
+  lateReturnFee?: number;
+  extraMileageFee?: number;
+  securityDeposit?: number;
+  taxIncluded?: boolean;
+  taxRate?: number;
+  airportPickupFee?: number;
+  airportDropoffFee?: number;
+  manualPriceOverride?: boolean;
+  manualPriceValue?: number;
+}
+
+export interface UpdateVehicleImageBody {
+  caption?: string;
 }
 
 export interface AddVehicleImageBody {

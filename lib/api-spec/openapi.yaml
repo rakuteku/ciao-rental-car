@@ -904,6 +904,29 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
 
   /admin/rental/vehicles/{id}:
+    get:
+      operationId: getAdminRentalVehicle
+      tags: [admin]
+      summary: Get a single rental vehicle by ID (admin, incl. drafts)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vehicle detail with pricing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehicleDetail"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     put:
       operationId: updateAdminRentalVehicle
       tags: [admin]
@@ -963,6 +986,60 @@ paths:
                   - message
         "404":
           description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/vehicles/{id}/pricing:
+    get:
+      operationId: getAdminRentalVehiclePricing
+      tags: [admin]
+      summary: Get pricing for a rental vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Vehicle pricing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehiclePricing"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateAdminRentalVehiclePricing
+      tags: [admin]
+      summary: Update pricing for a rental vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVehiclePricingBody"
+      responses:
+        "200":
+          description: Updated pricing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehiclePricing"
+        "404":
+          description: Not found
           content:
             application/json:
               schema:
@@ -1055,6 +1132,40 @@ paths:
                   - message
 
   /admin/rental/vehicles/{id}/images/{imgId}:
+    patch:
+      operationId: updateAdminRentalVehicleImage
+      tags: [admin]
+      summary: Update a vehicle image (caption)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: imgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVehicleImageBody"
+      responses:
+        "200":
+          description: Image updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalVehicleImage"
+        "404":
+          description: Image not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       operationId: deleteAdminRentalVehicleImage
       tags: [admin]
@@ -2274,6 +2385,54 @@ components:
           type: boolean
         hasUsbPort:
           type: boolean
+        hasLargeLuggageSpace:
+          type: boolean
+        hasEtcCard:
+          type: boolean
+        hasCarplay:
+          type: boolean
+        hasAndroidAuto:
+          type: boolean
+        hasChildSeatCompatible:
+          type: boolean
+        plate:
+          type: ["string", "null"]
+        vin:
+          type: ["string", "null"]
+        internalNotes:
+          type: ["string", "null"]
+        mileage:
+          type: ["integer", "null"]
+        canonicalUrl:
+          type: ["string", "null"]
+        useGlobalPickupSettings:
+          type: boolean
+        pickupLocations:
+          type: ["array", "null"]
+          items:
+            type: string
+        returnLocations:
+          type: ["array", "null"]
+          items:
+            type: string
+        afterHoursPickup:
+          type: boolean
+        afterHoursReturn:
+          type: boolean
+        requiredDocuments:
+          type: ["array", "null"]
+          items:
+            type: string
+        operationalStatus:
+          type: string
+          description: "Manual operational state: available | cleaning | maintenance"
+        basePrice:
+          type: ["number", "null"]
+          description: "Base price per day from pricing table (admin list only)"
+        deliveryLeadTimeHours:
+          type: ["integer", "null"]
+        deliveryFeeOverride:
+          type: ["number", "null"]
         metaTitle:
           type: string
         metaDescription:
@@ -2332,6 +2491,14 @@ components:
         - hasBackupCamera
         - hasBluetooth
         - hasUsbPort
+        - hasLargeLuggageSpace
+        - hasEtcCard
+        - hasCarplay
+        - hasAndroidAuto
+        - hasChildSeatCompatible
+        - useGlobalPickupSettings
+        - afterHoursPickup
+        - afterHoursReturn
         - metaTitle
         - metaDescription
         - ogTitle
@@ -2354,17 +2521,25 @@ components:
           type: ["number", "null"]
         holidayPrice:
           type: ["number", "null"]
+        highSeasonPrice:
+          type: ["number", "null"]
+        winterSeasonPrice:
+          type: ["number", "null"]
         weeklyDiscountPct:
           type: number
         monthlyDiscountPct:
           type: number
         minDays:
           type: integer
+        maxDays:
+          type: ["integer", "null"]
         cleaningFee:
           type: number
         deliveryFee:
           type: number
         lateReturnFee:
+          type: number
+        extraMileageFee:
           type: number
         securityDeposit:
           type: number
@@ -2376,6 +2551,10 @@ components:
           type: number
         airportDropoffFee:
           type: number
+        manualPriceOverride:
+          type: boolean
+        manualPriceValue:
+          type: ["number", "null"]
       required:
         - id
         - vehicleId
@@ -2386,11 +2565,13 @@ components:
         - cleaningFee
         - deliveryFee
         - lateReturnFee
+        - extraMileageFee
         - securityDeposit
         - taxIncluded
         - taxRate
         - airportPickupFee
         - airportDropoffFee
+        - manualPriceOverride
 
     RentalVehicleDetail:
       allOf:
@@ -2858,9 +3039,15 @@ components:
           type: integer
         color:
           type: string
+        plate:
+          type: string
+        vin:
+          type: string
         vehicleClass:
           type: string
         description:
+          type: string
+        internalNotes:
           type: string
         seats:
           type: integer
@@ -2881,6 +3068,14 @@ components:
         driveType:
           type: string
         engineSize:
+          type: string
+        mileage:
+          type: integer
+        fuelPolicy:
+          type: string
+        smokingPolicy:
+          type: string
+        petPolicy:
           type: string
         status:
           type: string
@@ -2914,6 +3109,40 @@ components:
           type: boolean
         hasUsbPort:
           type: boolean
+        hasLargeLuggageSpace:
+          type: boolean
+        hasEtcCard:
+          type: boolean
+        hasCarplay:
+          type: boolean
+        hasAndroidAuto:
+          type: boolean
+        hasChildSeatCompatible:
+          type: boolean
+        canonicalUrl:
+          type: string
+        useGlobalPickupSettings:
+          type: boolean
+        pickupLocations:
+          type: array
+          items:
+            type: string
+        returnLocations:
+          type: array
+          items:
+            type: string
+        afterHoursPickup:
+          type: boolean
+        afterHoursReturn:
+          type: boolean
+        requiredDocuments:
+          type: array
+          items:
+            type: string
+        deliveryLeadTimeHours:
+          type: integer
+        deliveryFeeOverride:
+          type: number
         metaTitle:
           type: string
         metaDescription:
@@ -2950,9 +3179,15 @@ components:
           type: integer
         color:
           type: string
+        plate:
+          type: string
+        vin:
+          type: string
         vehicleClass:
           type: string
         description:
+          type: string
+        internalNotes:
           type: string
         seats:
           type: integer
@@ -2973,6 +3208,14 @@ components:
         driveType:
           type: string
         engineSize:
+          type: string
+        mileage:
+          type: integer
+        fuelPolicy:
+          type: string
+        smokingPolicy:
+          type: string
+        petPolicy:
           type: string
         status:
           type: string
@@ -3006,6 +3249,40 @@ components:
           type: boolean
         hasUsbPort:
           type: boolean
+        hasLargeLuggageSpace:
+          type: boolean
+        hasEtcCard:
+          type: boolean
+        hasCarplay:
+          type: boolean
+        hasAndroidAuto:
+          type: boolean
+        hasChildSeatCompatible:
+          type: boolean
+        canonicalUrl:
+          type: string
+        useGlobalPickupSettings:
+          type: boolean
+        pickupLocations:
+          type: array
+          items:
+            type: string
+        returnLocations:
+          type: array
+          items:
+            type: string
+        afterHoursPickup:
+          type: boolean
+        afterHoursReturn:
+          type: boolean
+        requiredDocuments:
+          type: array
+          items:
+            type: string
+        deliveryLeadTimeHours:
+          type: integer
+        deliveryFeeOverride:
+          type: number
         metaTitle:
           type: string
         metaDescription:
@@ -3015,6 +3292,56 @@ components:
         ogDescription:
           type: string
         ogImage:
+          type: string
+
+    UpdateVehiclePricingBody:
+      type: object
+      properties:
+        basePrice:
+          type: number
+        weekendPrice:
+          type: number
+        holidayPrice:
+          type: number
+        highSeasonPrice:
+          type: number
+        winterSeasonPrice:
+          type: number
+        weeklyDiscountPct:
+          type: number
+        monthlyDiscountPct:
+          type: number
+        minDays:
+          type: integer
+        maxDays:
+          type: integer
+        cleaningFee:
+          type: number
+        deliveryFee:
+          type: number
+        lateReturnFee:
+          type: number
+        extraMileageFee:
+          type: number
+        securityDeposit:
+          type: number
+        taxIncluded:
+          type: boolean
+        taxRate:
+          type: number
+        airportPickupFee:
+          type: number
+        airportDropoffFee:
+          type: number
+        manualPriceOverride:
+          type: boolean
+        manualPriceValue:
+          type: number
+
+    UpdateVehicleImageBody:
+      type: object
+      properties:
+        caption:
           type: string
 
     AddVehicleImageBody:

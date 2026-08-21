@@ -49,6 +49,8 @@ export const rentalVehiclePricingTable = pgTable(
     taxRate: real("tax_rate").notNull().default(0),
     airportPickupFee: real("airport_pickup_fee").notNull().default(0),
     airportDropoffFee: real("airport_dropoff_fee").notNull().default(0),
+    manualPriceOverride: boolean("manual_price_override").notNull().default(false),
+    manualPriceValue: real("manual_price_value"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

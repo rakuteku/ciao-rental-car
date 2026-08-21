@@ -310,12 +310,17 @@ router.get("/admin/rental/vehicles", requireAdminAuth, async (_req, res): Promis
 
   const ids = vehicles.map((v) => v.id);
   let images: RentalVehicleImage[] = [];
+  let pricingRows: { vehicleId: number; basePrice: number }[] = [];
   if (ids.length > 0) {
     images = await db
       .select()
       .from(rentalVehicleImagesTable)
       .where(sql`${rentalVehicleImagesTable.vehicleId} = ANY(ARRAY[${sql.raw(ids.join(","))}])`)
       .orderBy(asc(rentalVehicleImagesTable.sortOrder));
+    pricingRows = await db
+      .select({ vehicleId: rentalVehiclePricingTable.vehicleId, basePrice: rentalVehiclePricingTable.basePrice })
+      .from(rentalVehiclePricingTable)
+      .where(sql`${rentalVehiclePricingTable.vehicleId} = ANY(ARRAY[${sql.raw(ids.join(","))}])`);
   }
 
   const imagesByVehicle = new Map<number, RentalVehicleImage[]>();
@@ -324,7 +329,15 @@ router.get("/admin/rental/vehicles", requireAdminAuth, async (_req, res): Promis
     imagesByVehicle.get(img.vehicleId)!.push(img);
   }
 
-  res.json(vehicles.map((v) => serializeVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] })));
+  const pricingByVehicle = new Map<number, number>();
+  for (const p of pricingRows) {
+    pricingByVehicle.set(p.vehicleId, p.basePrice);
+  }
+
+  res.json(vehicles.map((v) => ({
+    ...serializeVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
+    basePrice: pricingByVehicle.get(v.id) ?? null,
+  })));
 });
 
 const CreateVehicleSchema = z.object({
@@ -336,6 +349,8 @@ const CreateVehicleSchema = z.object({
   trim: z.string().nullable().optional(),
   year: z.coerce.number().int(),
   color: z.string().nullable().optional(),
+  plate: z.string().nullable().optional(),
+  vin: z.string().nullable().optional(),
   vehicleClass: z.enum(["economy", "compact", "midsize", "fullsize", "suv", "minivan", "van", "luxury", "sports", "truck"]).optional(),
   description: z.string().optional(),
   internalNotes: z.string().nullable().optional(),
@@ -369,6 +384,21 @@ const CreateVehicleSchema = z.object({
   hasBackupCamera: z.boolean().optional(),
   hasBluetooth: z.boolean().optional(),
   hasUsbPort: z.boolean().optional(),
+  hasLargeLuggageSpace: z.boolean().optional(),
+  hasEtcCard: z.boolean().optional(),
+  hasCarplay: z.boolean().optional(),
+  hasAndroidAuto: z.boolean().optional(),
+  hasChildSeatCompatible: z.boolean().optional(),
+  canonicalUrl: z.string().nullable().optional(),
+  useGlobalPickupSettings: z.boolean().optional(),
+  pickupLocations: z.array(z.string()).nullable().optional(),
+  returnLocations: z.array(z.string()).nullable().optional(),
+  afterHoursPickup: z.boolean().optional(),
+  afterHoursReturn: z.boolean().optional(),
+  requiredDocuments: z.array(z.string()).nullable().optional(),
+  operationalStatus: z.enum(["available", "cleaning", "maintenance"]).optional(),
+  deliveryLeadTimeHours: z.coerce.number().int().nullable().optional(),
+  deliveryFeeOverride: z.coerce.number().nullable().optional(),
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
   ogTitle: z.string().optional(),
@@ -442,6 +472,123 @@ router.put("/admin/rental/vehicles/:id", requireAdminAuth, async (req, res): Pro
   res.json(serializeVehicle({ ...vehicle, images }));
 });
 
+router.get("/admin/rental/vehicles/:id", requireAdminAuth, async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid vehicle ID" });
+    return;
+  }
+
+  const [vehicle] = await db
+    .select()
+    .from(rentalVehiclesTable)
+    .where(and(eq(rentalVehiclesTable.id, id), isNull(rentalVehiclesTable.deletedAt)));
+
+  if (!vehicle) {
+    res.status(404).json({ error: "Vehicle not found" });
+    return;
+  }
+
+  const images = await db
+    .select()
+    .from(rentalVehicleImagesTable)
+    .where(eq(rentalVehicleImagesTable.vehicleId, vehicle.id))
+    .orderBy(asc(rentalVehicleImagesTable.sortOrder));
+
+  const [pricing] = await db
+    .select()
+    .from(rentalVehiclePricingTable)
+    .where(eq(rentalVehiclePricingTable.vehicleId, vehicle.id));
+
+  res.json({ ...serializeVehicle({ ...vehicle, images }), pricing: pricing ?? null });
+});
+
+router.get("/admin/rental/vehicles/:id/pricing", requireAdminAuth, async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid vehicle ID" });
+    return;
+  }
+
+  const [pricing] = await db
+    .select()
+    .from(rentalVehiclePricingTable)
+    .where(eq(rentalVehiclePricingTable.vehicleId, id));
+
+  if (!pricing) {
+    res.status(404).json({ error: "Pricing not found" });
+    return;
+  }
+
+  res.json(pricing);
+});
+
+const UpdatePricingSchema = z.object({
+  basePrice: z.coerce.number().optional(),
+  weekendPrice: z.coerce.number().nullable().optional(),
+  holidayPrice: z.coerce.number().nullable().optional(),
+  highSeasonPrice: z.coerce.number().nullable().optional(),
+  winterSeasonPrice: z.coerce.number().nullable().optional(),
+  weeklyDiscountPct: z.coerce.number().optional(),
+  monthlyDiscountPct: z.coerce.number().optional(),
+  minDays: z.coerce.number().int().optional(),
+  maxDays: z.coerce.number().int().nullable().optional(),
+  cleaningFee: z.coerce.number().optional(),
+  deliveryFee: z.coerce.number().optional(),
+  lateReturnFee: z.coerce.number().optional(),
+  extraMileageFee: z.coerce.number().optional(),
+  securityDeposit: z.coerce.number().optional(),
+  taxIncluded: z.boolean().optional(),
+  taxRate: z.coerce.number().optional(),
+  airportPickupFee: z.coerce.number().optional(),
+  airportDropoffFee: z.coerce.number().optional(),
+  manualPriceOverride: z.boolean().optional(),
+  manualPriceValue: z.coerce.number().nullable().optional(),
+});
+
+router.put("/admin/rental/vehicles/:id/pricing", requireAdminAuth, async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(rawId, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid vehicle ID" });
+    return;
+  }
+
+  const body = UpdatePricingSchema.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const existing = await db
+    .select()
+    .from(rentalVehiclePricingTable)
+    .where(eq(rentalVehiclePricingTable.vehicleId, id));
+
+  let pricing;
+  if (existing.length === 0) {
+    [pricing] = await db
+      .insert(rentalVehiclePricingTable)
+      .values({ vehicleId: id, ...body.data })
+      .returning();
+  } else {
+    [pricing] = await db
+      .update(rentalVehiclePricingTable)
+      .set({ ...body.data, updatedAt: new Date() })
+      .where(eq(rentalVehiclePricingTable.vehicleId, id))
+      .returning();
+  }
+
+  if (!pricing) {
+    res.status(404).json({ error: "Pricing not found" });
+    return;
+  }
+
+  res.json(pricing);
+});
+
 router.delete("/admin/rental/vehicles/:id", requireAdminAuth, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(rawId, 10);
@@ -452,7 +599,7 @@ router.delete("/admin/rental/vehicles/:id", requireAdminAuth, async (req, res): 
 
   const [vehicle] = await db
     .update(rentalVehiclesTable)
-    .set({ deletedAt: new Date(), status: "archived", updatedAt: new Date() })
+    .set({ status: "archived", updatedAt: new Date() })
     .where(and(eq(rentalVehiclesTable.id, id), isNull(rentalVehiclesTable.deletedAt)))
     .returning();
 
@@ -505,7 +652,23 @@ router.post("/admin/rental/vehicles/:id/duplicate", requireAdminAuth, async (req
     await db.insert(rentalVehiclePricingTable).values({ vehicleId: duplicate.id });
   }
 
-  res.status(201).json(serializeVehicle(duplicate));
+  const originalImages = await db
+    .select()
+    .from(rentalVehicleImagesTable)
+    .where(eq(rentalVehicleImagesTable.vehicleId, id))
+    .orderBy(asc(rentalVehicleImagesTable.sortOrder));
+
+  const duplicateImages = [];
+  for (const img of originalImages) {
+    const { id: _iid, vehicleId: _ivid, createdAt: _ica, ...imgRest } = img;
+    const [newImg] = await db
+      .insert(rentalVehicleImagesTable)
+      .values({ ...imgRest, vehicleId: duplicate.id })
+      .returning();
+    duplicateImages.push(newImg);
+  }
+
+  res.status(201).json(serializeVehicle({ ...duplicate, images: duplicateImages }));
 });
 
 router.post("/admin/rental/vehicles/:id/images", requireAdminAuth, async (req, res): Promise<void> => {
@@ -583,6 +746,42 @@ router.put("/admin/rental/vehicles/:id/images/reorder", requireAdminAuth, async 
   }
 
   res.json({ message: "Images reordered" });
+});
+
+router.patch("/admin/rental/vehicles/:id/images/:imgId", requireAdminAuth, async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const rawImgId = Array.isArray(req.params.imgId) ? req.params.imgId[0] : req.params.imgId;
+  const id = parseInt(rawId, 10);
+  const imgId = parseInt(rawImgId, 10);
+
+  if (isNaN(id) || isNaN(imgId)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  const body = z.object({ caption: z.string().optional() }).safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const [updated] = await db
+    .update(rentalVehicleImagesTable)
+    .set({ ...(body.data.caption !== undefined ? { caption: body.data.caption } : {}) })
+    .where(
+      and(
+        eq(rentalVehicleImagesTable.id, imgId),
+        eq(rentalVehicleImagesTable.vehicleId, id),
+      ),
+    )
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Image not found" });
+    return;
+  }
+
+  res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
 });
 
 router.delete("/admin/rental/vehicles/:id/images/:imgId", requireAdminAuth, async (req, res): Promise<void> => {

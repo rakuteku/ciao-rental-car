@@ -59,6 +59,7 @@ import type {
   RentalVehicle,
   RentalVehicleDetail,
   RentalVehicleImage,
+  RentalVehiclePricing,
   RentalVehicleSearchResult,
   ReorderAdminRentalVehicleImages200,
   ReorderAdminRooms200,
@@ -74,6 +75,8 @@ import type {
   UpdateReservationBody,
   UpdateRoomBody,
   UpdateSeoBody,
+  UpdateVehicleImageBody,
+  UpdateVehiclePricingBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -3003,6 +3006,94 @@ export const useCreateAdminRentalVehicle = <
 };
 
 /**
+ * @summary Get a single rental vehicle by ID (admin, incl. drafts)
+ */
+export const getGetAdminRentalVehicleUrl = (id: number) => {
+  return `/api/admin/rental/vehicles/${id}`;
+};
+
+export const getAdminRentalVehicle = async (
+  id: number,
+  options?: RequestInit,
+): Promise<RentalVehicleDetail> => {
+  return customFetch<RentalVehicleDetail>(getGetAdminRentalVehicleUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminRentalVehicleQueryKey = (id: number) => {
+  return [`/api/admin/rental/vehicles/${id}`] as const;
+};
+
+export const getGetAdminRentalVehicleQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminRentalVehicle>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminRentalVehicle>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAdminRentalVehicleQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminRentalVehicle>>
+  > = ({ signal }) => getAdminRentalVehicle(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalVehicle>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminRentalVehicleQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminRentalVehicle>>
+>;
+export type GetAdminRentalVehicleQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a single rental vehicle by ID (admin, incl. drafts)
+ */
+
+export function useGetAdminRentalVehicle<
+  TData = Awaited<ReturnType<typeof getAdminRentalVehicle>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminRentalVehicle>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminRentalVehicleQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Update a rental vehicle
  */
 export const getUpdateAdminRentalVehicleUrl = (id: number) => {
@@ -3175,6 +3266,192 @@ export const useDeleteAdminRentalVehicle = <
   TContext
 > => {
   return useMutation(getDeleteAdminRentalVehicleMutationOptions(options));
+};
+
+/**
+ * @summary Get pricing for a rental vehicle
+ */
+export const getGetAdminRentalVehiclePricingUrl = (id: number) => {
+  return `/api/admin/rental/vehicles/${id}/pricing`;
+};
+
+export const getAdminRentalVehiclePricing = async (
+  id: number,
+  options?: RequestInit,
+): Promise<RentalVehiclePricing> => {
+  return customFetch<RentalVehiclePricing>(
+    getGetAdminRentalVehiclePricingUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAdminRentalVehiclePricingQueryKey = (id: number) => {
+  return [`/api/admin/rental/vehicles/${id}/pricing`] as const;
+};
+
+export const getGetAdminRentalVehiclePricingQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminRentalVehiclePricing>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminRentalVehiclePricing>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAdminRentalVehiclePricingQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminRentalVehiclePricing>>
+  > = ({ signal }) =>
+    getAdminRentalVehiclePricing(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalVehiclePricing>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminRentalVehiclePricingQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminRentalVehiclePricing>>
+>;
+export type GetAdminRentalVehiclePricingQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get pricing for a rental vehicle
+ */
+
+export function useGetAdminRentalVehiclePricing<
+  TData = Awaited<ReturnType<typeof getAdminRentalVehiclePricing>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminRentalVehiclePricing>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminRentalVehiclePricingQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update pricing for a rental vehicle
+ */
+export const getUpdateAdminRentalVehiclePricingUrl = (id: number) => {
+  return `/api/admin/rental/vehicles/${id}/pricing`;
+};
+
+export const updateAdminRentalVehiclePricing = async (
+  id: number,
+  updateVehiclePricingBody: UpdateVehiclePricingBody,
+  options?: RequestInit,
+): Promise<RentalVehiclePricing> => {
+  return customFetch<RentalVehiclePricing>(
+    getUpdateAdminRentalVehiclePricingUrl(id),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateVehiclePricingBody),
+    },
+  );
+};
+
+export const getUpdateAdminRentalVehiclePricingMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRentalVehiclePricing>>,
+    TError,
+    { id: number; data: BodyType<UpdateVehiclePricingBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdminRentalVehiclePricing>>,
+  TError,
+  { id: number; data: BodyType<UpdateVehiclePricingBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAdminRentalVehiclePricing"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdminRentalVehiclePricing>>,
+    { id: number; data: BodyType<UpdateVehiclePricingBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateAdminRentalVehiclePricing(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdminRentalVehiclePricingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAdminRentalVehiclePricing>>
+>;
+export type UpdateAdminRentalVehiclePricingMutationBody =
+  BodyType<UpdateVehiclePricingBody>;
+export type UpdateAdminRentalVehiclePricingMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update pricing for a rental vehicle
+ */
+export const useUpdateAdminRentalVehiclePricing = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRentalVehiclePricing>>,
+    TError,
+    { id: number; data: BodyType<UpdateVehiclePricingBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdminRentalVehiclePricing>>,
+  TError,
+  { id: number; data: BodyType<UpdateVehiclePricingBody> },
+  TContext
+> => {
+  return useMutation(
+    getUpdateAdminRentalVehiclePricingMutationOptions(options),
+  );
 };
 
 /**
@@ -3440,6 +3717,102 @@ export const useReorderAdminRentalVehicleImages = <
   return useMutation(
     getReorderAdminRentalVehicleImagesMutationOptions(options),
   );
+};
+
+/**
+ * @summary Update a vehicle image (caption)
+ */
+export const getUpdateAdminRentalVehicleImageUrl = (
+  id: number,
+  imgId: number,
+) => {
+  return `/api/admin/rental/vehicles/${id}/images/${imgId}`;
+};
+
+export const updateAdminRentalVehicleImage = async (
+  id: number,
+  imgId: number,
+  updateVehicleImageBody: UpdateVehicleImageBody,
+  options?: RequestInit,
+): Promise<RentalVehicleImage> => {
+  return customFetch<RentalVehicleImage>(
+    getUpdateAdminRentalVehicleImageUrl(id, imgId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateVehicleImageBody),
+    },
+  );
+};
+
+export const getUpdateAdminRentalVehicleImageMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRentalVehicleImage>>,
+    TError,
+    { id: number; imgId: number; data: BodyType<UpdateVehicleImageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdminRentalVehicleImage>>,
+  TError,
+  { id: number; imgId: number; data: BodyType<UpdateVehicleImageBody> },
+  TContext
+> => {
+  const mutationKey = ["updateAdminRentalVehicleImage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdminRentalVehicleImage>>,
+    { id: number; imgId: number; data: BodyType<UpdateVehicleImageBody> }
+  > = (props) => {
+    const { id, imgId, data } = props ?? {};
+
+    return updateAdminRentalVehicleImage(id, imgId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdminRentalVehicleImageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAdminRentalVehicleImage>>
+>;
+export type UpdateAdminRentalVehicleImageMutationBody =
+  BodyType<UpdateVehicleImageBody>;
+export type UpdateAdminRentalVehicleImageMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update a vehicle image (caption)
+ */
+export const useUpdateAdminRentalVehicleImage = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRentalVehicleImage>>,
+    TError,
+    { id: number; imgId: number; data: BodyType<UpdateVehicleImageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdminRentalVehicleImage>>,
+  TError,
+  { id: number; imgId: number; data: BodyType<UpdateVehicleImageBody> },
+  TContext
+> => {
+  return useMutation(getUpdateAdminRentalVehicleImageMutationOptions(options));
 };
 
 /**

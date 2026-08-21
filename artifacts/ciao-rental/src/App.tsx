@@ -23,6 +23,8 @@ import { AdminBookings } from "@/pages/admin/bookings";
 import { AdminContent } from "@/pages/admin/content";
 import { AdminSeo } from "@/pages/admin/seo";
 import { AdminLodging } from "@/pages/admin/lodging";
+import { AdminRentalCars } from "@/pages/admin/rental-cars/index";
+import { AdminRentalCarEdit } from "@/pages/admin/rental-cars/edit";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,12 @@ function Router() {
       <Route path="/admin/bookings" component={() => <AdminLayout><AdminBookings /></AdminLayout>} />
       <Route path="/admin/content" component={() => <AdminLayout><AdminContent /></AdminLayout>} />
       <Route path="/admin/seo" component={() => <AdminLayout><AdminSeo /></AdminLayout>} />
+
+      {/* Rental Cars Admin */}
+      <Route path="/admin/rental-cars/new" component={() => <AdminLayout><AdminRentalCarEdit isNew /></AdminLayout>} />
+      <Route path="/admin/rental-cars/:id/edit" component={() => <AdminLayout><AdminRentalCarEdit /></AdminLayout>} />
+      <Route path="/admin/rental-cars" component={() => <AdminLayout><AdminRentalCars /></AdminLayout>} />
+      <Route path="/admin/rental-cars/:section" component={() => <AdminLayout><AdminRentalCars /></AdminLayout>} />
 
       <Route component={() => <MainLayout><NotFound /></MainLayout>} />
     </Switch>

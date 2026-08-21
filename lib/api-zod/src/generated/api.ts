@@ -614,6 +614,34 @@ export const SearchRentalVehiclesResponse = zod.object({
       hasBackupCamera: zod.boolean(),
       hasBluetooth: zod.boolean(),
       hasUsbPort: zod.boolean(),
+      hasLargeLuggageSpace: zod.boolean(),
+      hasEtcCard: zod.boolean(),
+      hasCarplay: zod.boolean(),
+      hasAndroidAuto: zod.boolean(),
+      hasChildSeatCompatible: zod.boolean(),
+      plate: zod.string().nullish(),
+      vin: zod.string().nullish(),
+      internalNotes: zod.string().nullish(),
+      mileage: zod.number().nullish(),
+      canonicalUrl: zod.string().nullish(),
+      useGlobalPickupSettings: zod.boolean(),
+      pickupLocations: zod.array(zod.string()).nullish(),
+      returnLocations: zod.array(zod.string()).nullish(),
+      afterHoursPickup: zod.boolean(),
+      afterHoursReturn: zod.boolean(),
+      requiredDocuments: zod.array(zod.string()).nullish(),
+      operationalStatus: zod
+        .string()
+        .optional()
+        .describe(
+          "Manual operational state: available | cleaning | maintenance",
+        ),
+      basePrice: zod
+        .number()
+        .nullish()
+        .describe("Base price per day from pricing table (admin list only)"),
+      deliveryLeadTimeHours: zod.number().nullish(),
+      deliveryFeeOverride: zod.number().nullish(),
       metaTitle: zod.string(),
       metaDescription: zod.string(),
       ogTitle: zod.string(),
@@ -677,6 +705,34 @@ export const SearchRentalVehiclesResponse = zod.object({
       hasBackupCamera: zod.boolean(),
       hasBluetooth: zod.boolean(),
       hasUsbPort: zod.boolean(),
+      hasLargeLuggageSpace: zod.boolean(),
+      hasEtcCard: zod.boolean(),
+      hasCarplay: zod.boolean(),
+      hasAndroidAuto: zod.boolean(),
+      hasChildSeatCompatible: zod.boolean(),
+      plate: zod.string().nullish(),
+      vin: zod.string().nullish(),
+      internalNotes: zod.string().nullish(),
+      mileage: zod.number().nullish(),
+      canonicalUrl: zod.string().nullish(),
+      useGlobalPickupSettings: zod.boolean(),
+      pickupLocations: zod.array(zod.string()).nullish(),
+      returnLocations: zod.array(zod.string()).nullish(),
+      afterHoursPickup: zod.boolean(),
+      afterHoursReturn: zod.boolean(),
+      requiredDocuments: zod.array(zod.string()).nullish(),
+      operationalStatus: zod
+        .string()
+        .optional()
+        .describe(
+          "Manual operational state: available | cleaning | maintenance",
+        ),
+      basePrice: zod
+        .number()
+        .nullish()
+        .describe("Base price per day from pricing table (admin list only)"),
+      deliveryLeadTimeHours: zod.number().nullish(),
+      deliveryFeeOverride: zod.number().nullish(),
       metaTitle: zod.string(),
       metaDescription: zod.string(),
       ogTitle: zod.string(),
@@ -744,6 +800,32 @@ export const GetRentalVehiclesResponseItem = zod.object({
   hasBackupCamera: zod.boolean(),
   hasBluetooth: zod.boolean(),
   hasUsbPort: zod.boolean(),
+  hasLargeLuggageSpace: zod.boolean(),
+  hasEtcCard: zod.boolean(),
+  hasCarplay: zod.boolean(),
+  hasAndroidAuto: zod.boolean(),
+  hasChildSeatCompatible: zod.boolean(),
+  plate: zod.string().nullish(),
+  vin: zod.string().nullish(),
+  internalNotes: zod.string().nullish(),
+  mileage: zod.number().nullish(),
+  canonicalUrl: zod.string().nullish(),
+  useGlobalPickupSettings: zod.boolean(),
+  pickupLocations: zod.array(zod.string()).nullish(),
+  returnLocations: zod.array(zod.string()).nullish(),
+  afterHoursPickup: zod.boolean(),
+  afterHoursReturn: zod.boolean(),
+  requiredDocuments: zod.array(zod.string()).nullish(),
+  operationalStatus: zod
+    .string()
+    .optional()
+    .describe("Manual operational state: available | cleaning | maintenance"),
+  basePrice: zod
+    .number()
+    .nullish()
+    .describe("Base price per day from pricing table (admin list only)"),
+  deliveryLeadTimeHours: zod.number().nullish(),
+  deliveryFeeOverride: zod.number().nullish(),
   metaTitle: zod.string(),
   metaDescription: zod.string(),
   ogTitle: zod.string(),
@@ -817,6 +899,32 @@ export const GetRentalVehicleResponse = zod
     hasBackupCamera: zod.boolean(),
     hasBluetooth: zod.boolean(),
     hasUsbPort: zod.boolean(),
+    hasLargeLuggageSpace: zod.boolean(),
+    hasEtcCard: zod.boolean(),
+    hasCarplay: zod.boolean(),
+    hasAndroidAuto: zod.boolean(),
+    hasChildSeatCompatible: zod.boolean(),
+    plate: zod.string().nullish(),
+    vin: zod.string().nullish(),
+    internalNotes: zod.string().nullish(),
+    mileage: zod.number().nullish(),
+    canonicalUrl: zod.string().nullish(),
+    useGlobalPickupSettings: zod.boolean(),
+    pickupLocations: zod.array(zod.string()).nullish(),
+    returnLocations: zod.array(zod.string()).nullish(),
+    afterHoursPickup: zod.boolean(),
+    afterHoursReturn: zod.boolean(),
+    requiredDocuments: zod.array(zod.string()).nullish(),
+    operationalStatus: zod
+      .string()
+      .optional()
+      .describe("Manual operational state: available | cleaning | maintenance"),
+    basePrice: zod
+      .number()
+      .nullish()
+      .describe("Base price per day from pricing table (admin list only)"),
+    deliveryLeadTimeHours: zod.number().nullish(),
+    deliveryFeeOverride: zod.number().nullish(),
     metaTitle: zod.string(),
     metaDescription: zod.string(),
     ogTitle: zod.string(),
@@ -847,17 +955,23 @@ export const GetRentalVehicleResponse = zod
             basePrice: zod.number(),
             weekendPrice: zod.number().nullish(),
             holidayPrice: zod.number().nullish(),
+            highSeasonPrice: zod.number().nullish(),
+            winterSeasonPrice: zod.number().nullish(),
             weeklyDiscountPct: zod.number(),
             monthlyDiscountPct: zod.number(),
             minDays: zod.number(),
+            maxDays: zod.number().nullish(),
             cleaningFee: zod.number(),
             deliveryFee: zod.number(),
             lateReturnFee: zod.number(),
+            extraMileageFee: zod.number(),
             securityDeposit: zod.number(),
             taxIncluded: zod.boolean(),
             taxRate: zod.number(),
             airportPickupFee: zod.number(),
             airportDropoffFee: zod.number(),
+            manualPriceOverride: zod.boolean(),
+            manualPriceValue: zod.number().nullish(),
           }),
           zod.null(),
         ])
@@ -1013,6 +1127,32 @@ export const GetAdminRentalVehiclesResponseItem = zod.object({
   hasBackupCamera: zod.boolean(),
   hasBluetooth: zod.boolean(),
   hasUsbPort: zod.boolean(),
+  hasLargeLuggageSpace: zod.boolean(),
+  hasEtcCard: zod.boolean(),
+  hasCarplay: zod.boolean(),
+  hasAndroidAuto: zod.boolean(),
+  hasChildSeatCompatible: zod.boolean(),
+  plate: zod.string().nullish(),
+  vin: zod.string().nullish(),
+  internalNotes: zod.string().nullish(),
+  mileage: zod.number().nullish(),
+  canonicalUrl: zod.string().nullish(),
+  useGlobalPickupSettings: zod.boolean(),
+  pickupLocations: zod.array(zod.string()).nullish(),
+  returnLocations: zod.array(zod.string()).nullish(),
+  afterHoursPickup: zod.boolean(),
+  afterHoursReturn: zod.boolean(),
+  requiredDocuments: zod.array(zod.string()).nullish(),
+  operationalStatus: zod
+    .string()
+    .optional()
+    .describe("Manual operational state: available | cleaning | maintenance"),
+  basePrice: zod
+    .number()
+    .nullish()
+    .describe("Base price per day from pricing table (admin list only)"),
+  deliveryLeadTimeHours: zod.number().nullish(),
+  deliveryFeeOverride: zod.number().nullish(),
   metaTitle: zod.string(),
   metaDescription: zod.string(),
   ogTitle: zod.string(),
@@ -1049,8 +1189,11 @@ export const CreateAdminRentalVehicleBody = zod.object({
   trim: zod.string().optional(),
   year: zod.number(),
   color: zod.string().optional(),
+  plate: zod.string().optional(),
+  vin: zod.string().optional(),
   vehicleClass: zod.string().optional(),
   description: zod.string().optional(),
+  internalNotes: zod.string().optional(),
   seats: zod.number().optional(),
   recommendedPassengers: zod.number().optional(),
   maxPassengers: zod.number().optional(),
@@ -1061,6 +1204,10 @@ export const CreateAdminRentalVehicleBody = zod.object({
   fuelType: zod.string().optional(),
   driveType: zod.string().optional(),
   engineSize: zod.string().optional(),
+  mileage: zod.number().optional(),
+  fuelPolicy: zod.string().optional(),
+  smokingPolicy: zod.string().optional(),
+  petPolicy: zod.string().optional(),
   status: zod.string().optional(),
   featured: zod.boolean().optional(),
   sortOrder: zod.number().optional(),
@@ -1077,12 +1224,155 @@ export const CreateAdminRentalVehicleBody = zod.object({
   hasBackupCamera: zod.boolean().optional(),
   hasBluetooth: zod.boolean().optional(),
   hasUsbPort: zod.boolean().optional(),
+  hasLargeLuggageSpace: zod.boolean().optional(),
+  hasEtcCard: zod.boolean().optional(),
+  hasCarplay: zod.boolean().optional(),
+  hasAndroidAuto: zod.boolean().optional(),
+  hasChildSeatCompatible: zod.boolean().optional(),
+  canonicalUrl: zod.string().optional(),
+  useGlobalPickupSettings: zod.boolean().optional(),
+  pickupLocations: zod.array(zod.string()).optional(),
+  returnLocations: zod.array(zod.string()).optional(),
+  afterHoursPickup: zod.boolean().optional(),
+  afterHoursReturn: zod.boolean().optional(),
+  requiredDocuments: zod.array(zod.string()).optional(),
+  deliveryLeadTimeHours: zod.number().optional(),
+  deliveryFeeOverride: zod.number().optional(),
   metaTitle: zod.string().optional(),
   metaDescription: zod.string().optional(),
   ogTitle: zod.string().optional(),
   ogDescription: zod.string().optional(),
   ogImage: zod.string().optional(),
 });
+
+/**
+ * @summary Get a single rental vehicle by ID (admin, incl. drafts)
+ */
+export const GetAdminRentalVehicleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAdminRentalVehicleResponse = zod
+  .object({
+    id: zod.number(),
+    internalName: zod.string(),
+    publicTitle: zod.string(),
+    slug: zod.string(),
+    brand: zod.string(),
+    model: zod.string(),
+    trim: zod.string().nullish(),
+    year: zod.number(),
+    color: zod.string().nullish(),
+    vehicleClass: zod.string(),
+    description: zod.string(),
+    seats: zod.number(),
+    recommendedPassengers: zod.number(),
+    maxPassengers: zod.number(),
+    smallLuggageCapacity: zod.number(),
+    largeLuggageCapacity: zod.number(),
+    doors: zod.number(),
+    transmission: zod.string(),
+    fuelType: zod.string(),
+    driveType: zod.string(),
+    engineSize: zod.string().nullish(),
+    fuelPolicy: zod.string(),
+    smokingPolicy: zod.string(),
+    petPolicy: zod.string(),
+    status: zod.string(),
+    featured: zod.boolean(),
+    sortOrder: zod.number(),
+    has4wd: zod.boolean(),
+    hasWinterTires: zod.boolean(),
+    hasSnowBrush: zod.boolean(),
+    hasIceScraper: zod.boolean(),
+    isSkiFriendly: zod.boolean(),
+    hasSkiRack: zod.boolean(),
+    hasHeatedSeats: zod.boolean(),
+    hasHeatedSteering: zod.boolean(),
+    hasEtc: zod.boolean(),
+    hasNavigation: zod.boolean(),
+    hasBackupCamera: zod.boolean(),
+    hasBluetooth: zod.boolean(),
+    hasUsbPort: zod.boolean(),
+    hasLargeLuggageSpace: zod.boolean(),
+    hasEtcCard: zod.boolean(),
+    hasCarplay: zod.boolean(),
+    hasAndroidAuto: zod.boolean(),
+    hasChildSeatCompatible: zod.boolean(),
+    plate: zod.string().nullish(),
+    vin: zod.string().nullish(),
+    internalNotes: zod.string().nullish(),
+    mileage: zod.number().nullish(),
+    canonicalUrl: zod.string().nullish(),
+    useGlobalPickupSettings: zod.boolean(),
+    pickupLocations: zod.array(zod.string()).nullish(),
+    returnLocations: zod.array(zod.string()).nullish(),
+    afterHoursPickup: zod.boolean(),
+    afterHoursReturn: zod.boolean(),
+    requiredDocuments: zod.array(zod.string()).nullish(),
+    operationalStatus: zod
+      .string()
+      .optional()
+      .describe("Manual operational state: available | cleaning | maintenance"),
+    basePrice: zod
+      .number()
+      .nullish()
+      .describe("Base price per day from pricing table (admin list only)"),
+    deliveryLeadTimeHours: zod.number().nullish(),
+    deliveryFeeOverride: zod.number().nullish(),
+    metaTitle: zod.string(),
+    metaDescription: zod.string(),
+    ogTitle: zod.string(),
+    ogDescription: zod.string(),
+    ogImage: zod.string(),
+    createdAt: zod.string(),
+    updatedAt: zod.string(),
+    deletedAt: zod.string().nullish(),
+    images: zod.array(
+      zod.object({
+        id: zod.number(),
+        vehicleId: zod.number(),
+        url: zod.string(),
+        caption: zod.string().nullish(),
+        sortOrder: zod.number(),
+        isCover: zod.boolean(),
+        createdAt: zod.string(),
+      }),
+    ),
+  })
+  .and(
+    zod.object({
+      pricing: zod
+        .union([
+          zod.object({
+            id: zod.number(),
+            vehicleId: zod.number(),
+            basePrice: zod.number(),
+            weekendPrice: zod.number().nullish(),
+            holidayPrice: zod.number().nullish(),
+            highSeasonPrice: zod.number().nullish(),
+            winterSeasonPrice: zod.number().nullish(),
+            weeklyDiscountPct: zod.number(),
+            monthlyDiscountPct: zod.number(),
+            minDays: zod.number(),
+            maxDays: zod.number().nullish(),
+            cleaningFee: zod.number(),
+            deliveryFee: zod.number(),
+            lateReturnFee: zod.number(),
+            extraMileageFee: zod.number(),
+            securityDeposit: zod.number(),
+            taxIncluded: zod.boolean(),
+            taxRate: zod.number(),
+            airportPickupFee: zod.number(),
+            airportDropoffFee: zod.number(),
+            manualPriceOverride: zod.boolean(),
+            manualPriceValue: zod.number().nullish(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+    }),
+  );
 
 /**
  * @summary Update a rental vehicle
@@ -1100,8 +1390,11 @@ export const UpdateAdminRentalVehicleBody = zod.object({
   trim: zod.string().optional(),
   year: zod.number().optional(),
   color: zod.string().optional(),
+  plate: zod.string().optional(),
+  vin: zod.string().optional(),
   vehicleClass: zod.string().optional(),
   description: zod.string().optional(),
+  internalNotes: zod.string().optional(),
   seats: zod.number().optional(),
   recommendedPassengers: zod.number().optional(),
   maxPassengers: zod.number().optional(),
@@ -1112,6 +1405,10 @@ export const UpdateAdminRentalVehicleBody = zod.object({
   fuelType: zod.string().optional(),
   driveType: zod.string().optional(),
   engineSize: zod.string().optional(),
+  mileage: zod.number().optional(),
+  fuelPolicy: zod.string().optional(),
+  smokingPolicy: zod.string().optional(),
+  petPolicy: zod.string().optional(),
   status: zod.string().optional(),
   featured: zod.boolean().optional(),
   sortOrder: zod.number().optional(),
@@ -1128,6 +1425,20 @@ export const UpdateAdminRentalVehicleBody = zod.object({
   hasBackupCamera: zod.boolean().optional(),
   hasBluetooth: zod.boolean().optional(),
   hasUsbPort: zod.boolean().optional(),
+  hasLargeLuggageSpace: zod.boolean().optional(),
+  hasEtcCard: zod.boolean().optional(),
+  hasCarplay: zod.boolean().optional(),
+  hasAndroidAuto: zod.boolean().optional(),
+  hasChildSeatCompatible: zod.boolean().optional(),
+  canonicalUrl: zod.string().optional(),
+  useGlobalPickupSettings: zod.boolean().optional(),
+  pickupLocations: zod.array(zod.string()).optional(),
+  returnLocations: zod.array(zod.string()).optional(),
+  afterHoursPickup: zod.boolean().optional(),
+  afterHoursReturn: zod.boolean().optional(),
+  requiredDocuments: zod.array(zod.string()).optional(),
+  deliveryLeadTimeHours: zod.number().optional(),
+  deliveryFeeOverride: zod.number().optional(),
   metaTitle: zod.string().optional(),
   metaDescription: zod.string().optional(),
   ogTitle: zod.string().optional(),
@@ -1176,6 +1487,32 @@ export const UpdateAdminRentalVehicleResponse = zod.object({
   hasBackupCamera: zod.boolean(),
   hasBluetooth: zod.boolean(),
   hasUsbPort: zod.boolean(),
+  hasLargeLuggageSpace: zod.boolean(),
+  hasEtcCard: zod.boolean(),
+  hasCarplay: zod.boolean(),
+  hasAndroidAuto: zod.boolean(),
+  hasChildSeatCompatible: zod.boolean(),
+  plate: zod.string().nullish(),
+  vin: zod.string().nullish(),
+  internalNotes: zod.string().nullish(),
+  mileage: zod.number().nullish(),
+  canonicalUrl: zod.string().nullish(),
+  useGlobalPickupSettings: zod.boolean(),
+  pickupLocations: zod.array(zod.string()).nullish(),
+  returnLocations: zod.array(zod.string()).nullish(),
+  afterHoursPickup: zod.boolean(),
+  afterHoursReturn: zod.boolean(),
+  requiredDocuments: zod.array(zod.string()).nullish(),
+  operationalStatus: zod
+    .string()
+    .optional()
+    .describe("Manual operational state: available | cleaning | maintenance"),
+  basePrice: zod
+    .number()
+    .nullish()
+    .describe("Base price per day from pricing table (admin list only)"),
+  deliveryLeadTimeHours: zod.number().nullish(),
+  deliveryFeeOverride: zod.number().nullish(),
   metaTitle: zod.string(),
   metaDescription: zod.string(),
   ogTitle: zod.string(),
@@ -1206,6 +1543,93 @@ export const DeleteAdminRentalVehicleParams = zod.object({
 
 export const DeleteAdminRentalVehicleResponse = zod.object({
   message: zod.string(),
+});
+
+/**
+ * @summary Get pricing for a rental vehicle
+ */
+export const GetAdminRentalVehiclePricingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetAdminRentalVehiclePricingResponse = zod.object({
+  id: zod.number(),
+  vehicleId: zod.number(),
+  basePrice: zod.number(),
+  weekendPrice: zod.number().nullish(),
+  holidayPrice: zod.number().nullish(),
+  highSeasonPrice: zod.number().nullish(),
+  winterSeasonPrice: zod.number().nullish(),
+  weeklyDiscountPct: zod.number(),
+  monthlyDiscountPct: zod.number(),
+  minDays: zod.number(),
+  maxDays: zod.number().nullish(),
+  cleaningFee: zod.number(),
+  deliveryFee: zod.number(),
+  lateReturnFee: zod.number(),
+  extraMileageFee: zod.number(),
+  securityDeposit: zod.number(),
+  taxIncluded: zod.boolean(),
+  taxRate: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+  manualPriceOverride: zod.boolean(),
+  manualPriceValue: zod.number().nullish(),
+});
+
+/**
+ * @summary Update pricing for a rental vehicle
+ */
+export const UpdateAdminRentalVehiclePricingParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateAdminRentalVehiclePricingBody = zod.object({
+  basePrice: zod.number().optional(),
+  weekendPrice: zod.number().optional(),
+  holidayPrice: zod.number().optional(),
+  highSeasonPrice: zod.number().optional(),
+  winterSeasonPrice: zod.number().optional(),
+  weeklyDiscountPct: zod.number().optional(),
+  monthlyDiscountPct: zod.number().optional(),
+  minDays: zod.number().optional(),
+  maxDays: zod.number().optional(),
+  cleaningFee: zod.number().optional(),
+  deliveryFee: zod.number().optional(),
+  lateReturnFee: zod.number().optional(),
+  extraMileageFee: zod.number().optional(),
+  securityDeposit: zod.number().optional(),
+  taxIncluded: zod.boolean().optional(),
+  taxRate: zod.number().optional(),
+  airportPickupFee: zod.number().optional(),
+  airportDropoffFee: zod.number().optional(),
+  manualPriceOverride: zod.boolean().optional(),
+  manualPriceValue: zod.number().optional(),
+});
+
+export const UpdateAdminRentalVehiclePricingResponse = zod.object({
+  id: zod.number(),
+  vehicleId: zod.number(),
+  basePrice: zod.number(),
+  weekendPrice: zod.number().nullish(),
+  holidayPrice: zod.number().nullish(),
+  highSeasonPrice: zod.number().nullish(),
+  winterSeasonPrice: zod.number().nullish(),
+  weeklyDiscountPct: zod.number(),
+  monthlyDiscountPct: zod.number(),
+  minDays: zod.number(),
+  maxDays: zod.number().nullish(),
+  cleaningFee: zod.number(),
+  deliveryFee: zod.number(),
+  lateReturnFee: zod.number(),
+  extraMileageFee: zod.number(),
+  securityDeposit: zod.number(),
+  taxIncluded: zod.boolean(),
+  taxRate: zod.number(),
+  airportPickupFee: zod.number(),
+  airportDropoffFee: zod.number(),
+  manualPriceOverride: zod.boolean(),
+  manualPriceValue: zod.number().nullish(),
 });
 
 /**
@@ -1241,6 +1665,28 @@ export const ReorderAdminRentalVehicleImagesBody = zod.object({
 
 export const ReorderAdminRentalVehicleImagesResponse = zod.object({
   message: zod.string(),
+});
+
+/**
+ * @summary Update a vehicle image (caption)
+ */
+export const UpdateAdminRentalVehicleImageParams = zod.object({
+  id: zod.coerce.number(),
+  imgId: zod.coerce.number(),
+});
+
+export const UpdateAdminRentalVehicleImageBody = zod.object({
+  caption: zod.string().optional(),
+});
+
+export const UpdateAdminRentalVehicleImageResponse = zod.object({
+  id: zod.number(),
+  vehicleId: zod.number(),
+  url: zod.string(),
+  caption: zod.string().nullish(),
+  sortOrder: zod.number(),
+  isCover: zod.boolean(),
+  createdAt: zod.string(),
 });
 
 /**
