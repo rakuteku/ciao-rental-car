@@ -51,6 +51,7 @@ export function BookingSuccessPage() {
             </div>
             <div className="flex justify-between border-t pt-4 text-sm"><span>Paid today</span><strong>¥0</strong></div>
             <div className="flex justify-between text-sm"><span>Outstanding at pickup</span><strong>¥{(confirmation?.reservation?.outstanding ?? confirmation?.reservation?.finalTotal ?? 0).toLocaleString()}</strong></div>
+            {(confirmation?.reservation as { customerAccessToken?: string } | undefined)?.customerAccessToken && <div className="mt-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm"><p className="font-semibold">Booking access code</p><p className="mt-1 break-all font-mono">{(confirmation?.reservation as { customerAccessToken?: string }).customerAccessToken}</p><p className="mt-1 text-muted-foreground">Keep this code with your booking ID to view or manage your reservation.</p></div>}
           </div>
           <div className="flex flex-col items-center justify-center gap-3 rounded-lg border bg-muted/30 p-5 text-center">
             <div className="grid h-28 w-28 place-items-center bg-[linear-gradient(90deg,#111_10%,transparent_10%,transparent_20%,#111_20%,#111_30%,transparent_30%,transparent_40%,#111_40%,#111_50%,transparent_50%,transparent_60%,#111_60%,#111_70%,transparent_70%,transparent_80%,#111_80%,#111_90%,transparent_90%)]"><QrCode className="h-12 w-12 bg-white p-1" /></div>

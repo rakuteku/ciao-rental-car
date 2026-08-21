@@ -5,8 +5,13 @@ import { rentalAvailabilityBlocksTable, rentalVehiclesTable } from "@workspace/d
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { getTurnaroundBufferHours } from "./rental-vehicles";
 import { z } from "zod/v4";
+import { logRentalAudit } from "../lib/rental-events";
 
 const router: IRouter = Router();
+
+function adminName(req: { session: unknown }) {
+  return ((req.session as { admin?: { username?: string } }).admin?.username) ?? "admin";
+}
 
 function serializeBlock(block: typeof rentalAvailabilityBlocksTable.$inferSelect) {
   return {
@@ -140,6 +145,7 @@ router.post("/admin/rental/availability-blocks", requireAdminAuth, async (req, r
       .set({ status: "unpublished", updatedAt: new Date() })
       .where(eq(rentalVehiclesTable.id, body.data.vehicleId));
   }
+  await logRentalAudit({ adminUser: adminName(req), action: "availability_block_created", recordType: "availability_block", recordId: block.id, newValue: { vehicleId: block.vehicleId, reason: block.reason } });
 
   res.status(201).json(serializeBlock(block));
 });
@@ -285,6 +291,7 @@ router.delete("/admin/rental/availability-blocks/:id", requireAdminAuth, async (
     res.status(404).json({ error: "Block not found" });
     return;
   }
+  await logRentalAudit({ adminUser: adminName(req), action: "availability_block_deleted", recordType: "availability_block", recordId: id, previousValue: { vehicleId: block.vehicleId, reason: block.reason } });
 
   res.json({ message: "Block deleted" });
 });

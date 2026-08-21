@@ -13,14 +13,12 @@ import {
   ChevronRight,
   CalendarRange,
   ClipboardList,
-  Users,
-  CreditCard,
-  Navigation,
-  RotateCcw,
-  ClipboardCheck,
   Wrench,
   DollarSign,
   Settings,
+  Package,
+  Activity,
+  BarChart2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,17 +37,15 @@ type NavSection = {
 };
 
 const rentalCarSubItems: NavItem[] = [
-  { href: "/admin/rental-cars", label: "Cars", icon: Car },
+  { href: "/admin/rental-cars/dashboard", label: "Dashboard", icon: BarChart2 },
+  { href: "/admin/rental-cars", label: "Cars Fleet", icon: Car },
   { href: "/admin/rental-cars/availability", label: "Availability", icon: CalendarRange },
   { href: "/admin/rental-cars/reservations", label: "Reservations", icon: ClipboardList },
-  { href: "/admin/rental-cars/customers", label: "Customers", icon: Users },
-  { href: "/admin/rental-cars/payments", label: "Payments", icon: CreditCard },
-  { href: "/admin/rental-cars/pickups", label: "Pickups", icon: Navigation },
-  { href: "/admin/rental-cars/returns", label: "Returns", icon: RotateCcw },
-  { href: "/admin/rental-cars/inspections", label: "Inspections", icon: ClipboardCheck },
   { href: "/admin/rental-cars/maintenance", label: "Maintenance", icon: Wrench },
-  { href: "/admin/rental-cars/pricing", label: "Pricing & Add-ons", icon: DollarSign },
+  { href: "/admin/rental-cars/addons", label: "Add-ons", icon: Package },
+  { href: "/admin/rental-cars/pricing", label: "Pricing Rules", icon: DollarSign },
   { href: "/admin/rental-cars/settings", label: "Settings", icon: Settings },
+  { href: "/admin/rental-cars/audit", label: "Audit Logs", icon: Activity },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

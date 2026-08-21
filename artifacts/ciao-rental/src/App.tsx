@@ -16,6 +16,8 @@ import { CheckoutPage } from "@/pages/rentalcar/checkout/index";
 import { BookingSuccessPage } from "@/pages/rentalcar/booking/success";
 import { LodgingPage } from "@/pages/lodging/index";
 import { LodgingDetailPage } from "@/pages/lodging/detail";
+import { MyBookings } from "@/pages/rentalcar/my-bookings/index";
+import { MyBookingDetail } from "@/pages/rentalcar/my-bookings/detail";
 
 import { AdminLogin } from "@/pages/admin/login";
 import { AdminDashboard } from "@/pages/admin/dashboard";
@@ -27,6 +29,16 @@ import { AdminLodging } from "@/pages/admin/lodging";
 import { AdminRentalCars } from "@/pages/admin/rental-cars/index";
 import { AdminRentalCarEdit } from "@/pages/admin/rental-cars/edit";
 import { AdminRentalAvailability } from "@/pages/admin/rental-cars/availability";
+import { AdminRentalDashboard } from "@/pages/admin/rental-cars/dashboard";
+import { AdminReservations } from "@/pages/admin/rental-cars/reservations/index";
+import { AdminReservationDetail } from "@/pages/admin/rental-cars/reservations/detail";
+import { AdminReservationPickup } from "@/pages/admin/rental-cars/reservations/pickup";
+import { AdminReservationReturn } from "@/pages/admin/rental-cars/reservations/return";
+import { AdminMaintenance } from "@/pages/admin/rental-cars/maintenance";
+import { AdminAddons } from "@/pages/admin/rental-cars/addons";
+import { AdminPricingRules } from "@/pages/admin/rental-cars/pricing";
+import { AdminSettings } from "@/pages/admin/rental-cars/settings";
+import { AdminAudit } from "@/pages/admin/rental-cars/audit";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +65,8 @@ function Router() {
       <Route path="/rentalcar/checkout" component={() => <MainLayout><CheckoutPage /></MainLayout>} />
       <Route path="/rentalcar/booking/confirmation" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
       <Route path="/rentalcar/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
+      <Route path="/rentalcar/my-bookings" component={() => <MainLayout><MyBookings /></MainLayout>} />
+      <Route path="/rentalcar/my-bookings/:id" component={() => <MainLayout><MyBookingDetail /></MainLayout>} />
       <Route path="/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
       <Route path="/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
 
@@ -68,11 +82,24 @@ function Router() {
       <Route path="/admin/seo" component={() => <AdminLayout><AdminSeo /></AdminLayout>} />
 
       {/* Rental Cars Admin */}
+      <Route path="/admin/rental-cars/dashboard" component={() => <AdminLayout><AdminRentalDashboard /></AdminLayout>} />
       <Route path="/admin/rental-cars/new" component={() => <AdminLayout><AdminRentalCarEdit isNew /></AdminLayout>} />
       <Route path="/admin/rental-cars/:id/edit" component={() => <AdminLayout><AdminRentalCarEdit /></AdminLayout>} />
       <Route path="/admin/rental-cars/availability" component={() => <AdminLayout><AdminRentalAvailability /></AdminLayout>} />
+      <Route path="/admin/rental-cars/reservations" component={() => <AdminLayout><AdminReservations /></AdminLayout>} />
+      <Route path="/admin/rental-cars/reservations/:id" component={() => <AdminLayout><AdminReservationDetail /></AdminLayout>} />
+      <Route path="/admin/rental-cars/reservations/:id/pickup" component={() => <AdminLayout><AdminReservationPickup /></AdminLayout>} />
+      <Route path="/admin/rental-cars/reservations/:id/return" component={() => <AdminLayout><AdminReservationReturn /></AdminLayout>} />
+      <Route path="/admin/rental-car-reservations/:id/pickup" component={() => <AdminLayout><AdminReservationPickup /></AdminLayout>} />
+      <Route path="/admin/rental-car-reservations/:id/return" component={() => <AdminLayout><AdminReservationReturn /></AdminLayout>} />
+      <Route path="/admin/rental-car-reservations/:id" component={() => <AdminLayout><AdminReservationDetail /></AdminLayout>} />
+      <Route path="/admin/rental-car-reservations" component={() => <AdminLayout><AdminReservations /></AdminLayout>} />
+      <Route path="/admin/rental-cars/maintenance" component={() => <AdminLayout><AdminMaintenance /></AdminLayout>} />
+      <Route path="/admin/rental-cars/addons" component={() => <AdminLayout><AdminAddons /></AdminLayout>} />
+      <Route path="/admin/rental-cars/pricing" component={() => <AdminLayout><AdminPricingRules /></AdminLayout>} />
+      <Route path="/admin/rental-cars/settings" component={() => <AdminLayout><AdminSettings /></AdminLayout>} />
+      <Route path="/admin/rental-cars/audit" component={() => <AdminLayout><AdminAudit /></AdminLayout>} />
       <Route path="/admin/rental-cars" component={() => <AdminLayout><AdminRentalCars /></AdminLayout>} />
-      <Route path="/admin/rental-cars/:section" component={() => <AdminLayout><AdminRentalCars /></AdminLayout>} />
 
       <Route component={() => <MainLayout><NotFound /></MainLayout>} />
     </Switch>

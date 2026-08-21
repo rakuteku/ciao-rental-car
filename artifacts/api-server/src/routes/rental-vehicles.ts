@@ -14,24 +14,18 @@ import {
 } from "@workspace/db";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { z } from "zod/v4";
-
-let _bufferHoursCache: { value: number; expiresAt: number } | null = null;
+import { logRentalAudit } from "../lib/rental-events";
 
 export async function getTurnaroundBufferHours(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   client: any = db,
 ): Promise<number> {
-  const now = Date.now();
-  if (_bufferHoursCache && now < _bufferHoursCache.expiresAt) {
-    return _bufferHoursCache.value;
-  }
   const [setting] = await client
     .select()
     .from(rentalSettingsTable)
-    .where(eq(rentalSettingsTable.key, "turnaround_buffer_hours"));
-  const hours = setting ? parseInt(setting.value, 10) || 2 : 2;
-  _bufferHoursCache = { value: hours, expiresAt: now + 60_000 };
-  return hours;
+    .where(eq(rentalSettingsTable.key, "cleaningBufferMinutes"));
+  const minutes = setting ? Number(JSON.parse(setting.value)) || 120 : 120;
+  return minutes / 60;
 }
 
 const router: IRouter = Router();
@@ -72,7 +66,7 @@ function serializeVehicle(v: RentalVehicle & { images?: RentalVehicleImage[] }) 
   };
 }
 
-async function isVehicleAvailable(
+export async function isVehicleAvailable(
   vehicleId: number,
   pickupAt: Date,
   returnAt: Date,
@@ -475,6 +469,7 @@ router.post("/admin/rental/vehicles", requireAdminAuth, async (req, res): Promis
     .returning();
 
   await db.insert(rentalVehiclePricingTable).values({ vehicleId: vehicle.id });
+  await logRentalAudit({ adminUser: ((req.session as { admin?: { username?: string } }).admin?.username) ?? "admin", action: "vehicle_created", recordType: "vehicle", recordId: vehicle.id, newValue: { status: vehicle.status, title: vehicle.publicTitle } });
 
   res.status(201).json(serializeVehicle(vehicle));
 });
@@ -515,6 +510,7 @@ router.put("/admin/rental/vehicles/:id", requireAdminAuth, async (req, res): Pro
     res.status(404).json({ error: "Vehicle not found" });
     return;
   }
+  await logRentalAudit({ adminUser: ((req.session as { admin?: { username?: string } }).admin?.username) ?? "admin", action: body.data.status ? "vehicle_status_updated" : "vehicle_updated", recordType: "vehicle", recordId: id, newValue: { status: vehicle.status, title: vehicle.publicTitle } });
 
   const images = await db
     .select()
@@ -660,6 +656,7 @@ router.delete("/admin/rental/vehicles/:id", requireAdminAuth, async (req, res): 
     res.status(404).json({ error: "Vehicle not found" });
     return;
   }
+  await logRentalAudit({ adminUser: ((req.session as { admin?: { username?: string } }).admin?.username) ?? "admin", action: "vehicle_archived", recordType: "vehicle", recordId: id, newValue: { status: vehicle.status } });
 
   res.json({ message: "Vehicle deleted successfully" });
 });
@@ -901,5 +898,4 @@ router.put("/admin/rental/vehicles/:id/images/:imgId/cover", requireAdminAuth, a
   res.json({ ...updated, createdAt: updated.createdAt.toISOString() });
 });
 
-export { isVehicleAvailable };
 export default router;

@@ -1,6 +1,7 @@
 import { db } from "@workspace/db";
 import {
   rentalVehiclePricingTable,
+  rentalVehiclesTable,
   rentalSeasonalPricingRulesTable,
   rentalAddonsTable,
 } from "@workspace/db";
@@ -82,6 +83,10 @@ export async function calculatePrice(input: PricingInput): Promise<PriceBreakdow
     .select()
     .from(rentalVehiclePricingTable)
     .where(eq(rentalVehiclePricingTable.vehicleId, input.vehicleId));
+  const [vehicle] = await db
+    .select({ vehicleClass: rentalVehiclesTable.vehicleClass })
+    .from(rentalVehiclesTable)
+    .where(eq(rentalVehiclesTable.id, input.vehicleId));
 
   const seasonalRules = await db
     .select()
@@ -94,6 +99,10 @@ export async function calculatePrice(input: PricingInput): Promise<PriceBreakdow
           and(
             eq(rentalSeasonalPricingRulesTable.appliesTo, "vehicle"),
             eq(rentalSeasonalPricingRulesTable.vehicleId, input.vehicleId),
+          ),
+          and(
+            eq(rentalSeasonalPricingRulesTable.appliesTo, "class"),
+            eq(rentalSeasonalPricingRulesTable.vehicleClass, vehicle?.vehicleClass ?? ""),
           ),
         ),
       ),

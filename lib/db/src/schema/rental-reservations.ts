@@ -74,6 +74,7 @@ export const rentalReservationsTable = pgTable(
     refundAmount: real("refund_amount").notNull().default(0),
     finalTotal: real("final_total").notNull().default(0),
     source: text("source").notNull().default("website"),
+    customerAccessToken: text("customer_access_token"),
     internalNotes: text("internal_notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

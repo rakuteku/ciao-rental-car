@@ -4,6 +4,11 @@ import { db } from "@workspace/db";
 import { rentalAddonsTable } from "@workspace/db";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { z } from "zod/v4";
+import { logRentalAudit } from "../lib/rental-events";
+
+function adminName(req: { session: unknown }) {
+  return ((req.session as { admin?: { username?: string } }).admin?.username) ?? "admin";
+}
 
 const router: IRouter = Router();
 
@@ -56,6 +61,7 @@ router.post("/admin/rental/addons", requireAdminAuth, async (req, res): Promise<
   }
 
   const [addon] = await db.insert(rentalAddonsTable).values(body.data).returning();
+  await logRentalAudit({ adminUser: adminName(req), action: "addon_created", recordType: "addon", recordId: addon.id, newValue: { name: addon.name } });
   res.status(201).json(serializeAddon(addon));
 });
 
@@ -83,6 +89,7 @@ router.put("/admin/rental/addons/:id", requireAdminAuth, async (req, res): Promi
     res.status(404).json({ error: "Addon not found" });
     return;
   }
+  await logRentalAudit({ adminUser: adminName(req), action: "addon_updated", recordType: "addon", recordId: id, newValue: { name: addon.name, published: addon.published } });
 
   res.json(serializeAddon(addon));
 });
@@ -104,6 +111,7 @@ router.delete("/admin/rental/addons/:id", requireAdminAuth, async (req, res): Pr
     res.status(404).json({ error: "Addon not found" });
     return;
   }
+  await logRentalAudit({ adminUser: adminName(req), action: "addon_deleted", recordType: "addon", recordId: id, previousValue: { name: addon.name } });
 
   res.json({ message: "Addon deleted" });
 });
