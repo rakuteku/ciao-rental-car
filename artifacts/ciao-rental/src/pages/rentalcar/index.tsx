@@ -163,7 +163,7 @@ export function RentalCarHome() {
                             <Button
                               variant={"outline"}
                               data-testid="button-pickup-date"
-                              className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                              className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}
                             >
                               {field.value ? format(field.value, "MMM d, yyyy") : <span>Pick a date</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
@@ -193,7 +193,7 @@ export function RentalCarHome() {
                       <FormLabel>Pickup Location</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger data-testid="select-pickup-location">
+                          <SelectTrigger data-testid="select-pickup-location" className="h-11 md:h-10">
                             <SelectValue placeholder="Select location" />
                           </SelectTrigger>
                         </FormControl>
@@ -220,7 +220,7 @@ export function RentalCarHome() {
                             <Button
                               variant={"outline"}
                               data-testid="button-return-date"
-                              className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                              className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}
                             >
                               {field.value ? format(field.value, "MMM d, yyyy") : <span>Pick a date</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
@@ -250,7 +250,7 @@ export function RentalCarHome() {
                       <FormLabel>Return Location</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger data-testid="select-return-location">
+                          <SelectTrigger data-testid="select-return-location" className="h-11 md:h-10">
                             <SelectValue placeholder="Select location" />
                           </SelectTrigger>
                         </FormControl>
@@ -270,7 +270,7 @@ export function RentalCarHome() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Pickup Time</FormLabel>
-                      <FormControl><Input type="time" {...field} /></FormControl>
+                      <FormControl><Input type="time" className="h-11 md:h-10" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -281,7 +281,7 @@ export function RentalCarHome() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Return Time</FormLabel>
-                      <FormControl><Input type="time" {...field} /></FormControl>
+                      <FormControl><Input type="time" className="h-11 md:h-10" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -298,7 +298,7 @@ export function RentalCarHome() {
                       <FormItem>
                         <FormLabel className="text-xs">{label}</FormLabel>
                         <FormControl>
-                          <Input type="number" min={min} step={1} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} />
+                          <Input className="h-11 md:h-10" type="number" min={min} step={1} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} />
                         </FormControl>
                       </FormItem>
                     )} />
@@ -309,9 +309,9 @@ export function RentalCarHome() {
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Optional filters</p>
                     <div className="flex items-center gap-2 text-xs">
                       <span>¥</span>
-                      <FormField control={form.control} name="minPrice" render={({ field }) => <FormItem><FormControl><Input aria-label="Minimum daily price" className="w-24 h-8" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
+                      <FormField control={form.control} name="minPrice" render={({ field }) => <FormItem><FormControl><Input aria-label="Minimum daily price" className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
                       <span>to</span>
-                      <FormField control={form.control} name="maxPrice" render={({ field }) => <FormItem><FormControl><Input aria-label="Maximum daily price" className="w-24 h-8" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
+                      <FormField control={form.control} name="maxPrice" render={({ field }) => <FormItem><FormControl><Input aria-label="Maximum daily price" className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
                       <span>/day</span>
                     </div>
                   </div>
@@ -320,7 +320,7 @@ export function RentalCarHome() {
                       <FormItem>
                         <FormLabel className="text-xs">Vehicle class</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Any" /></SelectTrigger></FormControl>
+                          <FormControl><SelectTrigger className="h-11 md:h-9"><SelectValue placeholder="Any" /></SelectTrigger></FormControl>
                           <SelectContent>
                             <SelectItem value="any">Any class</SelectItem>
                             <SelectItem value="compact">Compact</SelectItem>

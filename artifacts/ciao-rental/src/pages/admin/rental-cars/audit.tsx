@@ -13,7 +13,7 @@ export function AdminAudit() {
         <p className="text-muted-foreground">Track changes to vehicles, pricing, and settings.</p>
       </div>
 
-      <div className="bg-card border rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-card border rounded-lg overflow-x-auto shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

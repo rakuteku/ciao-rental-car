@@ -37,7 +37,7 @@ export function AdminBookings() {
         <h1 className="text-3xl font-serif font-bold tracking-tight">Recent Bookings</h1>
       </div>
 
-      <div className="rounded-md border bg-card overflow-hidden">
+      <div className="rounded-md border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

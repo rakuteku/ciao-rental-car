@@ -1,0 +1,106 @@
+Please update the UI/UX of the entire car-rental website with the following requirements.
+
+## 1. Make all pages mobile-friendly
+
+Review every public and authenticated page, including:
+
+* Home page
+* Car search/results page
+* Car detail page
+* Booking and checkout flow
+* Payment pages
+* Booking confirmation page
+* Login and registration pages
+* Customer dashboard
+* Admin dashboard
+* Car management pages
+* Availability calendar
+* Booking management pages
+* Settings and forms
+* Modals, dropdowns, tables, and navigation menus
+
+Apply responsive styling for:
+
+* Mobile: 320px–767px
+* Tablet: 768px–1023px
+* Desktop: 1024px and above
+
+Mobile requirements:
+
+* Prevent horizontal scrolling and content overflow.
+* Use fluid containers with appropriate side padding.
+* Stack multi-column layouts vertically where necessary.
+* Make car cards, images, forms, calendars, and booking summaries fit the screen.
+* Convert wide admin tables into responsive tables, horizontally scrollable containers, or mobile-friendly cards.
+* Use a mobile navigation menu when the desktop navigation does not fit.
+* Make buttons and form controls easy to tap, with a minimum touch-target size of approximately 44×44px.
+* Use full-width primary action buttons on small screens where appropriate.
+* Ensure text does not overlap, clip, or become too small.
+* Keep images responsive using proper aspect ratios and `object-fit`.
+* Make modals fit within the viewport and allow internal scrolling.
+* Ensure dropdowns, date pickers, guest selectors, availability calendars, and payment forms are usable on touchscreens.
+* Make sticky headers, booking bars, and bottom actions work correctly without covering content.
+* Add sufficient spacing between inputs and interactive elements.
+* Respect mobile safe areas where applicable.
+
+Use existing design colors, branding, components, and visual hierarchy. Improve spacing and responsiveness without unnecessarily redesigning the website.
+
+## 2. Change the font to an Arial-style font
+
+Apply the following font stack globally:
+
+```css
+font-family: Arial, Helvetica, sans-serif;
+```
+
+Apply it consistently to:
+
+* Body text
+* Headings
+* Buttons
+* Form controls
+* Navigation
+* Tables
+* Labels
+* Prices
+* Customer and admin dashboards
+
+Remove or replace conflicting font declarations that prevent the global font from being applied. Preserve existing font sizes and weights unless an adjustment is necessary for mobile readability.
+
+## 3. Technical requirements
+
+* Reuse the existing styling system and responsive utilities.
+* Avoid adding duplicate CSS rules.
+* Prefer shared global styles and reusable responsive components.
+* Do not use fixed widths that cause mobile overflow.
+* Do not change the database schema, APIs, authentication, booking calculations, pricing logic, availability logic, payment processing, routes, or existing business functions.
+* Do not remove any existing content or features.
+* Do not change unrelated settings.
+* Preserve all existing desktop functionality while improving mobile and tablet layouts.
+* Maintain accessible labels, keyboard navigation, visible focus states, and adequate color contrast.
+* Do not “fix” responsiveness by hiding important information or actions.
+
+## 4. Verification
+
+After implementation, test every page at these viewport widths:
+
+* 320px
+* 375px
+* 390px
+* 430px
+* 768px
+* 1024px
+* 1440px
+
+Confirm that:
+
+* There is no unintended horizontal scrolling.
+* Navigation works on mobile and desktop.
+* Forms and booking steps remain fully usable.
+* Car images and cards display correctly.
+* Admin pages, tables, calendars, and dialogs are responsive.
+* Buttons and fields are not clipped or overlapping.
+* The Arial-style font is applied consistently.
+* Existing functionality and calculations remain unchanged.
+
+Before editing, inspect the current project structure and identify the shared layout, global stylesheet, theme configuration, and reusable components. Implement the changes in the smallest maintainable set of files. At the end, provide a concise summary of the files changed and the responsive improvements made.

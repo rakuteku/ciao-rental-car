@@ -280,7 +280,7 @@ export function CarDetailPage() {
                             <FormLabel>Pickup Location</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                                <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                 {LOCATIONS.map(loc => (
@@ -301,7 +301,7 @@ export function CarDetailPage() {
                             <FormLabel>Return Location</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+                                <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                 {LOCATIONS.map(loc => (
@@ -325,7 +325,7 @@ export function CarDetailPage() {
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
-                                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}>
                                     {field.value ? format(field.value, "MMM d, yyyy") : <span>Date</span>}
                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                   </Button>
@@ -348,7 +348,7 @@ export function CarDetailPage() {
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
-                                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}>
                                     {field.value ? format(field.value, "MMM d, yyyy") : <span>Date</span>}
                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                   </Button>

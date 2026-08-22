@@ -99,7 +99,7 @@ export function AdminAddons() {
         </DialogContent>
       </Dialog>
 
-      <div className="bg-card border rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-card border rounded-lg overflow-x-auto shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
