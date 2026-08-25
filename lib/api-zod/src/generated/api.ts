@@ -235,7 +235,10 @@ export const GetPageContentParams = zod.object({
 
 export const GetPageContentResponse = zod.object({
   page: zod.string(),
-  content: zod.record(zod.string(), zod.unknown()),
+  content: zod.object({
+    en: zod.record(zod.string(), zod.unknown()),
+    ja: zod.record(zod.string(), zod.unknown()),
+  }),
 });
 
 /**
@@ -249,12 +252,33 @@ export const GetPageSeoParams = zod.object({
 export const GetPageSeoResponse = zod.object({
   page: zod.string(),
   slug: zod.string(),
-  metaTitle: zod.string(),
-  metaDescription: zod.string(),
-  keywords: zod.array(zod.string()),
-  ogTitle: zod.string(),
-  ogDescription: zod.string(),
+  metaTitle: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
+  metaDescription: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
+  keywords: zod.object({
+    en: zod.array(zod.string()),
+    ja: zod.array(zod.string()),
+  }),
+  ogTitle: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
+  ogDescription: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
   ogImage: zod.string(),
+  ogImageAlt: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
+  canonicalUrl: zod.string(),
+  allowIndexing: zod.boolean(),
   updatedAt: zod.string(),
 });
 
@@ -266,12 +290,18 @@ export const UpdateAdminContentParams = zod.object({
 });
 
 export const UpdateAdminContentBody = zod.object({
-  content: zod.record(zod.string(), zod.unknown()),
+  content: zod.object({
+    en: zod.record(zod.string(), zod.unknown()).optional(),
+    ja: zod.record(zod.string(), zod.unknown()).optional(),
+  }),
 });
 
 export const UpdateAdminContentResponse = zod.object({
   page: zod.string(),
-  content: zod.record(zod.string(), zod.unknown()),
+  content: zod.object({
+    en: zod.record(zod.string(), zod.unknown()),
+    ja: zod.record(zod.string(), zod.unknown()),
+  }),
 });
 
 /**
@@ -282,24 +312,78 @@ export const UpdateAdminSeoParams = zod.object({
 });
 
 export const UpdateAdminSeoBody = zod.object({
-  slug: zod.string(),
-  metaTitle: zod.string(),
-  metaDescription: zod.string(),
-  keywords: zod.array(zod.string()),
-  ogTitle: zod.string(),
-  ogDescription: zod.string(),
-  ogImage: zod.string(),
+  slug: zod.string().optional(),
+  metaTitle: zod
+    .object({
+      en: zod.string(),
+      ja: zod.string(),
+    })
+    .optional(),
+  metaDescription: zod
+    .object({
+      en: zod.string(),
+      ja: zod.string(),
+    })
+    .optional(),
+  keywords: zod
+    .object({
+      en: zod.array(zod.string()),
+      ja: zod.array(zod.string()),
+    })
+    .optional(),
+  ogTitle: zod
+    .object({
+      en: zod.string(),
+      ja: zod.string(),
+    })
+    .optional(),
+  ogDescription: zod
+    .object({
+      en: zod.string(),
+      ja: zod.string(),
+    })
+    .optional(),
+  ogImage: zod.string().optional(),
+  ogImageAlt: zod
+    .object({
+      en: zod.string(),
+      ja: zod.string(),
+    })
+    .optional(),
+  canonicalUrl: zod.string().optional(),
+  allowIndexing: zod.boolean().optional(),
 });
 
 export const UpdateAdminSeoResponse = zod.object({
   page: zod.string(),
   slug: zod.string(),
-  metaTitle: zod.string(),
-  metaDescription: zod.string(),
-  keywords: zod.array(zod.string()),
-  ogTitle: zod.string(),
-  ogDescription: zod.string(),
+  metaTitle: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
+  metaDescription: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
+  keywords: zod.object({
+    en: zod.array(zod.string()),
+    ja: zod.array(zod.string()),
+  }),
+  ogTitle: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
+  ogDescription: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
   ogImage: zod.string(),
+  ogImageAlt: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+  }),
+  canonicalUrl: zod.string(),
+  allowIndexing: zod.boolean(),
   updatedAt: zod.string(),
 });
 

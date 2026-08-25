@@ -17,6 +17,7 @@ import { LOCATIONS } from "@/lib/constants";
 import { useGetCars, useGetPageContent } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
+import { localizeContent } from "@/lib/language";
 
 interface PricingRow {
   label: string;
@@ -36,6 +37,9 @@ interface AddOn {
 }
 
 interface RentalCarContent {
+  hero: { eyebrow: string; title: string; subtitle: string };
+  search: Record<string, string>;
+  sections: Record<string, string>;
   pricingTable: { title: string; description: string; rows: PricingRow[] };
   plans: Plan[];
   addOns: AddOn[];
@@ -68,7 +72,7 @@ export function RentalCarHome() {
   const [, setLocation] = useLocation();
   const { data: cars, isLoading } = useGetCars();
   const { data: contentData } = useGetPageContent("rentalcar");
-  const content = contentData?.content as RentalCarContent | undefined;
+  const content = contentData ? localizeContent(contentData.content.en as unknown as RentalCarContent, contentData.content.ja) : undefined;
   useSeoMeta("rentalcar");
 
   const form = useForm<z.infer<typeof searchSchema>>({
@@ -130,7 +134,7 @@ export function RentalCarHome() {
         <div className="absolute inset-0">
           <img
             src="/hero-sapporo.png"
-            alt="Sapporo winter road"
+            alt={content?.search.roadImageAlt ?? "Sapporo winter road"}
             className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
@@ -138,12 +142,12 @@ export function RentalCarHome() {
         <div className="relative z-10 w-full pb-16 pt-32">
           <div className="container space-y-10">
             <div className="max-w-2xl space-y-4">
-              <p className="text-xs tracking-[0.3em] uppercase text-white/60 font-medium">Sapporo · Hokkaido</p>
+              <p className="text-xs tracking-[0.3em] uppercase text-white/60 font-medium">{content?.hero.eyebrow ?? "Sapporo · Hokkaido"}</p>
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold tracking-tight text-white leading-[1.05]">
-                Rent a Car in<br />Sapporo with Ease
+                {content?.hero.title ?? "Rent a Car in Sapporo with Ease"}
               </h1>
               <p className="text-base md:text-lg text-white/70 max-w-xl leading-relaxed">
-                Premium vehicles, flexible pickup, fully insured options.
+                {content?.hero.subtitle ?? "Premium vehicles, flexible pickup, fully insured options."}
               </p>
             </div>
 
@@ -156,7 +160,7 @@ export function RentalCarHome() {
                   name="pickupDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Pickup Date</FormLabel>
+                      <FormLabel>{content?.search.pickupDate ?? "Pickup Date"}</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -165,7 +169,7 @@ export function RentalCarHome() {
                               data-testid="button-pickup-date"
                               className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}
                             >
-                              {field.value ? format(field.value, "MMM d, yyyy") : <span>Pick a date</span>}
+                               {field.value ? format(field.value, "MMM d, yyyy") : <span>{content?.search.pickDate ?? "Pick a date"}</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -190,11 +194,11 @@ export function RentalCarHome() {
                   name="pickupLocation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pickup Location</FormLabel>
+                      <FormLabel>{content?.search.pickupLocation ?? "Pickup Location"}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-pickup-location" className="h-11 md:h-10">
-                            <SelectValue placeholder="Select location" />
+                             <SelectValue placeholder={content?.search.selectLocation ?? "Select location"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -213,7 +217,7 @@ export function RentalCarHome() {
                   name="returnDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Return Date</FormLabel>
+                      <FormLabel>{content?.search.returnDate ?? "Return Date"}</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -222,7 +226,7 @@ export function RentalCarHome() {
                               data-testid="button-return-date"
                               className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}
                             >
-                              {field.value ? format(field.value, "MMM d, yyyy") : <span>Pick a date</span>}
+                               {field.value ? format(field.value, "MMM d, yyyy") : <span>{content?.search.pickDate ?? "Pick a date"}</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -247,11 +251,11 @@ export function RentalCarHome() {
                   name="returnLocation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Return Location</FormLabel>
+                      <FormLabel>{content?.search.returnLocation ?? "Return Location"}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-return-location" className="h-11 md:h-10">
-                            <SelectValue placeholder="Select location" />
+                             <SelectValue placeholder={content?.search.selectLocation ?? "Select location"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -269,7 +273,7 @@ export function RentalCarHome() {
                   name="pickupTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pickup Time</FormLabel>
+                      <FormLabel>{content?.search.pickupTime ?? "Pickup Time"}</FormLabel>
                       <FormControl><Input type="time" className="h-11 md:h-10" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -280,7 +284,7 @@ export function RentalCarHome() {
                   name="returnTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Return Time</FormLabel>
+                      <FormLabel>{content?.search.returnTime ?? "Return Time"}</FormLabel>
                       <FormControl><Input type="time" className="h-11 md:h-10" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -288,11 +292,11 @@ export function RentalCarHome() {
                 />
                 <div className="sm:col-span-2 lg:col-span-5 grid grid-cols-2 md:grid-cols-5 gap-3 border-t pt-4">
                   {([
-                    ["adults", "Adults", 1],
-                    ["children", "Children", 0],
-                    ["babies", "Babies", 0],
-                    ["luggageLarge", "Large luggage", 0],
-                    ["luggageSmall", "Small luggage", 0],
+                     ["adults", content?.search.adults ?? "Adults", 1],
+                     ["children", content?.search.children ?? "Children", 0],
+                     ["babies", content?.search.babies ?? "Babies", 0],
+                     ["luggageLarge", content?.search.largeLuggage ?? "Large luggage", 0],
+                     ["luggageSmall", content?.search.smallLuggage ?? "Small luggage", 0],
                   ] as const).map(([name, label, min]) => (
                     <FormField key={name} control={form.control} name={name} render={({ field }) => (
                       <FormItem>
@@ -306,36 +310,36 @@ export function RentalCarHome() {
                 </div>
                 <div className="sm:col-span-2 lg:col-span-5 border-t pt-4 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Optional filters</p>
+                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{content?.search.optionalFilters ?? "Optional filters"}</p>
                     <div className="flex items-center gap-2 text-xs">
                       <span>¥</span>
-                      <FormField control={form.control} name="minPrice" render={({ field }) => <FormItem><FormControl><Input aria-label="Minimum daily price" className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
-                      <span>to</span>
-                      <FormField control={form.control} name="maxPrice" render={({ field }) => <FormItem><FormControl><Input aria-label="Maximum daily price" className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
-                      <span>/day</span>
+                      <FormField control={form.control} name="minPrice" render={({ field }) => <FormItem><FormControl><Input aria-label={content?.search.minDailyPrice ?? "Minimum daily price"} className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
+                       <span>{content?.search.priceRangeTo ?? "to"}</span>
+                      <FormField control={form.control} name="maxPrice" render={({ field }) => <FormItem><FormControl><Input aria-label={content?.search.maxDailyPrice ?? "Maximum daily price"} className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
+                       <span>{content?.search.perDay ?? "/day"}</span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     <FormField control={form.control} name="vehicleClass" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Vehicle class</FormLabel>
+                         <FormLabel className="text-xs">{content?.search.vehicleClass ?? "Vehicle class"}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl><SelectTrigger className="h-11 md:h-9"><SelectValue placeholder="Any" /></SelectTrigger></FormControl>
+                           <FormControl><SelectTrigger className="h-11 md:h-9"><SelectValue placeholder={content?.search.anyClass ?? "Any"} /></SelectTrigger></FormControl>
                           <SelectContent>
-                            <SelectItem value="any">Any class</SelectItem>
-                            <SelectItem value="compact">Compact</SelectItem>
-                            <SelectItem value="suv">SUV</SelectItem>
-                            <SelectItem value="minivan">Minivan</SelectItem>
+                             <SelectItem value="any">{content?.search.anyClass ?? "Any class"}</SelectItem>
+                            <SelectItem value="compact">{content?.search.compact ?? "Compact"}</SelectItem>
+                             <SelectItem value="suv">{content?.search.suv ?? "SUV"}</SelectItem>
+                             <SelectItem value="minivan">{content?.search.minivan ?? "Minivan"}</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormItem>
                     )} />
                     {([
-                      ["has4wd", "4WD"],
-                      ["winterTires", "Winter tires"],
-                      ["childSeat", "Child seat"],
-                      ["airportDelivery", "Airport delivery"],
-                      ["skiLuggage", "Ski luggage"],
+                       ["has4wd", content?.search.fourWheelDrive ?? "4WD"],
+                       ["winterTires", content?.search.winterTires ?? "Winter tires"],
+                       ["childSeat", content?.search.childSeat ?? "Child seat"],
+                       ["airportDelivery", content?.search.airportDelivery ?? "Airport delivery"],
+                       ["skiLuggage", content?.search.skiLuggage ?? "Ski luggage"],
                     ] as const).map(([name, label]) => (
                       <FormField key={name} control={form.control} name={name} render={({ field }) => (
                         <FormItem className="flex flex-row items-center gap-2 space-y-0 pt-6">
@@ -346,7 +350,7 @@ export function RentalCarHome() {
                     ))}
                   </div>
                 </div>
-                <Button type="submit" data-testid="button-search" className="w-full sm:col-span-2 lg:col-span-5" size="lg">Search Vehicles</Button>
+                 <Button type="submit" data-testid="button-search" className="w-full sm:col-span-2 lg:col-span-5" size="lg">{content?.search.searchVehicles ?? "Search Vehicles"}</Button>
               </form>
             </Form>
           </Card>
@@ -359,12 +363,12 @@ export function RentalCarHome() {
         <div className="container space-y-12">
           <div className="flex items-end justify-between border-b pb-6">
             <div className="space-y-1">
-              <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">Our Fleet</p>
-              <h2 className="text-3xl font-serif font-bold tracking-tight">Featured Vehicles</h2>
+               <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">{content?.sections.fleetEyebrow ?? "Our Fleet"}</p>
+               <h2 className="text-3xl font-serif font-bold tracking-tight">{content?.sections.featuredVehicles ?? "Featured Vehicles"}</h2>
             </div>
             <Link href="/rentalcar/cars">
               <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-1 text-muted-foreground hover:text-foreground">
-                View all <ChevronRight className="h-4 w-4" />
+                 {content?.sections.viewAll ?? "View all"} <ChevronRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -389,9 +393,9 @@ export function RentalCarHome() {
                   <div className="pt-4 pb-2 space-y-1">
                     <div className="flex items-baseline justify-between">
                       <h3 className="font-serif text-xl font-semibold group-hover:text-muted-foreground transition-colors">{car.name}</h3>
-                      <span className="text-sm font-medium tabular-nums">¥{car.pricePerDay.toLocaleString()}<span className="text-muted-foreground text-xs">/day</span></span>
+                       <span className="text-sm font-medium tabular-nums">¥{car.pricePerDay.toLocaleString()}<span className="text-muted-foreground text-xs">{content?.sections.perDay ?? "/day"}</span></span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{car.passengerCapacity} Passengers</p>
+                     <p className="text-xs text-muted-foreground">{car.passengerCapacity} {content?.sections.passengers ?? "Passengers"}</p>
                   </div>
                 </Link>
               ))}
@@ -405,7 +409,7 @@ export function RentalCarHome() {
         <section className="py-24 border-b">
           <div className="container space-y-16">
             <div className="space-y-4 max-w-2xl">
-              <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">Pricing</p>
+               <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">{content.sections.pricingEyebrow}</p>
               <h2 className="text-3xl font-serif font-bold tracking-tight">{content.pricingTable.title}</h2>
               <p className="text-muted-foreground leading-relaxed">{content.pricingTable.description}</p>
             </div>
@@ -419,7 +423,7 @@ export function RentalCarHome() {
             </div>
 
             <div className="space-y-6">
-              <h3 className="text-2xl font-serif font-bold tracking-tight">Insurance Plans</h3>
+               <h3 className="text-2xl font-serif font-bold tracking-tight">{content.sections.insurancePlans}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {content.plans.map((plan) => (
                   <div key={plan.name} className="border p-6 space-y-2">
@@ -434,7 +438,7 @@ export function RentalCarHome() {
             </div>
 
             <div className="space-y-6">
-              <h3 className="text-2xl font-serif font-bold tracking-tight">Add-Ons</h3>
+               <h3 className="text-2xl font-serif font-bold tracking-tight">{content.sections.addOns}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {content.addOns.map((addOn) => (
                   <div key={addOn.name} className="border p-6 space-y-2">
@@ -450,7 +454,7 @@ export function RentalCarHome() {
 
             {content.importantNotes.length > 0 && (
               <div className="bg-muted/40 border p-6 space-y-3">
-                <h3 className="text-sm font-semibold uppercase tracking-wide">Important Notes</h3>
+                 <h3 className="text-sm font-semibold uppercase tracking-wide">{content.sections.importantNotes}</h3>
                 <ul className="space-y-2 list-disc list-inside text-sm text-muted-foreground">
                   {content.importantNotes.map((note) => (
                     <li key={note}>{note}</li>
@@ -467,10 +471,10 @@ export function RentalCarHome() {
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x border">
             {[
-              { icon: <Shield className="h-5 w-5" />, title: "Fully Insured", desc: "Comprehensive coverage included in every booking." },
-              { icon: <MapPin className="h-5 w-5" />, title: "Multiple Locations", desc: "Pickup and drop-off across Sapporo and the airport." },
-              { icon: <CarIcon className="h-5 w-5" />, title: "Airport Service", desc: "Seamless New Chitose Airport connections." },
-              { icon: <CreditCard className="h-5 w-5" />, title: "Easy Payment", desc: "Transparent pricing, no hidden fees." },
+               { icon: <Shield className="h-5 w-5" />, title: content?.search.fullyInsured ?? "Fully Insured", desc: content?.search.fullyInsuredDescription ?? "Comprehensive coverage included in every booking." },
+               { icon: <MapPin className="h-5 w-5" />, title: content?.search.multipleLocations ?? "Multiple Locations", desc: content?.search.multipleLocationsDescription ?? "Pickup and drop-off across Sapporo and the airport." },
+               { icon: <CarIcon className="h-5 w-5" />, title: content?.search.airportService ?? "Airport Service", desc: content?.search.airportServiceDescription ?? "Seamless New Chitose Airport connections." },
+               { icon: <CreditCard className="h-5 w-5" />, title: content?.search.easyPayment ?? "Easy Payment", desc: content?.search.easyPaymentDescription ?? "Transparent pricing, no hidden fees." },
             ].map(({ icon, title, desc }) => (
               <div key={title} className="flex flex-col gap-3 p-8">
                 <div className="text-muted-foreground">{icon}</div>

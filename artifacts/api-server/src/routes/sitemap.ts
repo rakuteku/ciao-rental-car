@@ -19,26 +19,23 @@ function resolveOrigin(req: Request): string {
 router.get("/sitemap.xml", async (req, res): Promise<void> => {
   const origin = resolveOrigin(req);
 
-  const pageEntries = await Promise.all(
+  const pageEntries = (await Promise.all(
     KNOWN_PAGES.map(async (page) => {
       const [contentRow] = await db.select().from(pageContentTable).where(eq(pageContentTable.page, page));
       const [seoRow] = await db.select().from(pageSeoTable).where(eq(pageSeoTable.page, page));
 
+      if (seoRow?.allowIndexing === false) return null;
       const slug = seoRow?.slug ?? DEFAULT_SEO[page]?.slug ?? `/${page}`;
+      const canonical = seoRow?.canonicalUrl || slug;
       const lastmodDate = contentRow?.updatedAt ?? seoRow?.updatedAt ?? new Date();
-      const loc = slug === "/" ? origin || "/" : `${origin}${slug}`;
+      const loc = canonical.startsWith("http") ? canonical : canonical === "/" ? origin || "/" : `${origin}${canonical}`;
 
       return `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmodDate.toISOString()}</lastmod>\n  </url>`;
     }),
-  );
+  )).filter((entry): entry is string => entry !== null);
 
   const publishedRooms = await db.select().from(roomsTable).where(eq(roomsTable.published, true));
-  const lodgingIndexLastmod = publishedRooms.reduce(
-    (latest, room) => (room.updatedAt > latest ? room.updatedAt : latest),
-    new Date(0),
-  );
   const lodgingEntries = [
-    `  <url>\n    <loc>${origin}/lodging</loc>\n    <lastmod>${(lodgingIndexLastmod > new Date(0) ? lodgingIndexLastmod : new Date()).toISOString()}</lastmod>\n  </url>`,
     ...publishedRooms.map(
       (room) =>
         `  <url>\n    <loc>${origin}/lodging/${room.slug}</loc>\n    <lastmod>${room.updatedAt.toISOString()}</lastmod>\n  </url>`,

@@ -11,7 +11,7 @@ import { requireAdminAuth } from "../middlewares/admin-auth";
 
 const router: IRouter = Router();
 
-export const KNOWN_PAGES = ["home", "rentalcar"] as const;
+export const KNOWN_PAGES = ["home", "rentalcar", "lodging"] as const;
 
 export const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
   home: {
@@ -69,8 +69,50 @@ export const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
         "Reach out to our team for booking assistance, custom itineraries, or anything else you need for your Hokkaido stay.",
       ctaText: "Contact Us",
     },
+    copy: {
+      heroEyebrow: "All-in-one package in Hokkaido",
+      lodgingEyebrow: "Lodging",
+      featuredRooms: "Featured Rooms",
+      viewAllRooms: "View all rooms",
+      monthlyEyebrow: "Monthly Stay",
+      rentalEyebrow: "Rental Car",
+      exploreRentalCars: "Explore rental cars",
+      whyEyebrow: "Why CIAO",
+      whyTitle: "Why Choose Us",
+      accessEyebrow: "Access",
+      contactEyebrow: "Contact",
+      lodgingImageAlt: "Comfortable lodging in Sapporo",
+      monthlyImageAlt: "Monthly stay in Sapporo",
+      rentalImageAlt: "Rental car in Hokkaido",
+      mapTitle: "Location map",
+      heroImageAlt: "Sapporo winter cityscape",
+      perNight: "/night",
+    },
   },
   rentalcar: {
+    hero: {
+      eyebrow: "Sapporo · Hokkaido",
+      title: "Rent a Car in Sapporo with Ease",
+      subtitle: "Premium vehicles, flexible pickup, fully insured options.",
+    },
+    search: {
+      pickupDate: "Pickup Date", returnDate: "Return Date", pickupLocation: "Pickup Location", returnLocation: "Return Location",
+      pickupTime: "Pickup Time", returnTime: "Return Time", pickDate: "Pick a date", selectLocation: "Select location",
+      adults: "Adults", children: "Children", babies: "Babies", largeLuggage: "Large luggage", smallLuggage: "Small luggage",
+      optionalFilters: "Optional filters", vehicleClass: "Vehicle class", anyClass: "Any class", searchVehicles: "Search Vehicles",
+      fullyInsured: "Fully Insured", fullyInsuredDescription: "Comprehensive coverage included in every booking.",
+      multipleLocations: "Multiple Locations", multipleLocationsDescription: "Pickup and drop-off across Sapporo and the airport.",
+      airportService: "Airport Service", airportServiceDescription: "Seamless New Chitose Airport connections.",
+      easyPayment: "Easy Payment", easyPaymentDescription: "Transparent pricing, no hidden fees.",
+      roadImageAlt: "Sapporo winter road", minDailyPrice: "Minimum daily price", maxDailyPrice: "Maximum daily price",
+      priceRangeTo: "to", perDay: "/day", compact: "Compact", suv: "SUV", minivan: "Minivan",
+      fourWheelDrive: "4WD", winterTires: "Winter tires", childSeat: "Child seat", airportDelivery: "Airport delivery", skiLuggage: "Ski luggage",
+    },
+    sections: {
+      fleetEyebrow: "Our Fleet", featuredVehicles: "Featured Vehicles", viewAll: "View all",
+      pricingEyebrow: "Pricing", insurancePlans: "Insurance Plans", addOns: "Add-Ons", importantNotes: "Important Notes",
+      passengers: "Passengers", perDay: "/day",
+    },
     pricingTable: {
       title: "Rental Pricing",
       description: "Transparent daily rates with no hidden fees. Airport pickup/drop-off fees vary by vehicle.",
@@ -104,19 +146,80 @@ export const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
       "Cancellations within 24 hours of pickup may incur a cancellation fee.",
     ],
   },
+  lodging: {
+    hero: {
+      title: "Short-Term Lodging in Sapporo",
+      subtitle: "Comfortable, fully furnished rooms for your Hokkaido stay.",
+    },
+    overview: {
+      title: "Make Yourself at Home",
+      description: "Stay in the heart of Sapporo with practical amenities and easy access to Hokkaido.",
+    },
+    contact: {
+      title: "Ready to stay with us?",
+      description: "Contact our team for availability and booking assistance.",
+      ctaText: "Contact Us",
+    },
+    copy: {
+      eyebrow: "Short-Term Lodging",
+      heading: "Our Rooms",
+      description: "Comfortable, fully-equipped rooms in the heart of Sapporo — ideal for short stays of any length.",
+      perNight: "/night",
+      guests: "guests",
+      bed: "bed",
+      beds: "beds",
+      viewRoom: "View Room",
+      noRooms: "No rooms are currently listed.",
+    },
+  },
 };
 
-async function getOrSeedContent(page: string): Promise<Record<string, unknown> | null> {
+type LocalizedContent = { en: Record<string, unknown>; ja: Record<string, unknown> };
+
+// The previous site had no Japanese source copy. Keep these values empty so
+// editors can add real translations and visitors receive field-level English
+// fallback rather than automatic or fabricated translations.
+const DEFAULT_JA_CONTENT: Record<string, Record<string, unknown>> = {
+  home: {},
+  rentalcar: {},
+  lodging: {},
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function mergeContent(base: Record<string, unknown>, update: Record<string, unknown>): Record<string, unknown> {
+  const merged = { ...base };
+  for (const [key, value] of Object.entries(update)) {
+    merged[key] = isRecord(value) && isRecord(base[key]) ? mergeContent(base[key], value) : value;
+  }
+  return merged;
+}
+
+function normalizeContent(page: string, content: Record<string, unknown>): LocalizedContent {
+  const defaults = DEFAULT_CONTENT[page];
+  const japaneseDefaults = DEFAULT_JA_CONTENT[page] ?? {};
+  if (isRecord(content.en) || isRecord(content.ja)) {
+    return {
+      en: mergeContent(defaults, isRecord(content.en) ? content.en : {}),
+      ja: mergeContent(japaneseDefaults, isRecord(content.ja) ? content.ja : {}),
+    };
+  }
+  return { en: mergeContent(defaults, content), ja: japaneseDefaults };
+}
+
+async function getOrSeedContent(page: string): Promise<LocalizedContent | null> {
   const [existing] = await db.select().from(pageContentTable).where(eq(pageContentTable.page, page));
   if (existing) {
-    return existing.content;
+    return normalizeContent(page, existing.content);
   }
 
   if (!(page in DEFAULT_CONTENT)) {
     return null;
   }
 
-  const defaults = DEFAULT_CONTENT[page];
+  const defaults = normalizeContent(page, {});
   const [created] = await db
     .insert(pageContentTable)
     .values({ page, content: defaults })
@@ -124,11 +227,11 @@ async function getOrSeedContent(page: string): Promise<Record<string, unknown> |
     .returning();
 
   if (created) {
-    return created.content;
+    return normalizeContent(page, created.content);
   }
 
   const [row] = await db.select().from(pageContentTable).where(eq(pageContentTable.page, page));
-  return row?.content ?? defaults;
+  return row ? normalizeContent(page, row.content) : defaults;
 }
 
 router.get("/content/:page", async (req, res): Promise<void> => {
@@ -165,16 +268,24 @@ router.put("/admin/content/:page", requireAdminAuth, async (req, res): Promise<v
     return;
   }
 
+  const [existing] = await db.select().from(pageContentTable).where(eq(pageContentTable.page, params.data.page));
+  const stored = existing ? normalizeContent(params.data.page, existing.content) : normalizeContent(params.data.page, {});
+  const incoming = body.data.content as Record<string, unknown>;
+  const content: LocalizedContent = {
+    en: mergeContent(stored.en, isRecord(incoming.en) ? incoming.en : {}),
+    ja: mergeContent(stored.ja, isRecord(incoming.ja) ? incoming.ja : {}),
+  };
+
   const [updated] = await db
     .insert(pageContentTable)
-    .values({ page: params.data.page, content: body.data.content })
+    .values({ page: params.data.page, content })
     .onConflictDoUpdate({
       target: pageContentTable.page,
-      set: { content: body.data.content, updatedAt: new Date() },
+      set: { content, updatedAt: new Date() },
     })
     .returning();
 
-  res.json(GetPageContentResponse.parse({ page: params.data.page, content: updated.content }));
+  res.json(GetPageContentResponse.parse({ page: params.data.page, content: normalizeContent(params.data.page, updated.content) }));
 });
 
 export default router;

@@ -48,7 +48,9 @@ import type {
   GetRoomsParams,
   HealthStatus,
   PageContent,
+  PageContentUpdate,
   PageSeo,
+  PageSeoUpdate,
   PriceCalculateBody,
   RentalAddon,
   RentalAvailabilityBlock,
@@ -71,11 +73,9 @@ import type {
   SetAvailabilityBody,
   SetCarAvailability200,
   UpdateCarBody,
-  UpdateContentBody,
   UpdateRentalVehicleBody,
   UpdateReservationBody,
   UpdateRoomBody,
-  UpdateSeoBody,
   UpdateVehicleImageBody,
   UpdateVehiclePricingBody,
 } from "./api.schemas";
@@ -862,14 +862,14 @@ export const getUpdateAdminContentUrl = (page: string) => {
 
 export const updateAdminContent = async (
   page: string,
-  updateContentBody: UpdateContentBody,
+  pageContentUpdate: PageContentUpdate,
   options?: RequestInit,
 ): Promise<PageContent> => {
   return customFetch<PageContent>(getUpdateAdminContentUrl(page), {
     ...options,
     method: "PUT",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateContentBody),
+    body: JSON.stringify(pageContentUpdate),
   });
 };
 
@@ -880,14 +880,14 @@ export const getUpdateAdminContentMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateAdminContent>>,
     TError,
-    { page: string; data: BodyType<UpdateContentBody> },
+    { page: string; data: BodyType<PageContentUpdate> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updateAdminContent>>,
   TError,
-  { page: string; data: BodyType<UpdateContentBody> },
+  { page: string; data: BodyType<PageContentUpdate> },
   TContext
 > => {
   const mutationKey = ["updateAdminContent"];
@@ -901,7 +901,7 @@ export const getUpdateAdminContentMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateAdminContent>>,
-    { page: string; data: BodyType<UpdateContentBody> }
+    { page: string; data: BodyType<PageContentUpdate> }
   > = (props) => {
     const { page, data } = props ?? {};
 
@@ -914,7 +914,7 @@ export const getUpdateAdminContentMutationOptions = <
 export type UpdateAdminContentMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateAdminContent>>
 >;
-export type UpdateAdminContentMutationBody = BodyType<UpdateContentBody>;
+export type UpdateAdminContentMutationBody = BodyType<PageContentUpdate>;
 export type UpdateAdminContentMutationError = ErrorType<ErrorResponse>;
 
 /**
@@ -927,14 +927,14 @@ export const useUpdateAdminContent = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateAdminContent>>,
     TError,
-    { page: string; data: BodyType<UpdateContentBody> },
+    { page: string; data: BodyType<PageContentUpdate> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof updateAdminContent>>,
   TError,
-  { page: string; data: BodyType<UpdateContentBody> },
+  { page: string; data: BodyType<PageContentUpdate> },
   TContext
 > => {
   return useMutation(getUpdateAdminContentMutationOptions(options));
@@ -949,14 +949,14 @@ export const getUpdateAdminSeoUrl = (page: string) => {
 
 export const updateAdminSeo = async (
   page: string,
-  updateSeoBody: UpdateSeoBody,
+  pageSeoUpdate: PageSeoUpdate,
   options?: RequestInit,
 ): Promise<PageSeo> => {
   return customFetch<PageSeo>(getUpdateAdminSeoUrl(page), {
     ...options,
     method: "PUT",
     headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(updateSeoBody),
+    body: JSON.stringify(pageSeoUpdate),
   });
 };
 
@@ -967,14 +967,14 @@ export const getUpdateAdminSeoMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateAdminSeo>>,
     TError,
-    { page: string; data: BodyType<UpdateSeoBody> },
+    { page: string; data: BodyType<PageSeoUpdate> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updateAdminSeo>>,
   TError,
-  { page: string; data: BodyType<UpdateSeoBody> },
+  { page: string; data: BodyType<PageSeoUpdate> },
   TContext
 > => {
   const mutationKey = ["updateAdminSeo"];
@@ -988,7 +988,7 @@ export const getUpdateAdminSeoMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateAdminSeo>>,
-    { page: string; data: BodyType<UpdateSeoBody> }
+    { page: string; data: BodyType<PageSeoUpdate> }
   > = (props) => {
     const { page, data } = props ?? {};
 
@@ -1001,7 +1001,7 @@ export const getUpdateAdminSeoMutationOptions = <
 export type UpdateAdminSeoMutationResult = NonNullable<
   Awaited<ReturnType<typeof updateAdminSeo>>
 >;
-export type UpdateAdminSeoMutationBody = BodyType<UpdateSeoBody>;
+export type UpdateAdminSeoMutationBody = BodyType<PageSeoUpdate>;
 export type UpdateAdminSeoMutationError = ErrorType<ErrorResponse>;
 
 /**
@@ -1014,14 +1014,14 @@ export const useUpdateAdminSeo = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateAdminSeo>>,
     TError,
-    { page: string; data: BodyType<UpdateSeoBody> },
+    { page: string; data: BodyType<PageSeoUpdate> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof updateAdminSeo>>,
   TError,
-  { page: string; data: BodyType<UpdateSeoBody> },
+  { page: string; data: BodyType<PageSeoUpdate> },
   TContext
 > => {
   return useMutation(getUpdateAdminSeoMutationOptions(options));

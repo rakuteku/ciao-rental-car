@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AdminLayout } from "@/components/layout/AdminLayout";
+import { LanguageProvider } from "@/lib/language";
 
 import { Home } from "@/pages/home";
 import { RentalCarHome } from "@/pages/rentalcar/index";
@@ -24,7 +25,6 @@ import { AdminDashboard } from "@/pages/admin/dashboard";
 import { AdminFleet } from "@/pages/admin/fleet";
 import { AdminBookings } from "@/pages/admin/bookings";
 import { AdminContent } from "@/pages/admin/content";
-import { AdminSeo } from "@/pages/admin/seo";
 import { AdminLodging } from "@/pages/admin/lodging";
 import { AdminRentalCars } from "@/pages/admin/rental-cars/index";
 import { AdminRentalCarEdit } from "@/pages/admin/rental-cars/edit";
@@ -79,7 +79,7 @@ function Router() {
       <Route path="/admin/lodging" component={() => <AdminLayout><AdminLodging /></AdminLayout>} />
       <Route path="/admin/bookings" component={() => <AdminLayout><AdminBookings /></AdminLayout>} />
       <Route path="/admin/content" component={() => <AdminLayout><AdminContent /></AdminLayout>} />
-      <Route path="/admin/seo" component={() => <AdminLayout><AdminSeo /></AdminLayout>} />
+      <Route path="/admin/seo" component={() => <AdminLayout><AdminContent /></AdminLayout>} />
 
       {/* Rental Cars Admin */}
       <Route path="/admin/rental-cars/dashboard" component={() => <AdminLayout><AdminRentalDashboard /></AdminLayout>} />
@@ -109,12 +109,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <LanguageProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

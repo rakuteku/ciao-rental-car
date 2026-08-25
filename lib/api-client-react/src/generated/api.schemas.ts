@@ -141,39 +141,69 @@ export interface ErrorResponse {
   error: string;
 }
 
-export type PageContentContent = { [key: string]: unknown };
+export type LocalizedContentEn = { [key: string]: unknown };
+
+export type LocalizedContentJa = { [key: string]: unknown };
+
+export interface LocalizedContent {
+  en: LocalizedContentEn;
+  ja: LocalizedContentJa;
+}
 
 export interface PageContent {
   page: string;
-  content: PageContentContent;
+  content: LocalizedContent;
 }
 
-export type UpdateContentBodyContent = { [key: string]: unknown };
+export type PageContentUpdateContentEn = { [key: string]: unknown };
 
-export interface UpdateContentBody {
-  content: UpdateContentBodyContent;
+export type PageContentUpdateContentJa = { [key: string]: unknown };
+
+export type PageContentUpdateContent = {
+  en?: PageContentUpdateContentEn;
+  ja?: PageContentUpdateContentJa;
+};
+
+export interface PageContentUpdate {
+  content: PageContentUpdateContent;
+}
+
+export interface LocalizedText {
+  en: string;
+  ja: string;
+}
+
+export interface LocalizedKeywords {
+  en: string[];
+  ja: string[];
 }
 
 export interface PageSeo {
   page: string;
   slug: string;
-  metaTitle: string;
-  metaDescription: string;
-  keywords: string[];
-  ogTitle: string;
-  ogDescription: string;
+  metaTitle: LocalizedText;
+  metaDescription: LocalizedText;
+  keywords: LocalizedKeywords;
+  ogTitle: LocalizedText;
+  ogDescription: LocalizedText;
   ogImage: string;
+  ogImageAlt: LocalizedText;
+  canonicalUrl: string;
+  allowIndexing: boolean;
   updatedAt: string;
 }
 
-export interface UpdateSeoBody {
-  slug: string;
-  metaTitle: string;
-  metaDescription: string;
-  keywords: string[];
-  ogTitle: string;
-  ogDescription: string;
-  ogImage: string;
+export interface PageSeoUpdate {
+  slug?: string;
+  metaTitle?: LocalizedText;
+  metaDescription?: LocalizedText;
+  keywords?: LocalizedKeywords;
+  ogTitle?: LocalizedText;
+  ogDescription?: LocalizedText;
+  ogImage?: string;
+  ogImageAlt?: LocalizedText;
+  canonicalUrl?: string;
+  allowIndexing?: boolean;
 }
 
 export interface Room {

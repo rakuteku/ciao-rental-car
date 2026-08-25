@@ -3,6 +3,7 @@ import { Building2, CalendarClock, Car as CarIcon, MapPin, Mail, ChevronRight, U
 import { Button } from "@/components/ui/button";
 import { useGetPageContent, useGetRooms } from "@workspace/api-client-react";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
+import { localizeContent } from "@/lib/language";
 
 interface WhyItem {
   title: string;
@@ -17,11 +18,12 @@ interface HomeContent {
   access: { title: string; description: string; address: string; mapEmbedUrl: string };
   whyChooseUs: WhyItem[];
   contact: { title: string; description: string; ctaText: string };
+  copy: Record<string, string>;
 }
 
 export function Home() {
   const { data, isLoading } = useGetPageContent("home");
-  const content = data?.content as HomeContent | undefined;
+  const content = data ? localizeContent(data.content.en as unknown as HomeContent, data.content.ja) : undefined;
   const { data: featuredRooms } = useGetRooms({ featured: true });
   useSeoMeta("home");
 
@@ -40,7 +42,7 @@ export function Home() {
         <div className="absolute inset-0">
           <img
             src="/hero-sapporo.png"
-            alt="Sapporo winter cityscape"
+            alt={content.copy.heroImageAlt}
             className="w-full h-full object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
@@ -49,7 +51,7 @@ export function Home() {
           <div className="container space-y-8">
             <div className="max-w-2xl space-y-4">
               <p className="text-xs tracking-[0.3em] uppercase text-white/60 font-medium">
-                All-in-one package in Hokkaido
+                {content.copy.heroEyebrow}
               </p>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold tracking-tight text-white leading-[1.1]">
                 {content.hero.title}
@@ -80,7 +82,7 @@ export function Home() {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Building2 className="h-5 w-5" />
-              <p className="text-xs tracking-[0.25em] uppercase">Lodging</p>
+              <p className="text-xs tracking-[0.25em] uppercase">{content.copy.lodgingEyebrow}</p>
             </div>
             <h2 className="text-3xl font-serif font-bold tracking-tight">{content.lodging.title}</h2>
             <p className="text-muted-foreground leading-relaxed max-w-lg">{content.lodging.description}</p>
@@ -88,7 +90,7 @@ export function Home() {
           <div className="aspect-[4/3] bg-muted rounded-sm overflow-hidden">
             <img
               src="/hero-sapporo.png"
-              alt="Lodging"
+              alt={content.copy.lodgingImageAlt}
               className="w-full h-full object-cover"
             />
           </div>
@@ -96,9 +98,9 @@ export function Home() {
         {featuredRooms && featuredRooms.length > 0 && (
           <div className="container mt-16 space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-serif font-semibold tracking-tight">Featured Rooms</h3>
+              <h3 className="text-lg font-serif font-semibold tracking-tight">{content.copy.featuredRooms}</h3>
               <Link href="/lodging" className="text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-                View all rooms <ChevronRight className="h-3.5 w-3.5" />
+                {content.copy.viewAllRooms} <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -114,7 +116,7 @@ export function Home() {
                   <div className="pt-3 space-y-1">
                     <div className="flex items-baseline justify-between">
                       <h4 className="font-serif font-semibold group-hover:text-muted-foreground transition-colors">{room.title}</h4>
-                      <span className="text-sm font-medium tabular-nums">¥{room.startingPrice.toLocaleString()}<span className="text-muted-foreground text-xs">/night</span></span>
+                       <span className="text-sm font-medium tabular-nums">¥{room.startingPrice.toLocaleString()}<span className="text-muted-foreground text-xs">{content.copy.perNight}</span></span>
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {room.maxGuests}</span>
@@ -134,14 +136,14 @@ export function Home() {
           <div className="aspect-[4/3] bg-muted rounded-sm overflow-hidden md:order-1 order-2">
             <img
               src="/hero-sapporo.png"
-              alt="Monthly stay"
+               alt={content.copy.monthlyImageAlt}
               className="w-full h-full object-cover"
             />
           </div>
           <div className="space-y-4 md:order-2 order-1">
             <div className="flex items-center gap-2 text-muted-foreground">
               <CalendarClock className="h-5 w-5" />
-              <p className="text-xs tracking-[0.25em] uppercase">Monthly Stay</p>
+              <p className="text-xs tracking-[0.25em] uppercase">{content.copy.monthlyEyebrow}</p>
             </div>
             <h2 className="text-3xl font-serif font-bold tracking-tight">{content.monthlyStay.title}</h2>
             <p className="text-muted-foreground leading-relaxed max-w-lg">{content.monthlyStay.description}</p>
@@ -155,20 +157,20 @@ export function Home() {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <CarIcon className="h-5 w-5" />
-              <p className="text-xs tracking-[0.25em] uppercase">Rental Car</p>
+              <p className="text-xs tracking-[0.25em] uppercase">{content.copy.rentalEyebrow}</p>
             </div>
             <h2 className="text-3xl font-serif font-bold tracking-tight">{content.rentalCarOverview.title}</h2>
             <p className="text-muted-foreground leading-relaxed max-w-lg">{content.rentalCarOverview.description}</p>
             <Link href="/rentalcar">
               <Button variant="outline" className="gap-1">
-                Explore rental cars <ChevronRight className="h-4 w-4" />
+                {content.copy.exploreRentalCars} <ChevronRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
           <div className="aspect-[4/3] bg-muted rounded-sm overflow-hidden">
             <img
               src="/hero-sapporo.png"
-              alt="Rental car"
+              alt={content.copy.rentalImageAlt}
               className="w-full h-full object-cover"
             />
           </div>
@@ -179,8 +181,8 @@ export function Home() {
       <section className="py-20 bg-muted/40 border-b">
         <div className="container space-y-10">
           <div className="text-center max-w-xl mx-auto space-y-2">
-            <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">Why CIAO</p>
-            <h2 className="text-3xl font-serif font-bold tracking-tight">Why Choose Us</h2>
+            <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">{content.copy.whyEyebrow}</p>
+            <h2 className="text-3xl font-serif font-bold tracking-tight">{content.copy.whyTitle}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x border bg-background">
             {content.whyChooseUs.map((item) => (
@@ -199,7 +201,7 @@ export function Home() {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-5 w-5" />
-              <p className="text-xs tracking-[0.25em] uppercase">Access</p>
+              <p className="text-xs tracking-[0.25em] uppercase">{content.copy.accessEyebrow}</p>
             </div>
             <h2 className="text-3xl font-serif font-bold tracking-tight">{content.access.title}</h2>
             <p className="text-muted-foreground leading-relaxed max-w-lg">{content.access.description}</p>
@@ -207,7 +209,7 @@ export function Home() {
           </div>
           <div className="aspect-[4/3] md:aspect-auto bg-muted rounded-sm overflow-hidden border">
             <iframe
-              title="Location map"
+              title={content.copy.mapTitle}
               src={content.access.mapEmbedUrl}
               className="w-full h-full min-h-[280px] border-0"
               loading="lazy"
@@ -221,7 +223,7 @@ export function Home() {
         <div className="container text-center max-w-xl mx-auto space-y-4">
           <div className="flex items-center justify-center gap-2 text-muted-foreground">
             <Mail className="h-5 w-5" />
-            <p className="text-xs tracking-[0.25em] uppercase">Contact</p>
+            <p className="text-xs tracking-[0.25em] uppercase">{content.copy.contactEyebrow}</p>
           </div>
           <h2 className="text-3xl font-serif font-bold tracking-tight">{content.contact.title}</h2>
           <p className="text-muted-foreground leading-relaxed">{content.contact.description}</p>

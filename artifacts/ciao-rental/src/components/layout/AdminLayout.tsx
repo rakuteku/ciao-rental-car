@@ -7,7 +7,6 @@ import {
   Calendar,
   LogOut,
   FileText,
-  Search,
   Building2,
   ChevronDown,
   ChevronRight,
@@ -83,7 +82,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/lodging", label: "Lodging", icon: Building2 },
     { href: "/admin/bookings", label: "Bookings", icon: Calendar },
     { href: "/admin/content", label: "Page Content", icon: FileText },
-    { href: "/admin/seo", label: "SEO", icon: Search },
   ];
 
   const rentalCarsSection: NavSection = {

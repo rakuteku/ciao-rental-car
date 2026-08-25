@@ -3,11 +3,13 @@ import { Link } from "wouter";
 import { useAdminMe, useAdminLogout, getAdminMeQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import { useLanguage } from "@/lib/language";
 
 export function Navbar() {
   const { data: admin } = useAdminMe({ query: { retry: false, queryKey: getAdminMeQueryKey() } });
   const logout = useAdminLogout();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { language, setLanguage } = useLanguage();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
@@ -31,6 +33,22 @@ export function Navbar() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-6">
+          <div className="inline-flex items-center rounded-md border p-0.5" aria-label="Website language">
+            {(["en", "ja"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                data-testid={`button-language-${item}`}
+                onClick={() => setLanguage(item)}
+                aria-pressed={language === item}
+                className={`rounded px-2 py-1 text-[10px] font-bold tracking-[0.12em] transition-colors ${
+                  language === item ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {item === "en" ? "ENG" : "JP"}
+              </button>
+            ))}
+          </div>
           <Link href="/lodging" className="text-xs tracking-[0.15em] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors py-2">
             Lodging
           </Link>
@@ -62,6 +80,25 @@ export function Navbar() {
         {isMenuOpen && (
           <div className="fixed inset-0 top-[56px] z-40 bg-background md:hidden flex flex-col px-4 py-6 border-t animate-in slide-in-from-top-2">
             <nav className="flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b pb-4">
+                <span className="text-xs font-semibold tracking-[0.15em] uppercase text-muted-foreground">Language</span>
+                <div className="inline-flex items-center rounded-md border p-0.5" aria-label="Website language">
+                  {(["en", "ja"] as const).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      data-testid={`button-mobile-language-${item}`}
+                      onClick={() => setLanguage(item)}
+                      aria-pressed={language === item}
+                      className={`rounded px-3 py-2 text-xs font-bold tracking-[0.12em] ${
+                        language === item ? "bg-foreground text-background" : "text-muted-foreground"
+                      }`}
+                    >
+                      {item === "en" ? "ENG" : "JP"}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Link href="/lodging" onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
                 Lodging
               </Link>

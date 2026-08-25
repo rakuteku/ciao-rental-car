@@ -255,7 +255,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateContentBody"
+              $ref: "#/components/schemas/PageContentUpdate"
       responses:
         "200":
           description: Updated content
@@ -292,7 +292,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateSeoBody"
+              $ref: "#/components/schemas/PageSeoUpdate"
       responses:
         "200":
           description: Updated SEO metadata
@@ -2106,20 +2106,55 @@ components:
         page:
           type: string
         content:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/LocalizedContent"
       required:
         - page
         - content
 
-    UpdateContentBody:
+    LocalizedContent:
+      type: object
+      properties:
+        en:
+          type: object
+          additionalProperties: true
+        ja:
+          type: object
+          additionalProperties: true
+      required: [en, ja]
+
+    PageContentUpdate:
       type: object
       properties:
         content:
           type: object
-          additionalProperties: true
-      required:
-        - content
+          properties:
+            en:
+              type: object
+              additionalProperties: true
+            ja:
+              type: object
+              additionalProperties: true
+      required: [content]
+
+    LocalizedText:
+      type: object
+      properties:
+        en:
+          type: string
+        ja:
+          type: string
+      required: [en, ja]
+
+    LocalizedKeywords:
+      type: object
+      properties:
+        en:
+          type: array
+          items: { type: string }
+        ja:
+          type: array
+          items: { type: string }
+      required: [en, ja]
 
     PageSeo:
       type: object
@@ -2129,19 +2164,23 @@ components:
         slug:
           type: string
         metaTitle:
-          type: string
+          $ref: "#/components/schemas/LocalizedText"
         metaDescription:
-          type: string
+          $ref: "#/components/schemas/LocalizedText"
         keywords:
-          type: array
-          items:
-            type: string
+          $ref: "#/components/schemas/LocalizedKeywords"
         ogTitle:
-          type: string
+          $ref: "#/components/schemas/LocalizedText"
         ogDescription:
-          type: string
+          $ref: "#/components/schemas/LocalizedText"
         ogImage:
           type: string
+        ogImageAlt:
+          $ref: "#/components/schemas/LocalizedText"
+        canonicalUrl:
+          type: string
+        allowIndexing:
+          type: boolean
         updatedAt:
           type: string
       required:
@@ -2153,35 +2192,34 @@ components:
         - ogTitle
         - ogDescription
         - ogImage
+        - ogImageAlt
+        - canonicalUrl
+        - allowIndexing
         - updatedAt
 
-    UpdateSeoBody:
+    PageSeoUpdate:
       type: object
       properties:
         slug:
           type: string
         metaTitle:
-          type: string
+          $ref: "#/components/schemas/LocalizedText"
         metaDescription:
-          type: string
+          $ref: "#/components/schemas/LocalizedText"
         keywords:
-          type: array
-          items:
-            type: string
+          $ref: "#/components/schemas/LocalizedKeywords"
         ogTitle:
-          type: string
+          $ref: "#/components/schemas/LocalizedText"
         ogDescription:
-          type: string
+          $ref: "#/components/schemas/LocalizedText"
         ogImage:
           type: string
-      required:
-        - slug
-        - metaTitle
-        - metaDescription
-        - keywords
-        - ogTitle
-        - ogDescription
-        - ogImage
+        ogImageAlt:
+          $ref: "#/components/schemas/LocalizedText"
+        canonicalUrl:
+          type: string
+        allowIndexing:
+          type: boolean
 
     Room:
       type: object
