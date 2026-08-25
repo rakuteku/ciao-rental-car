@@ -1,0 +1,199 @@
+Please update the website’s admin content-management and frontend language system with the following requirements.
+
+## 1. Move SEO settings into `/admin/content`
+
+Move the existing SEO management feature into the **Page Content** section at:
+
+`/admin/content`
+
+For every editable page, include an expandable **SEO Settings** section inside that page’s content editor.
+
+SEO fields must include:
+
+* Meta title
+* Meta description
+* Meta keywords, if currently supported
+* Open Graph title
+* Open Graph description
+* Open Graph image
+* Canonical URL
+* Search-engine indexing setting, if currently supported
+
+Requirements:
+
+* Do not create duplicate SEO settings.
+* Reuse and migrate the existing SEO data and database fields wherever possible.
+* Remove the old standalone SEO navigation item only after confirming that all SEO controls are available under `/admin/content`.
+* Existing SEO information must not be deleted or reset.
+* Editing SEO settings must update the correct frontend page metadata.
+* Show a clear success or error message after saving.
+
+## 2. Add editable English and Japanese content
+
+In `/admin/content`, add separate editable content for these three pages:
+
+* Home: `/`
+* Lodging: `/lodging`
+* Rental Car: `/rentalcar`
+
+Each page editor must have two clearly labelled language tabs:
+
+* English
+* 日本語
+
+All user-facing text on each page must be editable separately in English and Japanese, including:
+
+* Page headings
+* Subheadings
+* Hero text
+* Descriptions
+* Buttons and calls to action
+* Form labels
+* Search labels
+* Section titles
+* Feature descriptions
+* Promotional text
+* FAQ content, if present
+* Notices and supporting text
+* Image alt text where applicable
+* Any other page-specific frontend text
+
+Do not combine English and Japanese in the same content field. Store them as separate language values connected to the same page and content key.
+
+Example structure:
+
+```ts
+{
+  page: "rentalcar",
+  contentKey: "hero_title",
+  translations: {
+    en: "Rent a Car in Hokkaido",
+    ja: "北海道でレンタカーを借りる"
+  }
+}
+```
+
+Adapt this structure to the project’s existing architecture instead of introducing an unnecessary duplicate content system.
+
+## 3. Add bilingual SEO fields
+
+Each page’s SEO settings must also support separate English and Japanese values for:
+
+* Meta title
+* Meta description
+* Meta keywords, if used
+* Open Graph title
+* Open Graph description
+* Open Graph image alt text
+
+Shared technical fields such as canonical URL and indexing settings do not need to be duplicated by language.
+
+The frontend must render the metadata that matches the currently selected language.
+
+## 4. Admin editing requirements
+
+For each page in `/admin/content`:
+
+* Clearly show the page name and route.
+* Provide English and Japanese tabs.
+* Preserve unsaved form values when switching between language tabs.
+* Add Save, Cancel, and Reset/Restore controls using the project’s existing design patterns.
+* Show loading, saving, success, validation-error, server-error, and unsaved-change states.
+* Warn the admin before leaving the editor with unsaved changes.
+* Do not overwrite one language when saving the other.
+* Allow partial updates without deleting fields that were not changed.
+* Validate required fields before saving.
+* Keep the admin panel itself in its existing language. Only the editable frontend content needs English and Japanese versions.
+
+## 5. Add an ENG/JP toggle to the frontend
+
+Add a visible language toggle to the frontend header/navigation on:
+
+* `/`
+* `/lodging`
+* `/rentalcar`
+
+Toggle labels:
+
+* ENG
+* JP
+
+Requirements:
+
+* ENG displays the English content.
+* JP displays the Japanese content.
+* Changing the language must update all editable page content immediately.
+* The selected language must remain active while the visitor navigates between the three pages.
+* Save the preference in a cookie or `localStorage`.
+* On the visitor’s first visit, use the browser language:
+
+  * Japanese browser language → JP
+  * All other browser languages → ENG
+* A visitor’s manually selected language must override browser-language detection.
+* The toggle must work on desktop and mobile.
+* Make it keyboard accessible and provide an appropriate accessible label and selected state.
+* Do not reload the entire page unless the current architecture requires it.
+* Do not change the existing URLs unless localized URLs are already supported.
+* Do not translate proper names, prices, dates, vehicle specifications, addresses, booking data, or other dynamic values incorrectly.
+
+## 6. Translation fallback behavior
+
+If Japanese content is missing:
+
+* Fall back to the English value for that specific field.
+* Do not display an empty section, `undefined`, a raw translation key, or an error.
+* Continue showing any available Japanese content for the other fields.
+
+If content loading fails:
+
+* Keep the page usable.
+* Display safe fallback content.
+* Log the technical error without exposing sensitive information to visitors.
+
+## 7. Content migration
+
+Migrate the current frontend text into the new content-management structure:
+
+* Existing English content becomes the initial English version.
+* Preserve any existing Japanese translations and use them as the initial Japanese version.
+* Do not delete, shorten, automatically rewrite, or machine-translate existing content.
+* If a Japanese translation does not currently exist, leave it editable in the admin panel and use English fallback on the frontend.
+
+## 8. Important restrictions
+
+* Do not change the website’s existing design, except where necessary to add the language toggle and content/SEO controls.
+* Do not change booking, lodging, rental-car, pricing, availability, authentication, payment, email, or admin permission logic.
+* Do not change existing routes.
+* Do not remove existing page content.
+* Do not hard-code translations inside frontend components when they should be editable from `/admin/content`.
+* Do not add a third-party automatic-translation widget.
+* Reuse existing components, APIs, database models, and styling wherever possible.
+* Ensure only authorized admin users can read or update admin-managed content.
+
+## 9. Verification
+
+After implementation, test the following:
+
+1. Edit English content for `/` and confirm only the English frontend changes.
+2. Edit Japanese content for `/` and confirm only the Japanese frontend changes.
+3. Repeat the test for `/lodging`.
+4. Repeat the test for `/rentalcar`.
+5. Edit English and Japanese SEO metadata and verify the correct `<title>`, meta description, canonical tag, Open Graph tags, and indexing settings.
+6. Switch between ENG and JP on all three frontend pages.
+7. Navigate between pages and confirm the selected language persists.
+8. Confirm browser-language detection works for first-time visitors.
+9. Confirm English fallback works when an individual Japanese field is empty.
+10. Confirm mobile and desktop language toggles work correctly.
+11. Confirm existing SEO data was preserved after moving it into `/admin/content`.
+12. Confirm no existing booking, payment, pricing, availability, or admin functions were changed.
+
+Before making changes, inspect the existing content-management system, SEO implementation, database schema, frontend page components, and language utilities. Use the current architecture and make the smallest maintainable set of changes.
+
+After completing the work, provide:
+
+* A summary of the implementation
+* A list of changed files
+* Any database migration performed
+* The content and SEO field structure
+* The fallback and language-persistence behavior
+* The verification results
