@@ -47,3 +47,40 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Additional generated output
+dist/
+build/
+out/
+tmp/
+out-tsc/
+.vite/
+*.tsbuildinfo
+
+# Local environment files and credentials
+.env
+.env.*
+!.env.example
+*.local
+*.secret
+*.secrets
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Logs and local database files
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Uploaded prompt/reference text is not application source
+attached_assets/Pasted-*.txt
