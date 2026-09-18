@@ -1,13 +1,32 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, pageContentTable } from "@workspace/db";
+import { db, pageContentTable, pageSeoTable } from "@workspace/db";
 import {
+  CreateAdminContentPageBody,
+  DeleteAdminContentPageParams,
+  GetLocalizedHomePageParams,
+  GetLocalizedHomePageResponse,
+  GetLocalizedPageParams,
+  GetLocalizedPageResponse,
   GetPageContentParams,
   GetPageContentResponse,
+  ListAdminContentPagesResponse,
   UpdateAdminContentParams,
   UpdateAdminContentBody,
 } from "@workspace/api-zod";
 import { requireAdminAuth } from "../middlewares/admin-auth";
+import {
+  DEFAULT_SEO,
+  getOrSeedSeo,
+  localizedRoute,
+  normalizeSeo,
+  seoValues,
+  validateUniqueSlugs,
+  emptyLocalized,
+  emptyKeywords,
+  type LocalizedString,
+  type SupportedLanguage,
+} from "./seo";
 
 const router: IRouter = Router();
 
@@ -174,12 +193,24 @@ export const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
   },
 };
 
-type LocalizedContent = { en: Record<string, unknown>; ja: Record<string, unknown> };
+type LocalizedContent = { en: Record<string, unknown>; ja: Record<string, unknown>; "zh-CN": Record<string, unknown> };
+
+const DEFAULT_TITLES: Record<string, string> = {
+  home: "Home",
+  rentalcar: "Rental Car",
+  lodging: "Lodging",
+};
 
 // The previous site had no Japanese source copy. Keep these values empty so
 // editors can add real translations and visitors receive field-level English
 // fallback rather than automatic or fabricated translations.
 const DEFAULT_JA_CONTENT: Record<string, Record<string, unknown>> = {
+  home: {},
+  rentalcar: {},
+  lodging: {},
+};
+
+const DEFAULT_ZH_CONTENT: Record<string, Record<string, unknown>> = {
   home: {},
   rentalcar: {},
   lodging: {},
@@ -200,92 +231,295 @@ function mergeContent(base: Record<string, unknown>, update: Record<string, unkn
 function normalizeContent(page: string, content: Record<string, unknown>): LocalizedContent {
   const defaults = DEFAULT_CONTENT[page];
   const japaneseDefaults = DEFAULT_JA_CONTENT[page] ?? {};
-  if (isRecord(content.en) || isRecord(content.ja)) {
+  const chineseDefaults = DEFAULT_ZH_CONTENT[page] ?? {};
+  if (isRecord(content.en) || isRecord(content.ja) || isRecord(content["zh-CN"])) {
     return {
       en: mergeContent(defaults, isRecord(content.en) ? content.en : {}),
       ja: mergeContent(japaneseDefaults, isRecord(content.ja) ? content.ja : {}),
+      "zh-CN": mergeContent(chineseDefaults, isRecord(content["zh-CN"]) ? content["zh-CN"] : {}),
     };
   }
-  return { en: mergeContent(defaults, content), ja: japaneseDefaults };
+  return { en: mergeContent(defaults, content), ja: japaneseDefaults, "zh-CN": chineseDefaults };
 }
 
-async function getOrSeedContent(page: string): Promise<LocalizedContent | null> {
+function isKnownPage(page: string): boolean {
+  return (KNOWN_PAGES as readonly string[]).includes(page);
+}
+
+function localizedTextFromRow(row: { titleEn: string; titleJa: string; titleZhCn: string } | undefined, page: string) {
+  return {
+    en: row?.titleEn || DEFAULT_TITLES[page] || "",
+    ja: row?.titleJa || "",
+    "zh-CN": row?.titleZhCn || "",
+  };
+}
+
+function localizedSlugsFromSeo(seo: ReturnType<typeof normalizeSeo> | null, page: string): LocalizedString {
+  const fallback = DEFAULT_SEO[page]?.slug ?? `/${page}`;
+  return seo?.slugs ?? { en: fallback, ja: fallback, "zh-CN": "" };
+}
+
+function pageResponse(
+  page: string,
+  row: { content: Record<string, unknown>; titleEn: string; titleJa: string; titleZhCn: string; published: boolean; updatedAt: Date } | undefined,
+  seo: ReturnType<typeof normalizeSeo> | null,
+) {
+  const content = normalizeContent(page, row?.content ?? {});
+  const title = localizedTextFromRow(row, page);
+  const slugs = localizedSlugsFromSeo(seo, page);
+  return {
+    page,
+    title,
+    slugs,
+    content,
+    published: row?.published ?? true,
+    isCustom: !isKnownPage(page),
+    updatedAt: (row?.updatedAt ?? new Date()).toISOString(),
+  };
+}
+
+async function getOrSeedContentRow(page: string) {
   const [existing] = await db.select().from(pageContentTable).where(eq(pageContentTable.page, page));
-  if (existing) {
-    return normalizeContent(page, existing.content);
-  }
-
-  if (!(page in DEFAULT_CONTENT)) {
-    return null;
-  }
-
+  if (existing) return existing;
+  if (!isKnownPage(page)) return null;
   const defaults = normalizeContent(page, {});
   const [created] = await db
     .insert(pageContentTable)
-    .values({ page, content: defaults })
+    .values({
+      page,
+      content: defaults,
+      titleEn: DEFAULT_TITLES[page],
+      titleJa: "",
+      titleZhCn: "",
+      published: true,
+    })
     .onConflictDoNothing({ target: pageContentTable.page })
     .returning();
-
-  if (created) {
-    return normalizeContent(page, created.content);
-  }
-
+  if (created) return created;
   const [row] = await db.select().from(pageContentTable).where(eq(pageContentTable.page, page));
-  return row ? normalizeContent(page, row.content) : defaults;
+  return row ?? null;
 }
+
+async function getPageDocument(page: string) {
+  const row = await getOrSeedContentRow(page);
+  if (!row) return null;
+  const seoRow = await getOrSeedSeo(page);
+  return pageResponse(page, row, seoRow ? normalizeSeo(page, seoRow) : null);
+}
+
+function normalizePageKey(page: string): string {
+  return page.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64);
+}
+
+function normalizeSlug(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed === "/") return "/";
+  const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return path.replace(/\/+/g, "/").replace(/\/$/, "");
+}
+
+function localizedFallback(english: unknown, translated: unknown): unknown {
+  if (typeof english === "string") {
+    return typeof translated === "string" && translated.trim() ? translated : english;
+  }
+  if (Array.isArray(english)) {
+    if (!Array.isArray(translated) || translated.length === 0) return english;
+    return english.map((value, index) => localizedFallback(value, translated[index]));
+  }
+  if (isRecord(english)) {
+    const translatedRecord = isRecord(translated) ? translated : {};
+    return Object.fromEntries(
+      Object.entries(english).map(([key, value]) => [key, localizedFallback(value, translatedRecord[key])]),
+    );
+  }
+  return translated ?? english;
+}
+
+async function resolveLocalizedPage(language: SupportedLanguage, slug: string) {
+  const rows = await db.select().from(pageContentTable);
+  const seoRows = await db.select().from(pageSeoTable);
+  for (const row of rows) {
+    if (!row.published) continue;
+    const seoRow = seoRows.find((candidate) => candidate.page === row.page);
+    if (!seoRow) continue;
+    const seo = normalizeSeo(row.page, seoRow);
+    const candidateSlug = seo.slugs[language] || seo.slugs.en;
+    if (normalizeSlug(candidateSlug) !== normalizeSlug(slug)) continue;
+    const document = pageResponse(row.page, row, seo);
+    const title = document.title[language]?.trim() ? document.title[language] : document.title.en;
+    const content = localizedFallback(document.content.en, document.content[language]) as Record<string, unknown>;
+    return {
+      page: row.page,
+      language,
+      title,
+      content,
+      seo,
+      routes: {
+        en: localizedRoute("en", seo.slugs.en),
+        ja: localizedRoute("ja", seo.slugs.ja || seo.slugs.en),
+        "zh-CN": localizedRoute("zh-CN", seo.slugs["zh-CN"] || seo.slugs.en),
+      },
+      published: row.published,
+    };
+  }
+  return null;
+}
+
+function adminSummary(document: ReturnType<typeof pageResponse>) {
+  return {
+    page: document.page,
+    title: document.title,
+    slugs: document.slugs,
+    published: document.published,
+    isCustom: document.isCustom,
+    updatedAt: document.updatedAt,
+  };
+}
+
+router.get("/content/route/:language", async (req, res): Promise<void> => {
+  const params = GetLocalizedHomePageParams.safeParse(req.params);
+  if (!params.success) return void res.status(400).json({ error: params.error.message });
+  const document = await resolveLocalizedPage(params.data.language as SupportedLanguage, "/");
+  if (!document) return void res.status(404).json({ error: "Page not found" });
+  res.json(GetLocalizedHomePageResponse.parse(document));
+});
+
+router.get("/content/route/:language/:slug", async (req, res): Promise<void> => {
+  const params = GetLocalizedPageParams.safeParse(req.params);
+  if (!params.success) return void res.status(400).json({ error: params.error.message });
+  const document = await resolveLocalizedPage(params.data.language as SupportedLanguage, `/${params.data.slug}`);
+  if (!document) return void res.status(404).json({ error: "Page not found" });
+  res.json(GetLocalizedPageResponse.parse(document));
+});
 
 router.get("/content/:page", async (req, res): Promise<void> => {
   const params = GetPageContentParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
+  if (!params.success) return void res.status(400).json({ error: params.error.message });
+  const document = await getPageDocument(params.data.page);
+  if (!document) return void res.status(404).json({ error: "Unknown page" });
+  res.json(GetPageContentResponse.parse(document));
+});
 
-  const content = await getOrSeedContent(params.data.page);
-  if (content === null) {
-    res.status(404).json({ error: "Unknown page" });
-    return;
-  }
+router.get("/admin/content", requireAdminAuth, async (_req, res): Promise<void> => {
+  const documents = await Promise.all(KNOWN_PAGES.map((page) => getPageDocument(page)));
+  const customRows = await db.select().from(pageContentTable);
+  const customDocuments = await Promise.all(
+    customRows.filter((row) => !isKnownPage(row.page)).map(async (row) => {
+      const seoRow = await getOrSeedSeo(row.page);
+      return pageResponse(row.page, row, seoRow ? normalizeSeo(row.page, seoRow) : null);
+    }),
+  );
+  const all = [...documents, ...customDocuments].filter((value): value is NonNullable<typeof value> => value !== null);
+  res.json(ListAdminContentPagesResponse.parse(all.map(adminSummary)));
+});
 
-  res.json(GetPageContentResponse.parse({ page: params.data.page, content }));
+router.post("/admin/content", requireAdminAuth, async (req, res): Promise<void> => {
+  const body = CreateAdminContentPageBody.safeParse(req.body);
+  if (!body.success) return void res.status(400).json({ error: body.error.message });
+  const page = normalizePageKey(body.data.page);
+  if (!page || isKnownPage(page)) return void res.status(400).json({ error: "Choose a unique custom page key." });
+  const [existing] = await db.select().from(pageContentTable).where(eq(pageContentTable.page, page));
+  if (existing) return void res.status(400).json({ error: "A page with this key already exists." });
+  const slugs: LocalizedString = {
+    en: normalizeSlug(body.data.slugs.en),
+    ja: normalizeSlug(body.data.slugs.ja),
+    "zh-CN": normalizeSlug(body.data.slugs["zh-CN"]),
+  };
+  if (!slugs.en) return void res.status(400).json({ error: "English URL slug is required." });
+  const slugError = await validateUniqueSlugs(slugs);
+  if (slugError) return void res.status(400).json({ error: slugError });
+  const seoInput = {
+    slug: slugs.en,
+    slugs,
+    metaTitle: body.data.metaTitle,
+    metaDescription: body.data.metaDescription,
+    keywords: emptyKeywords(),
+    ogTitle: body.data.metaTitle,
+    ogDescription: body.data.metaDescription,
+    ogImage: "",
+    ogImageAlt: emptyLocalized(),
+    canonicalUrl: localizedRoute("en", slugs.en),
+    canonicalUrls: {
+      en: localizedRoute("en", slugs.en),
+      ja: localizedRoute("ja", slugs.ja || slugs.en),
+      "zh-CN": localizedRoute("zh-CN", slugs["zh-CN"] || slugs.en),
+    },
+    allowIndexing: true,
+  };
+  const [created] = await db.insert(pageContentTable).values({
+    page,
+    titleEn: body.data.title.en,
+    titleJa: body.data.title.ja,
+    titleZhCn: body.data.title["zh-CN"],
+    content: body.data.content,
+    published: body.data.published ?? true,
+  }).returning();
+  await db.insert(pageSeoTable).values(seoValues(page, seoInput));
+  const response = pageResponse(page, created, normalizeSeo(page, await getOrSeedSeo(page) as NonNullable<Awaited<ReturnType<typeof getOrSeedSeo>>>));
+  res.status(201).json(GetPageContentResponse.parse(response));
 });
 
 router.put("/admin/content/:page", requireAdminAuth, async (req, res): Promise<void> => {
   const params = UpdateAdminContentParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-
-  if (!(params.data.page in DEFAULT_CONTENT)) {
-    res.status(400).json({ error: "Unknown page" });
-    return;
-  }
-
+  if (!params.success) return void res.status(400).json({ error: params.error.message });
   const body = UpdateAdminContentBody.safeParse(req.body);
-  if (!body.success) {
-    res.status(400).json({ error: body.error.message });
-    return;
-  }
-
-  const [existing] = await db.select().from(pageContentTable).where(eq(pageContentTable.page, params.data.page));
-  const stored = existing ? normalizeContent(params.data.page, existing.content) : normalizeContent(params.data.page, {});
-  const incoming = body.data.content as Record<string, unknown>;
+  if (!body.success) return void res.status(400).json({ error: body.error.message });
+  const existing = await getOrSeedContentRow(params.data.page);
+  if (!existing) return void res.status(404).json({ error: "Unknown page" });
+  const stored = normalizeContent(params.data.page, existing.content);
+  const incoming = body.data.content ?? {};
   const content: LocalizedContent = {
     en: mergeContent(stored.en, isRecord(incoming.en) ? incoming.en : {}),
     ja: mergeContent(stored.ja, isRecord(incoming.ja) ? incoming.ja : {}),
+    "zh-CN": mergeContent(stored["zh-CN"], isRecord(incoming["zh-CN"]) ? incoming["zh-CN"] : {}),
   };
+  const title = body.data.title ?? localizedTextFromRow(existing, params.data.page);
+  const [updated] = await db.update(pageContentTable).set({
+    content,
+    titleEn: title.en,
+    titleJa: title.ja,
+    titleZhCn: title["zh-CN"],
+    published: body.data.published ?? existing.published,
+    updatedAt: new Date(),
+  }).where(eq(pageContentTable.page, params.data.page)).returning();
+  if (body.data.slugs) {
+    const slugs: LocalizedString = {
+      en: normalizeSlug(body.data.slugs.en),
+      ja: normalizeSlug(body.data.slugs.ja),
+      "zh-CN": normalizeSlug(body.data.slugs["zh-CN"]),
+    };
+    if (!slugs.en) return void res.status(400).json({ error: "English URL slug is required." });
+    const slugError = await validateUniqueSlugs(slugs, params.data.page);
+    if (slugError) return void res.status(400).json({ error: slugError });
+    const seo = await getOrSeedSeo(params.data.page);
+    if (seo) {
+      await db.update(pageSeoTable).set({
+        slug: slugs.en,
+        slugEn: slugs.en,
+        slugJa: slugs.ja,
+        slugZhCn: slugs["zh-CN"],
+        canonicalUrlEn: localizedRoute("en", slugs.en),
+        canonicalUrlJa: localizedRoute("ja", slugs.ja || slugs.en),
+        canonicalUrlZhCn: localizedRoute("zh-CN", slugs["zh-CN"] || slugs.en),
+        canonicalUrl: localizedRoute("en", slugs.en),
+        updatedAt: new Date(),
+      }).where(eq(pageSeoTable.page, params.data.page));
+    }
+  }
+  const seoRow = await getOrSeedSeo(params.data.page);
+  const response = pageResponse(params.data.page, updated, seoRow ? normalizeSeo(params.data.page, seoRow) : null);
+  res.json(GetPageContentResponse.parse(response));
+});
 
-  const [updated] = await db
-    .insert(pageContentTable)
-    .values({ page: params.data.page, content })
-    .onConflictDoUpdate({
-      target: pageContentTable.page,
-      set: { content, updatedAt: new Date() },
-    })
-    .returning();
-
-  res.json(GetPageContentResponse.parse({ page: params.data.page, content: normalizeContent(params.data.page, updated.content) }));
+router.delete("/admin/content/:page", requireAdminAuth, async (req, res): Promise<void> => {
+  const params = DeleteAdminContentPageParams.safeParse(req.params);
+  if (!params.success) return void res.status(400).json({ error: params.error.message });
+  if (isKnownPage(params.data.page)) return void res.status(400).json({ error: "Built-in pages cannot be deleted." });
+  const [deleted] = await db.delete(pageContentTable).where(eq(pageContentTable.page, params.data.page)).returning();
+  if (!deleted) return void res.status(404).json({ error: "Page not found" });
+  await db.delete(pageSeoTable).where(eq(pageSeoTable.page, params.data.page));
+  res.status(204).end();
 });
 
 export default router;

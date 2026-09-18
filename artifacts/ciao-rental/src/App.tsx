@@ -19,6 +19,7 @@ import { LodgingPage } from "@/pages/lodging/index";
 import { LodgingDetailPage } from "@/pages/lodging/detail";
 import { MyBookings } from "@/pages/rentalcar/my-bookings/index";
 import { MyBookingDetail } from "@/pages/rentalcar/my-bookings/detail";
+import { CmsPage } from "@/pages/cms-page";
 
 import { AdminLogin } from "@/pages/admin/login";
 import { AdminDashboard } from "@/pages/admin/dashboard";
@@ -69,7 +70,6 @@ function Router() {
       <Route path="/rentalcar/my-bookings/:id" component={() => <MainLayout><MyBookingDetail /></MainLayout>} />
       <Route path="/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
       <Route path="/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
-
       {/* Admin Auth Route */}
       <Route path="/admin/login" component={AdminLogin} />
 
@@ -100,6 +100,12 @@ function Router() {
       <Route path="/admin/rental-cars/settings" component={() => <AdminLayout><AdminSettings /></AdminLayout>} />
       <Route path="/admin/rental-cars/audit" component={() => <AdminLayout><AdminAudit /></AdminLayout>} />
       <Route path="/admin/rental-cars" component={() => <AdminLayout><AdminRentalCars /></AdminLayout>} />
+
+      {/* Language-prefixed public routes preserve the unprefixed English URLs. */}
+      <Route path="/:language/rentalcar" component={() => <MainLayout><RentalCarHome /></MainLayout>} />
+      <Route path="/:language/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
+      <Route path="/:language" component={() => <MainLayout><Home /></MainLayout>} />
+      <Route path="/:language/:slug" component={() => <MainLayout><CmsPage /></MainLayout>} />
 
       <Route component={() => <MainLayout><NotFound /></MainLayout>} />
     </Switch>

@@ -141,46 +141,91 @@ export interface ErrorResponse {
   error: string;
 }
 
+export interface LocalizedText {
+  en: string;
+  ja: string;
+  "zh-CN": string;
+}
+
 export type LocalizedContentEn = { [key: string]: unknown };
 
 export type LocalizedContentJa = { [key: string]: unknown };
 
+export type LocalizedContentZhCN = { [key: string]: unknown };
+
 export interface LocalizedContent {
   en: LocalizedContentEn;
   ja: LocalizedContentJa;
+  "zh-CN": LocalizedContentZhCN;
 }
 
 export interface PageContent {
   page: string;
+  title: LocalizedText;
+  slugs: LocalizedText;
   content: LocalizedContent;
+  published: boolean;
+  isCustom: boolean;
+  updatedAt: string;
 }
 
 export type PageContentUpdateContentEn = { [key: string]: unknown };
 
 export type PageContentUpdateContentJa = { [key: string]: unknown };
 
+export type PageContentUpdateContentZhCN = { [key: string]: unknown };
+
 export type PageContentUpdateContent = {
   en?: PageContentUpdateContentEn;
   ja?: PageContentUpdateContentJa;
+  "zh-CN"?: PageContentUpdateContentZhCN;
 };
 
 export interface PageContentUpdate {
-  content: PageContentUpdateContent;
-}
-
-export interface LocalizedText {
-  en: string;
-  ja: string;
+  title?: LocalizedText;
+  slugs?: LocalizedText;
+  content?: PageContentUpdateContent;
+  published?: boolean;
 }
 
 export interface LocalizedKeywords {
   en: string[];
   ja: string[];
+  "zh-CN": string[];
+}
+
+export type SupportedLanguage =
+  (typeof SupportedLanguage)[keyof typeof SupportedLanguage];
+
+export const SupportedLanguage = {
+  en: "en",
+  ja: "ja",
+  "zh-CN": "zh-CN",
+} as const;
+
+export interface AdminPageSummary {
+  page: string;
+  title: LocalizedText;
+  slugs: LocalizedText;
+  published: boolean;
+  isCustom: boolean;
+  updatedAt: string;
+}
+
+export interface CreateAdminContentBody {
+  page: string;
+  title: LocalizedText;
+  slugs: LocalizedText;
+  metaTitle: LocalizedText;
+  metaDescription: LocalizedText;
+  content: LocalizedContent;
+  published?: boolean;
 }
 
 export interface PageSeo {
   page: string;
   slug: string;
+  slugs: LocalizedText;
   metaTitle: LocalizedText;
   metaDescription: LocalizedText;
   keywords: LocalizedKeywords;
@@ -189,12 +234,14 @@ export interface PageSeo {
   ogImage: string;
   ogImageAlt: LocalizedText;
   canonicalUrl: string;
+  canonicalUrls: LocalizedText;
   allowIndexing: boolean;
   updatedAt: string;
 }
 
 export interface PageSeoUpdate {
   slug?: string;
+  slugs?: LocalizedText;
   metaTitle?: LocalizedText;
   metaDescription?: LocalizedText;
   keywords?: LocalizedKeywords;
@@ -203,7 +250,20 @@ export interface PageSeoUpdate {
   ogImage?: string;
   ogImageAlt?: LocalizedText;
   canonicalUrl?: string;
+  canonicalUrls?: LocalizedText;
   allowIndexing?: boolean;
+}
+
+export type LocalizedPageContent = { [key: string]: unknown };
+
+export interface LocalizedPage {
+  page: string;
+  language: SupportedLanguage;
+  title: string;
+  content: LocalizedPageContent;
+  seo: PageSeo;
+  routes: LocalizedText;
+  published: boolean;
 }
 
 export interface Room {

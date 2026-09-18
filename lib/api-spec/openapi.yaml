@@ -219,6 +219,111 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageContent"
 
+  /content/route/{language}:
+    get:
+      operationId: getLocalizedHomePage
+      tags: [content]
+      summary: Get the localized home page
+      parameters:
+        - name: language
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/SupportedLanguage"
+      responses:
+        "200":
+          description: Localized home page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalizedPage"
+        "404":
+          description: Page not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /content/route/{language}/{slug}:
+    get:
+      operationId: getLocalizedPage
+      tags: [content]
+      summary: Resolve a published localized CMS page by URL
+      parameters:
+        - name: language
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/SupportedLanguage"
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Localized CMS page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalizedPage"
+        "404":
+          description: Page not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/content:
+    get:
+      operationId: listAdminContentPages
+      tags: [admin]
+      summary: List CMS pages (admin)
+      responses:
+        "200":
+          description: CMS page summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminPageSummary"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createAdminContentPage
+      tags: [admin]
+      summary: Create a CMS page (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminContentBody"
+      responses:
+        "201":
+          description: Created CMS page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageContent"
+        "400":
+          description: Invalid or conflicting page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /seo/{page}:
     get:
       operationId: getPageSeo
@@ -269,8 +374,33 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAdminContentPage
+      tags: [admin]
+      summary: Delete a custom CMS page (admin)
+      parameters:
+        - name: page
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Page deleted
+        "400":
+          description: Built-in or invalid page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Page not found
           content:
             application/json:
               schema:
@@ -2105,11 +2235,26 @@ components:
       properties:
         page:
           type: string
+        title:
+          $ref: "#/components/schemas/LocalizedText"
+        slugs:
+          $ref: "#/components/schemas/LocalizedText"
         content:
           $ref: "#/components/schemas/LocalizedContent"
+        published:
+          type: boolean
+        isCustom:
+          type: boolean
+        updatedAt:
+          type: string
       required:
         - page
+        - title
+        - slugs
         - content
+        - published
+        - isCustom
+        - updatedAt
 
     LocalizedContent:
       type: object
@@ -2120,11 +2265,18 @@ components:
         ja:
           type: object
           additionalProperties: true
-      required: [en, ja]
+        zh-CN:
+          type: object
+          additionalProperties: true
+      required: [en, ja, zh-CN]
 
     PageContentUpdate:
       type: object
       properties:
+        title:
+          $ref: "#/components/schemas/LocalizedText"
+        slugs:
+          $ref: "#/components/schemas/LocalizedText"
         content:
           type: object
           properties:
@@ -2134,7 +2286,11 @@ components:
             ja:
               type: object
               additionalProperties: true
-      required: [content]
+            zh-CN:
+              type: object
+              additionalProperties: true
+        published:
+          type: boolean
 
     LocalizedText:
       type: object
@@ -2143,7 +2299,9 @@ components:
           type: string
         ja:
           type: string
-      required: [en, ja]
+        zh-CN:
+          type: string
+      required: [en, ja, zh-CN]
 
     LocalizedKeywords:
       type: object
@@ -2154,7 +2312,50 @@ components:
         ja:
           type: array
           items: { type: string }
-      required: [en, ja]
+        zh-CN:
+          type: array
+          items: { type: string }
+      required: [en, ja, zh-CN]
+
+    SupportedLanguage:
+      type: string
+      enum: [en, ja, zh-CN]
+
+    AdminPageSummary:
+      type: object
+      properties:
+        page:
+          type: string
+        title:
+          $ref: "#/components/schemas/LocalizedText"
+        slugs:
+          $ref: "#/components/schemas/LocalizedText"
+        published:
+          type: boolean
+        isCustom:
+          type: boolean
+        updatedAt:
+          type: string
+      required: [page, title, slugs, published, isCustom, updatedAt]
+
+    CreateAdminContentBody:
+      type: object
+      properties:
+        page:
+          type: string
+        title:
+          $ref: "#/components/schemas/LocalizedText"
+        slugs:
+          $ref: "#/components/schemas/LocalizedText"
+        metaTitle:
+          $ref: "#/components/schemas/LocalizedText"
+        metaDescription:
+          $ref: "#/components/schemas/LocalizedText"
+        content:
+          $ref: "#/components/schemas/LocalizedContent"
+        published:
+          type: boolean
+      required: [page, title, slugs, metaTitle, metaDescription, content]
 
     PageSeo:
       type: object
@@ -2163,6 +2364,8 @@ components:
           type: string
         slug:
           type: string
+        slugs:
+          $ref: "#/components/schemas/LocalizedText"
         metaTitle:
           $ref: "#/components/schemas/LocalizedText"
         metaDescription:
@@ -2179,29 +2382,21 @@ components:
           $ref: "#/components/schemas/LocalizedText"
         canonicalUrl:
           type: string
+        canonicalUrls:
+          $ref: "#/components/schemas/LocalizedText"
         allowIndexing:
           type: boolean
         updatedAt:
           type: string
-      required:
-        - page
-        - slug
-        - metaTitle
-        - metaDescription
-        - keywords
-        - ogTitle
-        - ogDescription
-        - ogImage
-        - ogImageAlt
-        - canonicalUrl
-        - allowIndexing
-        - updatedAt
+      required: [page, slug, slugs, metaTitle, metaDescription, keywords, ogTitle, ogDescription, ogImage, ogImageAlt, canonicalUrl, canonicalUrls, allowIndexing, updatedAt]
 
     PageSeoUpdate:
       type: object
       properties:
         slug:
           type: string
+        slugs:
+          $ref: "#/components/schemas/LocalizedText"
         metaTitle:
           $ref: "#/components/schemas/LocalizedText"
         metaDescription:
@@ -2218,8 +2413,30 @@ components:
           $ref: "#/components/schemas/LocalizedText"
         canonicalUrl:
           type: string
+        canonicalUrls:
+          $ref: "#/components/schemas/LocalizedText"
         allowIndexing:
           type: boolean
+
+    LocalizedPage:
+      type: object
+      properties:
+        page:
+          type: string
+        language:
+          $ref: "#/components/schemas/SupportedLanguage"
+        title:
+          type: string
+        content:
+          type: object
+          additionalProperties: true
+        seo:
+          $ref: "#/components/schemas/PageSeo"
+        routes:
+          $ref: "#/components/schemas/LocalizedText"
+        published:
+          type: boolean
+      required: [page, language, title, content, seo, routes, published]
 
     Room:
       type: object

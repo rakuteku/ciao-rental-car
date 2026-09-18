@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-export type Language = "en" | "ja";
+export type Language = "en" | "ja" | "zh-CN";
 
 const LANGUAGE_STORAGE_KEY = "ciao-public-language";
 
@@ -13,9 +13,13 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(undefine
 
 function initialLanguage(): Language {
   if (typeof window === "undefined") return "en";
+  const pathLanguage = window.location.pathname.split("/")[1];
+  if (pathLanguage === "en" || pathLanguage === "ja" || pathLanguage === "zh-CN") return pathLanguage;
   const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  if (saved === "en" || saved === "ja") return saved;
-  return navigator.language.toLowerCase().startsWith("ja") ? "ja" : "en";
+  if (saved === "en" || saved === "ja" || saved === "zh-CN") return saved;
+  if (navigator.language.toLowerCase().startsWith("ja")) return "ja";
+  if (navigator.language.toLowerCase().startsWith("zh")) return "zh-CN";
+  return "en";
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -27,7 +31,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    document.documentElement.lang = language === "ja" ? "ja" : "en";
+    document.documentElement.lang = language;
   }, [language]);
 
   const value = useMemo(() => ({ language, setLanguage }), [language]);
@@ -48,24 +52,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Combines a Japanese content tree with its English source. Empty Japanese
  * strings and missing array/object entries fall back at the matching field.
  */
-export function localizeContent<T>(english: T, japanese: unknown): T {
+export function localizeContent<T>(english: T, translated: unknown, language: Language = "ja"): T {
+  const localized = isRecord(translated) && (language in translated) ? translated[language] : translated;
   if (typeof english === "string") {
-    return (typeof japanese === "string" && japanese.trim() ? japanese : english) as T;
+    return (typeof localized === "string" && localized.trim() ? localized : english) as T;
   }
   if (Array.isArray(english)) {
-    if (!Array.isArray(japanese) || japanese.length === 0) return english;
-    return english.map((value, index) => localizeContent(value, japanese[index])) as T;
+    if (!Array.isArray(localized) || localized.length === 0) return english;
+    return english.map((value, index) => localizeContent(value, localized[index])) as T;
   }
   if (isRecord(english)) {
-    const translated = isRecord(japanese) ? japanese : {};
+    const translatedRecord = isRecord(localized) ? localized : {};
     return Object.fromEntries(
-      Object.entries(english).map(([key, value]) => [key, localizeContent(value, translated[key])]),
+      Object.entries(english).map(([key, value]) => [key, localizeContent(value, translatedRecord[key])]),
     ) as T;
   }
   return english;
 }
 
-export function localizedText(value: { en?: string; ja?: string } | undefined, language: Language) {
+export function localizedText(value: { en?: string; ja?: string; "zh-CN"?: string } | undefined, language: Language) {
   if (!value) return "";
-  return language === "ja" && value.ja?.trim() ? value.ja : value.en ?? "";
+  return language !== "en" && value[language]?.trim() ? value[language] : value.en ?? "";
 }

@@ -4,7 +4,7 @@ import { useGetPageContent, useGetRooms } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
-import { localizeContent } from "@/lib/language";
+import { localizeContent, useLanguage } from "@/lib/language";
 
 interface LodgingContent {
   hero: { title: string; subtitle: string };
@@ -14,9 +14,10 @@ interface LodgingContent {
 }
 
 export function LodgingPage() {
+  const { language } = useLanguage();
   const { data: rooms, isLoading } = useGetRooms();
   const { data: contentData } = useGetPageContent("lodging");
-  const content = contentData ? localizeContent(contentData.content.en as unknown as LodgingContent, contentData.content.ja) : undefined;
+  const content = contentData ? localizeContent(contentData.content.en as unknown as LodgingContent, contentData.content, language) : undefined;
   useSeoMeta("lodging");
 
   return (

@@ -11,10 +11,12 @@ import { requireAdminAuth } from "../middlewares/admin-auth";
 
 const router: IRouter = Router();
 
-type LocalizedString = { en: string; ja: string };
-type LocalizedKeywords = { en: string[]; ja: string[] };
-type SeoDefaults = {
+export type SupportedLanguage = "en" | "ja" | "zh-CN";
+export type LocalizedString = { en: string; ja: string; "zh-CN": string };
+export type LocalizedKeywords = { en: string[]; ja: string[]; "zh-CN": string[] };
+export type SeoDefaults = {
   slug: string;
+  slugs?: LocalizedString;
   metaTitle: LocalizedString;
   metaDescription: LocalizedString;
   keywords: LocalizedKeywords;
@@ -23,88 +25,139 @@ type SeoDefaults = {
   ogImage: string;
   ogImageAlt: LocalizedString;
   canonicalUrl: string;
+  canonicalUrls?: LocalizedString;
   allowIndexing: boolean;
 };
+
+const emptyLocalized = (): LocalizedString => ({ en: "", ja: "", "zh-CN": "" });
+const emptyKeywords = (): LocalizedKeywords => ({ en: [], ja: [], "zh-CN": [] });
 
 export const DEFAULT_SEO: Record<string, SeoDefaults> = {
   home: {
     slug: "/",
-    metaTitle: { en: "CIAO Sapporo | All-in-One Lodging, Monthly Stay & Rental Car in Hokkaido", ja: "" },
-    metaDescription: { en: "Stay, live, and travel Hokkaido with CIAO in Sapporo — short-term lodging, monthly stays, and rental cars all in one convenient building near New Chitose Airport.", ja: "" },
-    keywords: { en: ["Sapporo lodging", "Hokkaido rental car", "monthly stay Sapporo", "CIAO Sapporo", "Hokkaido travel"], ja: [] },
-    ogTitle: { en: "CIAO Sapporo — All-in-One Package in Hokkaido", ja: "" },
-    ogDescription: { en: "Lodging, monthly stays, and rental cars in one Sapporo building. Your all-in-one base for exploring Hokkaido.", ja: "" },
+    metaTitle: { en: "CIAO Sapporo | All-in-One Lodging, Monthly Stay & Rental Car in Hokkaido", ja: "", "zh-CN": "" },
+    metaDescription: { en: "Stay, live, and travel Hokkaido with CIAO in Sapporo — short-term lodging, monthly stays, and rental cars all in one convenient building near New Chitose Airport.", ja: "", "zh-CN": "" },
+    keywords: { en: ["Sapporo lodging", "Hokkaido rental car", "monthly stay Sapporo", "CIAO Sapporo", "Hokkaido travel"], ja: [], "zh-CN": [] },
+    ogTitle: { en: "CIAO Sapporo — All-in-One Package in Hokkaido", ja: "", "zh-CN": "" },
+    ogDescription: { en: "Lodging, monthly stays, and rental cars in one Sapporo building. Your all-in-one base for exploring Hokkaido.", ja: "", "zh-CN": "" },
     ogImage: "/hero-sapporo.png",
-    ogImageAlt: { en: "CIAO Sapporo lodging exterior", ja: "" },
+    ogImageAlt: { en: "CIAO Sapporo lodging exterior", ja: "", "zh-CN": "" },
     canonicalUrl: "/",
     allowIndexing: true,
   },
   rentalcar: {
     slug: "/rentalcar",
-    metaTitle: { en: "Rental Cars in Sapporo | CIAO Hokkaido Car Rental", ja: "" },
-    metaDescription: { en: "Rent a car in Sapporo with CIAO — premium vehicles, transparent pricing, and easy pickup near New Chitose Airport for your Hokkaido road trip.", ja: "" },
-    keywords: { en: ["Sapporo car rental", "Hokkaido rental car", "New Chitose Airport car rental", "CIAO rental car"], ja: [] },
-    ogTitle: { en: "CIAO Rental Car — Explore Hokkaido at Your Own Pace", ja: "" },
-    ogDescription: { en: "Premium vehicles, flexible pickup locations, and fully insured options for your Hokkaido road trip.", ja: "" },
+    metaTitle: { en: "Rental Cars in Sapporo | CIAO Hokkaido Car Rental", ja: "", "zh-CN": "" },
+    metaDescription: { en: "Rent a car in Sapporo with CIAO — premium vehicles, transparent pricing, and easy pickup near New Chitose Airport for your Hokkaido road trip.", ja: "", "zh-CN": "" },
+    keywords: { en: ["Sapporo car rental", "Hokkaido rental car", "New Chitose Airport car rental", "CIAO rental car"], ja: [], "zh-CN": [] },
+    ogTitle: { en: "CIAO Rental Car — Explore Hokkaido at Your Own Pace", ja: "", "zh-CN": "" },
+    ogDescription: { en: "Premium vehicles, flexible pickup locations, and fully insured options for your Hokkaido road trip.", ja: "", "zh-CN": "" },
     ogImage: "/hero-sapporo.png",
-    ogImageAlt: { en: "CIAO rental car in Hokkaido", ja: "" },
+    ogImageAlt: { en: "CIAO rental car in Hokkaido", ja: "", "zh-CN": "" },
     canonicalUrl: "/rentalcar",
     allowIndexing: true,
   },
   lodging: {
     slug: "/lodging",
-    metaTitle: { en: "Short-Term Lodging in Sapporo | CIAO Hokkaido", ja: "" },
-    metaDescription: { en: "Book short-term rooms and studios in Sapporo with CIAO — comfortable stays near New Chitose Airport, perfect for your Hokkaido trip.", ja: "" },
-    keywords: { en: ["Sapporo short-term stay", "Sapporo lodging", "Hokkaido accommodation", "CIAO Sapporo rooms"], ja: [] },
-    ogTitle: { en: "CIAO Lodging — Short-Term Stays in Sapporo", ja: "" },
-    ogDescription: { en: "Comfortable short-term rooms and studios in Sapporo, part of the CIAO all-in-one Hokkaido package.", ja: "" },
+    metaTitle: { en: "Short-Term Lodging in Sapporo | CIAO Hokkaido", ja: "", "zh-CN": "" },
+    metaDescription: { en: "Book short-term rooms and studios in Sapporo with CIAO — comfortable stays near New Chitose Airport, perfect for your Hokkaido trip.", ja: "", "zh-CN": "" },
+    keywords: { en: ["Sapporo short-term stay", "Sapporo lodging", "Hokkaido accommodation", "CIAO Sapporo rooms"], ja: [], "zh-CN": [] },
+    ogTitle: { en: "CIAO Lodging — Short-Term Stays in Sapporo", ja: "", "zh-CN": "" },
+    ogDescription: { en: "Comfortable short-term rooms and studios in Sapporo, part of the CIAO all-in-one Hokkaido package.", ja: "", "zh-CN": "" },
     ogImage: "/hero-sapporo.png",
-    ogImageAlt: { en: "CIAO Sapporo short-term lodging", ja: "" },
+    ogImageAlt: { en: "CIAO Sapporo short-term lodging", ja: "", "zh-CN": "" },
     canonicalUrl: "/lodging",
     allowIndexing: true,
   },
 };
 
-function localized(en: string, ja: string): LocalizedString {
-  return { en, ja };
+export function localizedRoute(language: SupportedLanguage, slug: string): string {
+  const normalized = slug || "/";
+  if (language === "en") return normalized;
+  if (normalized === "/") return `/${language}`;
+  return `/${language}${normalized.startsWith("/") ? normalized : `/${normalized}`}`;
 }
 
-function normalizeSeo(page: string, seo: PageSeo): SeoDefaults & { page: string; updatedAt: string } {
+export function normalizeSeo(
+  page: string,
+  seo: PageSeo,
+): SeoDefaults & { page: string; updatedAt: string; slugs: LocalizedString; canonicalUrls: LocalizedString } {
   const fallback = DEFAULT_SEO[page];
+  const fallbackSlug = fallback?.slug ?? `/${page}`;
+  const slugs: LocalizedString = {
+    en: seo.slugEn || seo.slug || fallbackSlug,
+    ja: seo.slugJa || seo.slug || fallbackSlug,
+    "zh-CN": seo.slugZhCn || "",
+  };
+  const canonicalUrls: LocalizedString = {
+    en: seo.canonicalUrlEn || seo.canonicalUrl || fallback?.canonicalUrl || localizedRoute("en", slugs.en),
+    ja: seo.canonicalUrlJa || localizedRoute("ja", slugs.ja || slugs.en),
+    "zh-CN": seo.canonicalUrlZhCn || localizedRoute("zh-CN", slugs["zh-CN"] || slugs.en),
+  };
   return {
     page: seo.page,
-    slug: seo.slug || fallback.slug,
-    metaTitle: localized(seo.metaTitleEn || seo.metaTitle || fallback.metaTitle.en, seo.metaTitleJa || fallback.metaTitle.ja),
-    metaDescription: localized(seo.metaDescriptionEn || seo.metaDescription || fallback.metaDescription.en, seo.metaDescriptionJa || fallback.metaDescription.ja),
-    keywords: { en: seo.keywordsEn.length ? seo.keywordsEn : seo.keywords.length ? seo.keywords : fallback.keywords.en, ja: seo.keywordsJa.length ? seo.keywordsJa : fallback.keywords.ja },
-    ogTitle: localized(seo.ogTitleEn || seo.ogTitle || fallback.ogTitle.en, seo.ogTitleJa || fallback.ogTitle.ja),
-    ogDescription: localized(seo.ogDescriptionEn || seo.ogDescription || fallback.ogDescription.en, seo.ogDescriptionJa || fallback.ogDescription.ja),
-    ogImage: seo.ogImage || fallback.ogImage,
-    ogImageAlt: localized(seo.ogImageAltEn || fallback.ogImageAlt.en, seo.ogImageAltJa || fallback.ogImageAlt.ja),
-    canonicalUrl: seo.canonicalUrl || fallback.canonicalUrl,
+    slug: slugs.en,
+    slugs,
+    metaTitle: { en: seo.metaTitleEn || seo.metaTitle || fallback?.metaTitle.en || "", ja: seo.metaTitleJa || "", "zh-CN": seo.metaTitleZhCn || "" },
+    metaDescription: { en: seo.metaDescriptionEn || seo.metaDescription || fallback?.metaDescription.en || "", ja: seo.metaDescriptionJa || "", "zh-CN": seo.metaDescriptionZhCn || "" },
+    keywords: { en: seo.keywordsEn.length ? seo.keywordsEn : fallback?.keywords.en ?? [], ja: seo.keywordsJa, "zh-CN": seo.keywordsZhCn },
+    ogTitle: { en: seo.ogTitleEn || seo.ogTitle || fallback?.ogTitle.en || "", ja: seo.ogTitleJa || "", "zh-CN": seo.ogTitleZhCn || "" },
+    ogDescription: { en: seo.ogDescriptionEn || seo.ogDescription || fallback?.ogDescription.en || "", ja: seo.ogDescriptionJa || "", "zh-CN": seo.ogDescriptionZhCn || "" },
+    ogImage: seo.ogImage || fallback?.ogImage || "",
+    ogImageAlt: { en: seo.ogImageAltEn || fallback?.ogImageAlt.en || "", ja: seo.ogImageAltJa || "", "zh-CN": seo.ogImageAltZhCn || "" },
+    canonicalUrl: canonicalUrls.en,
+    canonicalUrls,
     allowIndexing: seo.allowIndexing,
     updatedAt: seo.updatedAt.toISOString(),
   };
 }
 
-function seoValues(page: string, seo: SeoDefaults) {
+export function seoValues(page: string, seo: SeoDefaults) {
+  const slugs = seo.slugs ?? { en: seo.slug, ja: seo.slug, "zh-CN": "" };
+  const canonicalUrls = seo.canonicalUrls ?? {
+    en: seo.canonicalUrl,
+    ja: localizedRoute("ja", slugs.ja || slugs.en),
+    "zh-CN": localizedRoute("zh-CN", slugs["zh-CN"] || slugs.en),
+  };
   return {
     page,
-    slug: seo.slug,
-    // Keep old scalar columns populated for safe rollback and legacy records.
-    metaTitle: seo.metaTitle.en, metaDescription: seo.metaDescription.en, keywords: seo.keywords.en,
-    ogTitle: seo.ogTitle.en, ogDescription: seo.ogDescription.en, ogImage: seo.ogImage,
-    metaTitleEn: seo.metaTitle.en, metaTitleJa: seo.metaTitle.ja,
-    metaDescriptionEn: seo.metaDescription.en, metaDescriptionJa: seo.metaDescription.ja,
-    keywordsEn: seo.keywords.en, keywordsJa: seo.keywords.ja,
-    ogTitleEn: seo.ogTitle.en, ogTitleJa: seo.ogTitle.ja,
-    ogDescriptionEn: seo.ogDescription.en, ogDescriptionJa: seo.ogDescription.ja,
-    ogImageAltEn: seo.ogImageAlt.en, ogImageAltJa: seo.ogImageAlt.ja,
-    canonicalUrl: seo.canonicalUrl, allowIndexing: seo.allowIndexing,
+    slug: slugs.en,
+    slugEn: slugs.en,
+    slugJa: slugs.ja,
+    slugZhCn: slugs["zh-CN"],
+    metaTitle: seo.metaTitle.en,
+    metaDescription: seo.metaDescription.en,
+    keywords: seo.keywords.en,
+    ogTitle: seo.ogTitle.en,
+    ogDescription: seo.ogDescription.en,
+    ogImage: seo.ogImage,
+    metaTitleEn: seo.metaTitle.en,
+    metaTitleJa: seo.metaTitle.ja,
+    metaTitleZhCn: seo.metaTitle["zh-CN"],
+    metaDescriptionEn: seo.metaDescription.en,
+    metaDescriptionJa: seo.metaDescription.ja,
+    metaDescriptionZhCn: seo.metaDescription["zh-CN"],
+    keywordsEn: seo.keywords.en,
+    keywordsJa: seo.keywords.ja,
+    keywordsZhCn: seo.keywords["zh-CN"],
+    ogTitleEn: seo.ogTitle.en,
+    ogTitleJa: seo.ogTitle.ja,
+    ogTitleZhCn: seo.ogTitle["zh-CN"],
+    ogDescriptionEn: seo.ogDescription.en,
+    ogDescriptionJa: seo.ogDescription.ja,
+    ogDescriptionZhCn: seo.ogDescription["zh-CN"],
+    ogImageAltEn: seo.ogImageAlt.en,
+    ogImageAltJa: seo.ogImageAlt.ja,
+    ogImageAltZhCn: seo.ogImageAlt["zh-CN"],
+    canonicalUrl: canonicalUrls.en,
+    canonicalUrlEn: canonicalUrls.en,
+    canonicalUrlJa: canonicalUrls.ja,
+    canonicalUrlZhCn: canonicalUrls["zh-CN"],
+    allowIndexing: seo.allowIndexing,
   };
 }
 
-async function getOrSeedSeo(page: string) {
+export async function getOrSeedSeo(page: string) {
   const [existing] = await db.select().from(pageSeoTable).where(eq(pageSeoTable.page, page));
   if (existing) return existing;
   const defaults = DEFAULT_SEO[page];
@@ -113,6 +166,21 @@ async function getOrSeedSeo(page: string) {
   if (created) return created;
   const [row] = await db.select().from(pageSeoTable).where(eq(pageSeoTable.page, page));
   return row ?? null;
+}
+
+export async function validateUniqueSlugs(slugs: LocalizedString, page?: string): Promise<string | null> {
+  const rows = await db.select().from(pageSeoTable);
+  for (const language of ["en", "ja", "zh-CN"] as const) {
+    const candidate = slugs[language].trim();
+    if (!candidate) continue;
+    const conflict = rows.find((row) => {
+      if (row.page === page) return false;
+      const existing = language === "en" ? (row.slugEn || row.slug) : language === "ja" ? (row.slugJa || row.slug) : row.slugZhCn;
+      return existing.trim() === candidate;
+    });
+    if (conflict) return `${language} URL slug "${candidate}" is already used by ${conflict.page}`;
+  }
+  return null;
 }
 
 router.get("/seo/:page", async (req, res): Promise<void> => {
@@ -126,16 +194,22 @@ router.get("/seo/:page", async (req, res): Promise<void> => {
 router.put("/admin/seo/:page", requireAdminAuth, async (req, res): Promise<void> => {
   const params = UpdateAdminSeoParams.safeParse(req.params);
   if (!params.success) return void res.status(400).json({ error: params.error.message });
-  if (!(params.data.page in DEFAULT_SEO)) return void res.status(400).json({ error: "Unknown page" });
-  const body = UpdateAdminSeoBody.safeParse(req.body);
-  if (!body.success) return void res.status(400).json({ error: body.error.message });
-
   const existing = await getOrSeedSeo(params.data.page);
   if (!existing) return void res.status(404).json({ error: "Unknown page" });
+  const body = UpdateAdminSeoBody.safeParse(req.body);
+  if (!body.success) return void res.status(400).json({ error: body.error.message });
   const stored = normalizeSeo(params.data.page, existing);
   const input = body.data;
+  const mergedSlugs: LocalizedString = {
+    ...stored.slugs,
+    ...(input.slugs ?? {}),
+    ...(input.slug !== undefined ? { en: input.slug } : {}),
+  };
+  const slugError = await validateUniqueSlugs(mergedSlugs, params.data.page);
+  if (slugError) return void res.status(400).json({ error: slugError });
   const merged: SeoDefaults = {
-    slug: input.slug ?? stored.slug,
+    slug: mergedSlugs.en,
+    slugs: mergedSlugs,
     metaTitle: { ...stored.metaTitle, ...input.metaTitle },
     metaDescription: { ...stored.metaDescription, ...input.metaDescription },
     keywords: { ...stored.keywords, ...input.keywords },
@@ -144,6 +218,7 @@ router.put("/admin/seo/:page", requireAdminAuth, async (req, res): Promise<void>
     ogImage: input.ogImage ?? stored.ogImage,
     ogImageAlt: { ...stored.ogImageAlt, ...input.ogImageAlt },
     canonicalUrl: input.canonicalUrl ?? stored.canonicalUrl,
+    canonicalUrls: { ...stored.canonicalUrls, ...input.canonicalUrls },
     allowIndexing: input.allowIndexing ?? stored.allowIndexing,
   };
   const values = seoValues(params.data.page, merged);
@@ -154,4 +229,5 @@ router.put("/admin/seo/:page", requireAdminAuth, async (req, res): Promise<void>
   res.json(GetPageSeoResponse.parse(normalizeSeo(params.data.page, updated)));
 });
 
+export { emptyLocalized, emptyKeywords };
 export default router;

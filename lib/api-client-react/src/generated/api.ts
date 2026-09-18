@@ -21,12 +21,14 @@ import type {
   AdminLoginBody,
   AdminLoginResponse,
   AdminLogout200,
+  AdminPageSummary,
   AdminStats,
   Availability,
   Booking,
   BookingWithCar,
   Car,
   CreateAddonBody,
+  CreateAdminContentBody,
   CreateAvailabilityBlockBody,
   CreateBookingBody,
   CreateCarBody,
@@ -47,6 +49,7 @@ import type {
   GetCarAvailabilityParams,
   GetRoomsParams,
   HealthStatus,
+  LocalizedPage,
   PageContent,
   PageContentUpdate,
   PageSeo,
@@ -72,6 +75,7 @@ import type {
   SearchRentalVehiclesParams,
   SetAvailabilityBody,
   SetCarAvailability200,
+  SupportedLanguage,
   UpdateCarBody,
   UpdateRentalVehicleBody,
   UpdateReservationBody,
@@ -766,6 +770,357 @@ export function useGetPageContent<
 }
 
 /**
+ * @summary Get the localized home page
+ */
+export const getGetLocalizedHomePageUrl = (language: SupportedLanguage) => {
+  return `/api/content/route/${language}`;
+};
+
+export const getLocalizedHomePage = async (
+  language: SupportedLanguage,
+  options?: RequestInit,
+): Promise<LocalizedPage> => {
+  return customFetch<LocalizedPage>(getGetLocalizedHomePageUrl(language), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLocalizedHomePageQueryKey = (
+  language: SupportedLanguage,
+) => {
+  return [`/api/content/route/${language}`] as const;
+};
+
+export const getGetLocalizedHomePageQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLocalizedHomePage>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  language: SupportedLanguage,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocalizedHomePage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetLocalizedHomePageQueryKey(language);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLocalizedHomePage>>
+  > = ({ signal }) =>
+    getLocalizedHomePage(language, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!language,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLocalizedHomePage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLocalizedHomePageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLocalizedHomePage>>
+>;
+export type GetLocalizedHomePageQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get the localized home page
+ */
+
+export function useGetLocalizedHomePage<
+  TData = Awaited<ReturnType<typeof getLocalizedHomePage>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  language: SupportedLanguage,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocalizedHomePage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLocalizedHomePageQueryOptions(language, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Resolve a published localized CMS page by URL
+ */
+export const getGetLocalizedPageUrl = (
+  language: SupportedLanguage,
+  slug: string,
+) => {
+  return `/api/content/route/${language}/${slug}`;
+};
+
+export const getLocalizedPage = async (
+  language: SupportedLanguage,
+  slug: string,
+  options?: RequestInit,
+): Promise<LocalizedPage> => {
+  return customFetch<LocalizedPage>(getGetLocalizedPageUrl(language, slug), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLocalizedPageQueryKey = (
+  language: SupportedLanguage,
+  slug: string,
+) => {
+  return [`/api/content/route/${language}/${slug}`] as const;
+};
+
+export const getGetLocalizedPageQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLocalizedPage>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  language: SupportedLanguage,
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocalizedPage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetLocalizedPageQueryKey(language, slug);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLocalizedPage>>
+  > = ({ signal }) =>
+    getLocalizedPage(language, slug, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(language && slug),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLocalizedPage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLocalizedPageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLocalizedPage>>
+>;
+export type GetLocalizedPageQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Resolve a published localized CMS page by URL
+ */
+
+export function useGetLocalizedPage<
+  TData = Awaited<ReturnType<typeof getLocalizedPage>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  language: SupportedLanguage,
+  slug: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getLocalizedPage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLocalizedPageQueryOptions(language, slug, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List CMS pages (admin)
+ */
+export const getListAdminContentPagesUrl = () => {
+  return `/api/admin/content`;
+};
+
+export const listAdminContentPages = async (
+  options?: RequestInit,
+): Promise<AdminPageSummary[]> => {
+  return customFetch<AdminPageSummary[]>(getListAdminContentPagesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdminContentPagesQueryKey = () => {
+  return [`/api/admin/content`] as const;
+};
+
+export const getListAdminContentPagesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdminContentPages>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminContentPages>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdminContentPagesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdminContentPages>>
+  > = ({ signal }) => listAdminContentPages({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminContentPages>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdminContentPagesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdminContentPages>>
+>;
+export type ListAdminContentPagesQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List CMS pages (admin)
+ */
+
+export function useListAdminContentPages<
+  TData = Awaited<ReturnType<typeof listAdminContentPages>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdminContentPages>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdminContentPagesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a CMS page (admin)
+ */
+export const getCreateAdminContentPageUrl = () => {
+  return `/api/admin/content`;
+};
+
+export const createAdminContentPage = async (
+  createAdminContentBody: CreateAdminContentBody,
+  options?: RequestInit,
+): Promise<PageContent> => {
+  return customFetch<PageContent>(getCreateAdminContentPageUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createAdminContentBody),
+  });
+};
+
+export const getCreateAdminContentPageMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminContentPage>>,
+    TError,
+    { data: BodyType<CreateAdminContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdminContentPage>>,
+  TError,
+  { data: BodyType<CreateAdminContentBody> },
+  TContext
+> => {
+  const mutationKey = ["createAdminContentPage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdminContentPage>>,
+    { data: BodyType<CreateAdminContentBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAdminContentPage(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdminContentPageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdminContentPage>>
+>;
+export type CreateAdminContentPageMutationBody =
+  BodyType<CreateAdminContentBody>;
+export type CreateAdminContentPageMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a CMS page (admin)
+ */
+export const useCreateAdminContentPage = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminContentPage>>,
+    TError,
+    { data: BodyType<CreateAdminContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdminContentPage>>,
+  TError,
+  { data: BodyType<CreateAdminContentBody> },
+  TContext
+> => {
+  return useMutation(getCreateAdminContentPageMutationOptions(options));
+};
+
+/**
  * Returns SEO fields for a given page key (e.g. "home", "rentalcar")
  * @summary Get SEO metadata for a page
  */
@@ -938,6 +1293,90 @@ export const useUpdateAdminContent = <
   TContext
 > => {
   return useMutation(getUpdateAdminContentMutationOptions(options));
+};
+
+/**
+ * @summary Delete a custom CMS page (admin)
+ */
+export const getDeleteAdminContentPageUrl = (page: string) => {
+  return `/api/admin/content/${page}`;
+};
+
+export const deleteAdminContentPage = async (
+  page: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteAdminContentPageUrl(page), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteAdminContentPageMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdminContentPage>>,
+    TError,
+    { page: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteAdminContentPage>>,
+  TError,
+  { page: string },
+  TContext
+> => {
+  const mutationKey = ["deleteAdminContentPage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteAdminContentPage>>,
+    { page: string }
+  > = (props) => {
+    const { page } = props ?? {};
+
+    return deleteAdminContentPage(page, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteAdminContentPageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteAdminContentPage>>
+>;
+
+export type DeleteAdminContentPageMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete a custom CMS page (admin)
+ */
+export const useDeleteAdminContentPage = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteAdminContentPage>>,
+    TError,
+    { page: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteAdminContentPage>>,
+  TError,
+  { page: string },
+  TContext
+> => {
+  return useMutation(getDeleteAdminContentPageMutationOptions(options));
 };
 
 /**

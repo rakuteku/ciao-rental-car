@@ -1,4 +1,4 @@
-import { pgTable, serial, text, jsonb, timestamp, unique } from "drizzle-orm/pg-core";
+import { boolean, pgTable, serial, text, jsonb, timestamp, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -8,6 +8,10 @@ export const pageContentTable = pgTable(
     id: serial("id").primaryKey(),
     page: text("page").notNull(),
     content: jsonb("content").notNull().$type<Record<string, unknown>>(),
+    titleEn: text("title_en").notNull().default(""),
+    titleJa: text("title_ja").notNull().default(""),
+    titleZhCn: text("title_zh_cn").notNull().default(""),
+    published: boolean("published").notNull().default(true),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
   (table) => [unique("page_content_page_unique").on(table.page)],

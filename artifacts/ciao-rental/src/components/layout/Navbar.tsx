@@ -10,6 +10,7 @@ export function Navbar() {
   const logout = useAdminLogout();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
+  const localizedHref = (path: string) => language === "en" ? path : `/${language}${path === "/" ? "" : path}`;
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
@@ -17,7 +18,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-border/60">
       <div className="container flex h-14 md:h-16 items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5 z-50 relative" onClick={closeMenu}>
+        <Link href={localizedHref("/")} className="flex items-center gap-2.5 z-50 relative" onClick={closeMenu}>
           <span className="text-lg md:text-xl font-bold font-serif tracking-widest uppercase">Ciao</span>
           <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden sm:inline-block pt-0.5">Sapporo · Hokkaido</span>
         </Link>
@@ -34,7 +35,7 @@ export function Navbar() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-6">
           <div className="inline-flex items-center rounded-md border p-0.5" aria-label="Website language">
-            {(["en", "ja"] as const).map((item) => (
+            {(["en", "ja", "zh-CN"] as const).map((item) => (
               <button
                 key={item}
                 type="button"
@@ -45,14 +46,14 @@ export function Navbar() {
                   language === item ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {item === "en" ? "ENG" : "JP"}
+                {item === "en" ? "ENG" : item === "ja" ? "JP" : "简中"}
               </button>
             ))}
           </div>
-          <Link href="/lodging" className="text-xs tracking-[0.15em] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors py-2">
+          <Link href={localizedHref("/lodging")} className="text-xs tracking-[0.15em] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors py-2">
             Lodging
           </Link>
-          <Link href="/rentalcar" className="text-xs tracking-[0.15em] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors py-2">
+          <Link href={localizedHref("/rentalcar")} className="text-xs tracking-[0.15em] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors py-2">
             Rental Car
           </Link>
           {admin?.authenticated ? (
@@ -83,7 +84,7 @@ export function Navbar() {
               <div className="flex items-center justify-between border-b pb-4">
                 <span className="text-xs font-semibold tracking-[0.15em] uppercase text-muted-foreground">Language</span>
                 <div className="inline-flex items-center rounded-md border p-0.5" aria-label="Website language">
-                  {(["en", "ja"] as const).map((item) => (
+                  {(["en", "ja", "zh-CN"] as const).map((item) => (
                     <button
                       key={item}
                       type="button"
@@ -94,15 +95,15 @@ export function Navbar() {
                         language === item ? "bg-foreground text-background" : "text-muted-foreground"
                       }`}
                     >
-                      {item === "en" ? "ENG" : "JP"}
+                      {item === "en" ? "ENG" : item === "ja" ? "JP" : "简中"}
                     </button>
                   ))}
                 </div>
               </div>
-              <Link href="/lodging" onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
+              <Link href={localizedHref("/lodging")} onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
                 Lodging
               </Link>
-              <Link href="/rentalcar" onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
+              <Link href={localizedHref("/rentalcar")} onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
                 Rental Car
               </Link>
               <Link href="/rentalcar/my-bookings" onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">

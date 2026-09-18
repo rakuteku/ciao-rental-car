@@ -17,7 +17,7 @@ import { LOCATIONS } from "@/lib/constants";
 import { useGetCars, useGetPageContent } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
-import { localizeContent } from "@/lib/language";
+import { localizeContent, useLanguage } from "@/lib/language";
 
 interface PricingRow {
   label: string;
@@ -69,10 +69,11 @@ const searchSchema = z.object({
 });
 
 export function RentalCarHome() {
+  const { language } = useLanguage();
   const [, setLocation] = useLocation();
   const { data: cars, isLoading } = useGetCars();
   const { data: contentData } = useGetPageContent("rentalcar");
-  const content = contentData ? localizeContent(contentData.content.en as unknown as RentalCarContent, contentData.content.ja) : undefined;
+  const content = contentData ? localizeContent(contentData.content.en as unknown as RentalCarContent, contentData.content, language) : undefined;
   useSeoMeta("rentalcar");
 
   const form = useForm<z.infer<typeof searchSchema>>({

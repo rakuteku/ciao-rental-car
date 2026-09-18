@@ -3,7 +3,7 @@ import { Building2, CalendarClock, Car as CarIcon, MapPin, Mail, ChevronRight, U
 import { Button } from "@/components/ui/button";
 import { useGetPageContent, useGetRooms } from "@workspace/api-client-react";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
-import { localizeContent } from "@/lib/language";
+import { localizeContent, useLanguage } from "@/lib/language";
 
 interface WhyItem {
   title: string;
@@ -22,8 +22,9 @@ interface HomeContent {
 }
 
 export function Home() {
+  const { language } = useLanguage();
   const { data, isLoading } = useGetPageContent("home");
-  const content = data ? localizeContent(data.content.en as unknown as HomeContent, data.content.ja) : undefined;
+  const content = data ? localizeContent(data.content.en as unknown as HomeContent, data.content, language) : undefined;
   const { data: featuredRooms } = useGetRooms({ featured: true });
   useSeoMeta("home");
 

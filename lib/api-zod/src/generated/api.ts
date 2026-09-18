@@ -235,10 +235,217 @@ export const GetPageContentParams = zod.object({
 
 export const GetPageContentResponse = zod.object({
   page: zod.string(),
+  title: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  slugs: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
   content: zod.object({
     en: zod.record(zod.string(), zod.unknown()),
     ja: zod.record(zod.string(), zod.unknown()),
+    "zh-CN": zod.record(zod.string(), zod.unknown()),
   }),
+  published: zod.boolean(),
+  isCustom: zod.boolean(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Get the localized home page
+ */
+export const GetLocalizedHomePageParams = zod.object({
+  language: zod.enum(["en", "ja", "zh-CN"]),
+});
+
+export const GetLocalizedHomePageResponse = zod.object({
+  page: zod.string(),
+  language: zod.enum(["en", "ja", "zh-CN"]),
+  title: zod.string(),
+  content: zod.record(zod.string(), zod.unknown()),
+  seo: zod.object({
+    page: zod.string(),
+    slug: zod.string(),
+    slugs: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    metaTitle: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    metaDescription: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    keywords: zod.object({
+      en: zod.array(zod.string()),
+      ja: zod.array(zod.string()),
+      "zh-CN": zod.array(zod.string()),
+    }),
+    ogTitle: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    ogDescription: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    ogImage: zod.string(),
+    ogImageAlt: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    canonicalUrl: zod.string(),
+    canonicalUrls: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    allowIndexing: zod.boolean(),
+    updatedAt: zod.string(),
+  }),
+  routes: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  published: zod.boolean(),
+});
+
+/**
+ * @summary Resolve a published localized CMS page by URL
+ */
+export const GetLocalizedPageParams = zod.object({
+  language: zod.enum(["en", "ja", "zh-CN"]),
+  slug: zod.coerce.string(),
+});
+
+export const GetLocalizedPageResponse = zod.object({
+  page: zod.string(),
+  language: zod.enum(["en", "ja", "zh-CN"]),
+  title: zod.string(),
+  content: zod.record(zod.string(), zod.unknown()),
+  seo: zod.object({
+    page: zod.string(),
+    slug: zod.string(),
+    slugs: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    metaTitle: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    metaDescription: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    keywords: zod.object({
+      en: zod.array(zod.string()),
+      ja: zod.array(zod.string()),
+      "zh-CN": zod.array(zod.string()),
+    }),
+    ogTitle: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    ogDescription: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    ogImage: zod.string(),
+    ogImageAlt: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    canonicalUrl: zod.string(),
+    canonicalUrls: zod.object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    }),
+    allowIndexing: zod.boolean(),
+    updatedAt: zod.string(),
+  }),
+  routes: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  published: zod.boolean(),
+});
+
+/**
+ * @summary List CMS pages (admin)
+ */
+export const ListAdminContentPagesResponseItem = zod.object({
+  page: zod.string(),
+  title: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  slugs: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  published: zod.boolean(),
+  isCustom: zod.boolean(),
+  updatedAt: zod.string(),
+});
+export const ListAdminContentPagesResponse = zod.array(
+  ListAdminContentPagesResponseItem,
+);
+
+/**
+ * @summary Create a CMS page (admin)
+ */
+export const CreateAdminContentPageBody = zod.object({
+  page: zod.string(),
+  title: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  slugs: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  metaTitle: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  metaDescription: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  content: zod.object({
+    en: zod.record(zod.string(), zod.unknown()),
+    ja: zod.record(zod.string(), zod.unknown()),
+    "zh-CN": zod.record(zod.string(), zod.unknown()),
+  }),
+  published: zod.boolean().optional(),
 });
 
 /**
@@ -252,32 +459,48 @@ export const GetPageSeoParams = zod.object({
 export const GetPageSeoResponse = zod.object({
   page: zod.string(),
   slug: zod.string(),
+  slugs: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
   metaTitle: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   metaDescription: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   keywords: zod.object({
     en: zod.array(zod.string()),
     ja: zod.array(zod.string()),
+    "zh-CN": zod.array(zod.string()),
   }),
   ogTitle: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   ogDescription: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   ogImage: zod.string(),
   ogImageAlt: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   canonicalUrl: zod.string(),
+  canonicalUrls: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
   allowIndexing: zod.boolean(),
   updatedAt: zod.string(),
 });
@@ -290,18 +513,57 @@ export const UpdateAdminContentParams = zod.object({
 });
 
 export const UpdateAdminContentBody = zod.object({
-  content: zod.object({
-    en: zod.record(zod.string(), zod.unknown()).optional(),
-    ja: zod.record(zod.string(), zod.unknown()).optional(),
-  }),
+  title: zod
+    .object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    })
+    .optional(),
+  slugs: zod
+    .object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    })
+    .optional(),
+  content: zod
+    .object({
+      en: zod.record(zod.string(), zod.unknown()).optional(),
+      ja: zod.record(zod.string(), zod.unknown()).optional(),
+      "zh-CN": zod.record(zod.string(), zod.unknown()).optional(),
+    })
+    .optional(),
+  published: zod.boolean().optional(),
 });
 
 export const UpdateAdminContentResponse = zod.object({
   page: zod.string(),
+  title: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
+  slugs: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
   content: zod.object({
     en: zod.record(zod.string(), zod.unknown()),
     ja: zod.record(zod.string(), zod.unknown()),
+    "zh-CN": zod.record(zod.string(), zod.unknown()),
   }),
+  published: zod.boolean(),
+  isCustom: zod.boolean(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a custom CMS page (admin)
+ */
+export const DeleteAdminContentPageParams = zod.object({
+  page: zod.coerce.string(),
 });
 
 /**
@@ -313,34 +575,46 @@ export const UpdateAdminSeoParams = zod.object({
 
 export const UpdateAdminSeoBody = zod.object({
   slug: zod.string().optional(),
+  slugs: zod
+    .object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    })
+    .optional(),
   metaTitle: zod
     .object({
       en: zod.string(),
       ja: zod.string(),
+      "zh-CN": zod.string(),
     })
     .optional(),
   metaDescription: zod
     .object({
       en: zod.string(),
       ja: zod.string(),
+      "zh-CN": zod.string(),
     })
     .optional(),
   keywords: zod
     .object({
       en: zod.array(zod.string()),
       ja: zod.array(zod.string()),
+      "zh-CN": zod.array(zod.string()),
     })
     .optional(),
   ogTitle: zod
     .object({
       en: zod.string(),
       ja: zod.string(),
+      "zh-CN": zod.string(),
     })
     .optional(),
   ogDescription: zod
     .object({
       en: zod.string(),
       ja: zod.string(),
+      "zh-CN": zod.string(),
     })
     .optional(),
   ogImage: zod.string().optional(),
@@ -348,41 +622,65 @@ export const UpdateAdminSeoBody = zod.object({
     .object({
       en: zod.string(),
       ja: zod.string(),
+      "zh-CN": zod.string(),
     })
     .optional(),
   canonicalUrl: zod.string().optional(),
+  canonicalUrls: zod
+    .object({
+      en: zod.string(),
+      ja: zod.string(),
+      "zh-CN": zod.string(),
+    })
+    .optional(),
   allowIndexing: zod.boolean().optional(),
 });
 
 export const UpdateAdminSeoResponse = zod.object({
   page: zod.string(),
   slug: zod.string(),
+  slugs: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
   metaTitle: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   metaDescription: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   keywords: zod.object({
     en: zod.array(zod.string()),
     ja: zod.array(zod.string()),
+    "zh-CN": zod.array(zod.string()),
   }),
   ogTitle: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   ogDescription: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   ogImage: zod.string(),
   ogImageAlt: zod.object({
     en: zod.string(),
     ja: zod.string(),
+    "zh-CN": zod.string(),
   }),
   canonicalUrl: zod.string(),
+  canonicalUrls: zod.object({
+    en: zod.string(),
+    ja: zod.string(),
+    "zh-CN": zod.string(),
+  }),
   allowIndexing: zod.boolean(),
   updatedAt: zod.string(),
 });

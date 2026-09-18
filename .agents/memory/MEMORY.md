@@ -4,4 +4,4 @@
 - [pnpm install after new server routes](pnpm-install-new-routes.md) — adding new route files that import workspace deps (zod, drizzle-zod) requires running pnpm install --filter @workspace/api-server or esbuild fails to resolve them.
 - [Rental hold ownership](rental-hold-ownership.md) — temporary rental holds are browser-session-bound; status and conversion must require the same session.
 - [Generated client freshness](generated-client-freshness.md) — rebuild composite library declarations before frontend checks after merged API/codegen changes.
-- [Bilingual CMS fallback](bilingual-cms-fallback.md) — Japanese content remains editor-authored; blank fields resolve individually to English.
+- [Localized CMS fallback](bilingual-cms-fallback.md) — Japanese and Chinese content remain editor-authored; blank fields resolve individually to English.
