@@ -11,6 +11,8 @@ if (!process.env.SESSION_SECRET) {
 
 const app: Express = express();
 
+app.set("trust proxy", process.env.NODE_ENV === "production" ? 1 : false);
+
 app.use(
   pinoHttp({
     logger,
