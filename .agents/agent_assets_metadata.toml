@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "V23XjFcf4y8jwWTWwRHD1"
@@ -18,3 +17,17 @@ id = "PPE_w90WJVlTR_GE2gaWJ"
 uri = "file://artifacts/ciao-rental/public/images/sienta.png"
 type = "image"
 title = "Toyota Sienta studio background"
+
+[[outputs]]
+id = "noaiZVP66C6YElBRMb5a4"
+uri = "file://ciao-rental-pages-staging.zip"
+type = "unspecified"
+title = "CIAO Rental Cloudflare Pages staging bundle"
+description = "Staging-only Cloudflare Pages Advanced Mode bundle with root-path static assets, API proxy worker, noindex response headers, and crawler-blocking robots.txt."
+logical_id = "d581ddd7-7382-40a4-877e-077dd1861b6d"
+content_hash = "sha256:70dde484dce2f6240484a736362a3b2c45fe63acfe73debceda605b130a574db"
+size = 7394094
+mtime_ms = 1789907247166
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:adb8056d-b51f-4a7b-ab2f-9872b2d70c6f/d581ddd7-7382-40a4-877e-077dd1861b6d/b842d130-f239-4f07-824b-d908d6a3138d"
+storage_version_token = "1789907305750895"
+content_type = "application/octet-stream"
