@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
+    "build:pages-staging": "NODE_ENV=production BASE_PATH=/ PORT=5000 vite build --config vite.config.ts",
+    "package:pages-staging": "node ../../scripts/package-cloudflare-pages-staging.mjs",
+    "verify:pages-staging": "node ../../scripts/verify-cloudflare-pages-staging.mjs",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
