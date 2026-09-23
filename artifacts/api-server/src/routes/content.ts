@@ -74,8 +74,8 @@ export const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
         description: "Easy access to and from New Chitose Airport, so your trip starts the moment you land.",
       },
       {
-        title: "Stay & Car Rental in One Package",
-        description: "Skip the hassle of separate bookings — lodging and rental car, all in one building.",
+        title: "Plan Your Stay & Car Together",
+        description: "Make one convenient plan for your lodging and rental car, with room availability confirmed separately by our team.",
       },
       {
         title: "Great for Families, Groups & Road Trips",
@@ -201,19 +201,54 @@ const DEFAULT_TITLES: Record<string, string> = {
   lodging: "Lodging",
 };
 
-// The previous site had no Japanese source copy. Keep these values empty so
-// editors can add real translations and visitors receive field-level English
-// fallback rather than automatic or fabricated translations.
 const DEFAULT_JA_CONTENT: Record<string, Record<string, unknown>> = {
-  home: {},
-  rentalcar: {},
-  lodging: {},
+  home: {
+    hero: { title: "北海道で滞在も移動もひとつに", subtitle: "札幌の宿泊とレンタカーを同じ建物で便利に計画できます。", ctaLodging: "短期滞在を見る", ctaRentalCar: "レンタカーを見る" },
+    lodging: { title: "短期滞在", description: "札幌の中心で快適に過ごせる家具付きのお部屋。Wi-Fi、キッチン、便利なアクセスを備えています。" },
+    monthlyStay: { title: "マンスリー短期滞在", description: "長めの滞在には、柔軟な入居日と暮らしやすい設備を備えたお得なプランをご用意しています。" },
+    rentalCarOverview: { title: "レンタカーサービス", description: "受付で長く待つことなく、建物からそのまま北海道へ出発。新千歳空港からも便利です。" },
+    access: { title: "場所とアクセス", description: "札幌に位置し、新千歳空港からアクセスしやすい便利な立地です。", address: "Wayado Sapporo Ciao, 札幌市, 北海道, 日本" },
+    whyChooseUs: [{ title: "北海道・札幌に立地", description: "北海道の観光に便利な札幌の中心にあります。" }, { title: "空港から便利", description: "新千歳空港からの移動もスムーズです。" }, { title: "滞在と車をまとめて計画", description: "宿泊とレンタカーを一緒に計画できます。お部屋の空き状況はスタッフが別途確認します。" }, { title: "家族・グループ・ドライブ旅行に", description: "家族旅行や長距離の北海道旅行に対応します。" }],
+    contact: { title: "ご質問はありますか？", description: "予約のお手伝いや旅程のご相談など、お気軽にお問い合わせください。", ctaText: "お問い合わせ" },
+    copy: { heroEyebrow: "北海道でのオールインワン旅行", lodgingEyebrow: "宿泊", featuredRooms: "おすすめのお部屋", viewAllRooms: "すべてのお部屋", monthlyEyebrow: "マンスリーステイ", rentalEyebrow: "レンタカー", exploreRentalCars: "レンタカーを見る", whyEyebrow: "CIAOの特徴", whyTitle: "選ばれる理由", accessEyebrow: "アクセス", contactEyebrow: "お問い合わせ", lodgingImageAlt: "札幌の快適な宿泊施設", monthlyImageAlt: "札幌のマンスリーステイ", rentalImageAlt: "北海道のレンタカー", mapTitle: "所在地マップ", heroImageAlt: "札幌の冬の街並み", perNight: "/泊" },
+  },
+  rentalcar: {
+    hero: { eyebrow: "札幌・北海道", title: "札幌で便利にレンタカー", subtitle: "プレミアム車種、柔軟な受け取り、安心の保険オプション。" },
+    sections: { fleetEyebrow: "車両一覧", featuredVehicles: "おすすめ車両", viewAll: "すべて見る", pricingEyebrow: "料金", insurancePlans: "保険プラン", addOns: "追加オプション", importantNotes: "重要事項", passengers: "定員", perDay: "/日" },
+    pricingTable: { title: "レンタル料金", description: "隠れた費用のない明瞭な日額料金です。", rows: [{ label: "コンパクトカー", value: "1日 ¥6,000〜" }, { label: "セダン", value: "1日 ¥9,000〜" }, { label: "ミニバン・SUV", value: "1日 ¥13,000〜" }] },
+    importantNotes: ["受取時に有効な運転免許証が必要です。海外からのお客様は国際運転免許証もご用意ください。", "燃料満タンで返却してください。", "北海道の冬道では冬タイヤをおすすめします。", "受取24時間以内のキャンセルには手数料がかかる場合があります。"],
+  },
+  lodging: {
+    hero: { title: "札幌の短期滞在", subtitle: "北海道での滞在に便利な、家具付きで快適なお部屋。" },
+    overview: { title: "自宅のように過ごす", description: "札幌の中心で、設備と北海道へのアクセスを備えた滞在をお楽しみください。" },
+    contact: { title: "一緒に滞在計画を始めませんか？", description: "空室状況や予約についてスタッフにご相談ください。", ctaText: "お問い合わせ" },
+    copy: { eyebrow: "短期滞在", heading: "お部屋", description: "札幌中心部の快適で設備の整ったお部屋。", perNight: "/泊", guests: "名", bed: "ベッド", beds: "ベッド", viewRoom: "お部屋を見る", noRooms: "現在掲載中のお部屋はありません。" },
+  },
 };
 
 const DEFAULT_ZH_CONTENT: Record<string, Record<string, unknown>> = {
-  home: {},
-  rentalcar: {},
-  lodging: {},
+  home: {
+    hero: { title: "在北海道，一站式安排住宿与出行", subtitle: "在札幌同一栋楼内，方便地规划住宿和租车。", ctaLodging: "查看短租住宿", ctaRentalCar: "查看租车" },
+    lodging: { title: "短期住宿", description: "位于札幌中心的舒适家具房，配有 Wi-Fi、小厨房，并方便前往札幌各处。" },
+    monthlyStay: { title: "月租短住", description: "提供价格优惠、入住日期灵活且舒适如家的月租方案。" },
+    rentalCarOverview: { title: "租车服务", description: "无需在租车柜台排队，从我们的楼宇直接取车，轻松探索北海道。" },
+    access: { title: "位置与交通", description: "位于札幌，从新千岁机场前往十分方便。", address: "Wayado Sapporo Ciao，日本北海道札幌市" },
+    whyChooseUs: [{ title: "位于札幌・北海道", description: "从北海道的中心城市出发，方便前往岛上的各个景点。" }, { title: "机场交通便利", description: "往返新千岁机场轻松方便。" }, { title: "住宿与租车一起规划", description: "可以一起规划住宿和租车；房间空房情况由工作人员另行确认。" }, { title: "适合家庭、团体与自驾", description: "适合家庭出游、团体旅行及北海道自驾。" }],
+    contact: { title: "有问题吗？", description: "如需预订协助或定制行程，欢迎联系我们。", ctaText: "联系我们" },
+    copy: { heroEyebrow: "北海道一站式旅程", lodgingEyebrow: "住宿", featuredRooms: "精选房间", viewAllRooms: "查看全部房间", monthlyEyebrow: "月租住宿", rentalEyebrow: "租车", exploreRentalCars: "探索租车", whyEyebrow: "CIAO的优势", whyTitle: "为什么选择我们", accessEyebrow: "交通", contactEyebrow: "联系我们", lodgingImageAlt: "札幌舒适住宿", monthlyImageAlt: "札幌月租住宿", rentalImageAlt: "北海道租车", mapTitle: "位置地图", heroImageAlt: "札幌冬季城市景色", perNight: "/晚" },
+  },
+  rentalcar: {
+    hero: { eyebrow: "札幌・北海道", title: "轻松租车探索札幌", subtitle: "优质车型、灵活取车，并提供全面保险选项。" },
+    sections: { fleetEyebrow: "我们的车队", featuredVehicles: "精选车辆", viewAll: "查看全部", pricingEyebrow: "价格", insurancePlans: "保险方案", addOns: "附加服务", importantNotes: "重要提示", passengers: "乘客", perDay: "/天" },
+    pricingTable: { title: "租车价格", description: "每日价格透明，没有隐藏费用。", rows: [{ label: "紧凑型车", value: "¥6,000 / 天起" }, { label: "轿车", value: "¥9,000 / 天起" }, { label: "小型客车与 SUV", value: "¥13,000 / 天起" }] },
+    importantNotes: ["取车时需要有效驾驶证；海外游客还需要国际驾驶许可证。", "还车时请加满燃油。", "建议在冬季升级冬季轮胎。", "取车前24小时内取消可能产生取消费用。"],
+  },
+  lodging: {
+    hero: { title: "札幌短期住宿", subtitle: "家具齐全、舒适便利的北海道住宿房间。" },
+    overview: { title: "像在家一样自在", description: "住在札幌中心，享受实用设施和前往北海道各处的便利交通。" },
+    contact: { title: "准备好入住了吗？", description: "联系我们了解空房情况并获得预订协助。", ctaText: "联系我们" },
+    copy: { eyebrow: "短期住宿", heading: "我们的房间", description: "札幌中心舒适、设施齐全的房间，适合各种时长的短住。", perNight: "/晚", guests: "位客人", bed: "张床", beds: "张床", viewRoom: "查看房间", noRooms: "目前没有房间信息。" },
+  },
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

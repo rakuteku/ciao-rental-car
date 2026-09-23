@@ -4,7 +4,8 @@ import { useGetPageContent, useGetRooms } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
-import { localizeContent, useLanguage } from "@/lib/language";
+import { localizeContent, localizedPath, useLanguage } from "@/lib/language";
+import { CONTACT_MAILTO } from "@/lib/contact";
 
 interface LodgingContent {
   hero: { title: string; subtitle: string };
@@ -38,25 +39,20 @@ export function LodgingPage() {
            <h2 className="text-2xl font-serif font-semibold">{content?.copy.heading ?? "Our Rooms"}</h2>
            <p className="text-sm text-muted-foreground mt-3">{content?.overview.description ?? "Stay in the heart of Sapporo with practical amenities and easy access to Hokkaido."}</p>
          </div>
-        {isLoading ? (
+         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
               <div key={i} className="space-y-3">
                 <Skeleton className="aspect-[4/3] w-full" />
                 <Skeleton className="h-5 w-2/3" />
                 <Skeleton className="h-4 w-1/2" />
-         <section className="mt-16 border-t pt-10 max-w-2xl">
-           <h2 className="text-2xl font-serif font-semibold">{content?.contact.title ?? "Ready to stay with us?"}</h2>
-           <p className="text-sm text-muted-foreground mt-2">{content?.contact.description ?? "Contact our team for availability and booking assistance."}</p>
-           <Button className="mt-5" asChild><a href="mailto:info@ciao-sapporo.com">{content?.contact.ctaText ?? "Contact Us"}</a></Button>
-         </section>
-       </div>
+               </div>
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {rooms?.map((room) => (
-              <Link key={room.id} href={`/lodging/${room.slug}`} className="group block">
+              <Link key={room.id} href={localizedPath(`/lodging/${room.slug}`, language)} className="group block">
                 <div className="overflow-hidden bg-muted aspect-[4/3]">
                   <img
                     src={room.coverImage || room.images?.[0]}
@@ -103,6 +99,11 @@ export function LodgingPage() {
             )}
           </div>
         )}
+         <section className="mt-16 border-t pt-10 max-w-2xl">
+           <h2 className="text-2xl font-serif font-semibold">{content?.contact.title ?? "Ready to stay with us?"}</h2>
+           <p className="text-sm text-muted-foreground mt-2">{content?.contact.description ?? "Contact our team for availability and booking assistance."}</p>
+           <Button className="mt-5" asChild><a href={CONTACT_MAILTO}>{content?.contact.ctaText ?? "Contact Us"}</a></Button>
+         </section>
       </div>
     </div>
   );

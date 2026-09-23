@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useGetPageContent, useGetRooms } from "@workspace/api-client-react";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeContent, useLanguage } from "@/lib/language";
+import { localizedPath } from "@/lib/language";
+import { CONTACT_MAILTO } from "@/lib/contact";
 
 interface WhyItem {
   title: string;
@@ -62,12 +64,12 @@ export function Home() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link href="/lodging">
+               <Link href={localizedPath("/lodging", language)}>
                 <Button size="lg" variant="secondary" className="gap-2">
                   <Building2 className="h-4 w-4" /> {content.hero.ctaLodging}
                 </Button>
               </Link>
-              <Link href="/rentalcar">
+               <Link href={localizedPath("/rentalcar", language)}>
                 <Button size="lg" className="gap-2">
                   <CarIcon className="h-4 w-4" /> {content.hero.ctaRentalCar}
                 </Button>
@@ -100,13 +102,13 @@ export function Home() {
           <div className="container mt-16 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-serif font-semibold tracking-tight">{content.copy.featuredRooms}</h3>
-              <Link href="/lodging" className="text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+               <Link href={localizedPath("/lodging", language)} className="text-xs uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
                 {content.copy.viewAllRooms} <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {featuredRooms.slice(0, 3).map((room) => (
-                <Link key={room.id} href={`/lodging/${room.slug}`} className="group block">
+                 <Link key={room.id} href={localizedPath(`/lodging/${room.slug}`, language)} className="group block">
                   <div className="aspect-[4/3] bg-muted rounded-sm overflow-hidden">
                     <img
                       src={room.coverImage || room.images?.[0]}
@@ -162,7 +164,7 @@ export function Home() {
             </div>
             <h2 className="text-3xl font-serif font-bold tracking-tight">{content.rentalCarOverview.title}</h2>
             <p className="text-muted-foreground leading-relaxed max-w-lg">{content.rentalCarOverview.description}</p>
-            <Link href="/rentalcar">
+             <Link href={localizedPath("/rentalcar", language)}>
               <Button variant="outline" className="gap-1">
                 {content.copy.exploreRentalCars} <ChevronRight className="h-4 w-4" />
               </Button>
@@ -228,7 +230,7 @@ export function Home() {
           </div>
           <h2 className="text-3xl font-serif font-bold tracking-tight">{content.contact.title}</h2>
           <p className="text-muted-foreground leading-relaxed">{content.contact.description}</p>
-          <a href="mailto:info@ciao-sapporo.jp">
+           <a href={CONTACT_MAILTO}>
             <Button size="lg">{content.contact.ctaText}</Button>
           </a>
         </div>

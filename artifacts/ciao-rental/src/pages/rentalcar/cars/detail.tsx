@@ -26,6 +26,9 @@ import { useToast } from "@/hooks/use-toast";
 import { LOCATIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
+import { readSelectedRoom } from "@/hooks/use-checkout-draft";
+import { localizedPath, useLanguage } from "@/lib/language";
+import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 
 const bookingSchema = z.object({
   pickupLocation: z.string({ required_error: "Pickup location is required" }),
@@ -42,6 +45,7 @@ export function CarDetailPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { setDraft } = useCheckoutDraft();
+  const { language } = useLanguage();
 
   const { data: car, isLoading } = useGetRentalVehicle(slug, {
     query: { enabled: !!slug, queryKey: getGetRentalVehicleQueryKey(slug) }
@@ -80,6 +84,18 @@ export function CarDetailPage() {
   const calculatePrice = useCalculateRentalPrice();
   const priceData = calculatePrice.data;
 
+  useInlineSeoMeta(
+    car
+      ? {
+          metaTitle: `${car.publicTitle || car.model} Rental Car in Sapporo | CIAO`,
+          metaDescription: `Book the ${car.publicTitle || car.model} from CIAO Sapporo for your Hokkaido trip with transparent pricing and flexible pickup.`,
+          ogTitle: `${car.publicTitle || car.model} | CIAO Rental Car`,
+          ogDescription: `Reserve the ${car.publicTitle || car.model} for your Hokkaido journey.`,
+          ogImage: car.images?.[0]?.url ?? "",
+        }
+      : undefined,
+  );
+
   const calculateRef = useRef(calculatePrice.mutate);
   calculateRef.current = calculatePrice.mutate;
 
@@ -117,6 +133,7 @@ export function CarDetailPage() {
       }
     }, {
       onSuccess: (hold) => {
+        const selectedRoom = readSelectedRoom();
         setDraft({
           vehicleId: car.id,
           vehicleSlug: car.slug,
@@ -129,9 +146,10 @@ export function CarDetailPage() {
           addons: Object.entries(selectedAddons)
             .filter(([, qty]) => qty > 0)
             .map(([addonId, qty]) => ({ addonId: Number(addonId), qty })),
-          driver: { fullName: "", email: "", phone: "" }
+          selectedRoom,
+          driver: { fullName: "", email: "", phone: "", accommodation: selectedRoom?.title ?? "" }
         });
-        setLocation("/rentalcar/checkout");
+        setLocation(localizedPath("/rentalcar/checkout", language));
       },
       onError: () => {
         toast({ title: "Booking failed", description: "This vehicle is no longer available for these dates.", variant: "destructive" });

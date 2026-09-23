@@ -4,6 +4,8 @@ import { Car as CarIcon, Fuel } from "lucide-react";
 import { useSearchRentalVehicles, useCalculateRentalPrice, type RentalVehicle } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
+import { localizedPath, useLanguage } from "@/lib/language";
 
 function EstimatedPrice({ vehicle, pickupAt, returnAt, pickupLocation, returnLocation }: {
   vehicle: RentalVehicle;
@@ -25,6 +27,14 @@ function EstimatedPrice({ vehicle, pickupAt, returnAt, pickupLocation, returnLoc
 }
 
 export function CarsPage() {
+  const { language } = useLanguage();
+  useInlineSeoMeta({
+    metaTitle: "Rental Cars in Sapporo | CIAO Hokkaido Car Rental",
+    metaDescription: "Compare CIAO's available rental vehicles in Sapporo and choose the right car for your Hokkaido journey.",
+    ogTitle: "Rental Cars in Sapporo | CIAO",
+    ogDescription: "Compare available CIAO rental cars for your Hokkaido trip.",
+    ogImage: "",
+  });
   const searchString = useSearch();
   const searchParams = new URLSearchParams(searchString);
   const pickupLocation = searchParams.get("pickupLocation") || undefined;
@@ -76,7 +86,7 @@ export function CarsPage() {
               <span>{pickupLocation} → {returnLocation}</span>
               <span>•</span>
               <span>{new Date(pickupAt).toLocaleDateString()} — {new Date(returnAt).toLocaleDateString()}</span>
-              <Link href="/rentalcar" className="text-primary hover:underline ml-2">Edit Search</Link>
+                  <Link href={localizedPath("/rentalcar", language)} className="text-primary hover:underline ml-2">Edit Search</Link>
             </div>
           )}
         </div>
@@ -99,7 +109,7 @@ export function CarsPage() {
               <div className="text-center py-20 bg-muted/30 rounded-xl">
                 <h3 className="text-lg font-medium mb-2">No vehicles found</h3>
                 <p className="text-muted-foreground">Try adjusting your search criteria or dates.</p>
-                <Link href="/rentalcar">
+                <Link href={localizedPath("/rentalcar", language)}>
                   <Button className="mt-6">Back to Search</Button>
                 </Link>
               </div>

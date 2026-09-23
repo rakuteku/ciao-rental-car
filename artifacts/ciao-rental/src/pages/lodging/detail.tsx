@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import {
   Users,
   BedDouble,
@@ -14,10 +14,15 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
+import { CONTACT_MAILTO } from "@/lib/contact";
+import { localizedPath, useLanguage } from "@/lib/language";
+import { SELECTED_ROOM_STORAGE_KEY } from "@/hooks/use-checkout-draft";
 
 export function LodgingDetailPage() {
   const params = useParams();
   const slug = params.slug || "";
+  const [, setLocation] = useLocation();
+  const { language } = useLanguage();
 
   const { data: room, isLoading } = useGetRoom(slug, {
     query: { enabled: !!slug, queryKey: getGetRoomQueryKey(slug) },
@@ -45,7 +50,7 @@ export function LodgingDetailPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <p className="text-lg font-medium">Room not found</p>
-        <Link href="/lodging">
+        <Link href={localizedPath("/lodging", language)}>
           <Button variant="outline">Back to rooms</Button>
         </Link>
       </div>
@@ -53,6 +58,18 @@ export function LodgingDetailPage() {
   }
 
   const images = room.images?.length ? room.images : room.coverImage ? [room.coverImage] : [];
+  const handleAddRentalCar = () => {
+    window.sessionStorage.setItem(
+      SELECTED_ROOM_STORAGE_KEY,
+      JSON.stringify({
+        id: room.id,
+        slug: room.slug,
+        title: room.title,
+        startingPrice: room.startingPrice,
+      }),
+    );
+    setLocation(localizedPath("/rentalcar", language));
+  };
 
   return (
     <div className="min-h-[100dvh] bg-muted/20 py-12">
@@ -186,7 +203,10 @@ export function LodgingDetailPage() {
                 ¥{room.startingPrice.toLocaleString()}
                 <span className="text-sm font-normal text-muted-foreground"> /night</span>
               </div>
-              <a href="mailto:info@ciao-sapporo.jp">
+              <Button size="lg" className="w-full" onClick={handleAddRentalCar}>
+                Add a Rental Car
+              </Button>
+              <a href={CONTACT_MAILTO}>
                 <Button size="lg" className="w-full">
                   Contact to Book
                 </Button>

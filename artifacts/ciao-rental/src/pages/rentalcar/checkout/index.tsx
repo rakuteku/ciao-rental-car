@@ -15,6 +15,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
+import { localizedPath, useLanguage } from "@/lib/language";
+import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import {
   useGetRentalAddons,
   useGetRentalVehicle,
@@ -43,6 +45,14 @@ export function CheckoutPage() {
   const [, setLocation] = useLocation();
   const { draft, updateDraft, clearDraft } = useCheckoutDraft();
   const { toast } = useToast();
+  const { language } = useLanguage();
+  useInlineSeoMeta({
+    metaTitle: "Checkout | CIAO Rental Car Sapporo",
+    metaDescription: "Review your CIAO Sapporo rental car booking, driver details, add-ons, and pickup information.",
+    ogTitle: "Checkout | CIAO Rental Car",
+    ogDescription: "Review your CIAO Sapporo rental car booking before confirming.",
+    ogImage: "",
+  });
   
   const [step, setStep] = useState(1);
   const [now, setNow] = useState(Date.now());
@@ -117,7 +127,7 @@ export function CheckoutPage() {
       <div className="min-h-[100dvh] flex flex-col items-center justify-center space-y-4">
         <h1 className="text-2xl font-serif">No active checkout</h1>
         <p className="text-muted-foreground">Please select a vehicle first.</p>
-        <Button onClick={() => setLocation("/rentalcar/cars")}>View Fleet</Button>
+        <Button onClick={() => setLocation(localizedPath("/rentalcar/cars", language))}>View Fleet</Button>
       </div>
     );
   }
@@ -181,6 +191,7 @@ export function CheckoutPage() {
       onSuccess: (reservation) => {
         window.sessionStorage.setItem("ciao_rental_confirmation", JSON.stringify({
           reservation,
+           selectedRoom: draft.selectedRoom ?? null,
           draft: {
             pickupAt: draft.pickupAt,
             returnAt: draft.returnAt,
@@ -191,7 +202,7 @@ export function CheckoutPage() {
            pricing: reservation.pricing,
         }));
         clearDraft();
-        setLocation(`/rentalcar/booking/confirmation?id=${reservation.id}`);
+        setLocation(`${localizedPath("/rentalcar/booking/confirmation", language)}?id=${reservation.id}`);
       },
       onError: (err) => {
         toast({ title: "Booking failed", description: err.message || "Please try again later.", variant: "destructive" });
@@ -497,6 +508,15 @@ export function CheckoutPage() {
                           </div>
                         </div>
                       </div>
+                      {draft.selectedRoom && (
+                        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Stay planning</p>
+                          <p className="mt-1 font-semibold">{draft.selectedRoom.title}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Room availability is confirmed separately by the CIAO team.
+                          </p>
+                        </div>
+                      )}
                       {priceData?.addons && priceData.addons.length > 0 && (
                         <div>
                           <h3 className="font-bold text-lg mb-4 border-b pb-2">Selected add-ons</h3>
@@ -656,7 +676,7 @@ export function CheckoutPage() {
                 <h2 className="font-serif text-2xl font-bold">Your reservation hold has expired</h2>
                 <p className="mt-2 text-sm text-muted-foreground">The vehicle may no longer be available for your selected dates.</p>
               </div>
-              <Button className="w-full" onClick={() => { clearDraft(); setLocation("/rentalcar?hold=expired"); }}>Return to search</Button>
+        <Button className="w-full" onClick={() => { clearDraft(); setLocation(`${localizedPath("/rentalcar", language)}?hold=expired`); }}>Return to search</Button>
             </CardContent>
           </Card>
         </div>

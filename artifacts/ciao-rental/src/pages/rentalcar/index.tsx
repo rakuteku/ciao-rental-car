@@ -17,7 +17,7 @@ import { LOCATIONS } from "@/lib/constants";
 import { useGetPageContent, useGetRentalAddons, useGetRentalVehicles } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
-import { localizeContent, useLanguage } from "@/lib/language";
+import { localizeContent, localizedPath, useLanguage } from "@/lib/language";
 
 interface PricingRow {
   label: string;
@@ -362,7 +362,7 @@ export function RentalCarHome() {
                <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">{content?.sections.fleetEyebrow ?? "Our Fleet"}</p>
                <h2 className="text-3xl font-serif font-bold tracking-tight">{content?.sections.featuredVehicles ?? "Featured Vehicles"}</h2>
             </div>
-            <Link href="/rentalcar/cars">
+            <Link href={localizedPath("/rentalcar/cars", language)}>
               <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-1 text-muted-foreground hover:text-foreground">
                  {content?.sections.viewAll ?? "View all"} <ChevronRight className="h-4 w-4" />
               </Button>
@@ -378,7 +378,7 @@ export function RentalCarHome() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {vehicles?.filter((vehicle) => vehicle.featured).slice(0, 3).map((vehicle) => (
-                <Link key={vehicle.id} href={`/rentalcar/cars/${vehicle.slug}`} className="group block">
+                <Link key={vehicle.id} href={localizedPath(`/rentalcar/cars/${vehicle.slug}`, language)} className="group block">
                   <div className="overflow-hidden bg-muted aspect-[4/3]">
                     <img
                       src={vehicle.images?.[0]?.url ?? "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80"}

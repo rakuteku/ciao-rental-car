@@ -5,7 +5,7 @@
  * catalog values. Existing rental rows are updated in place where possible;
  * legacy car rows and unrelated add-ons are never deleted.
  */
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   carsTable,
   db,
@@ -26,6 +26,7 @@ const vehicleMappings = [
     slug: "toyota-alphard",
     legacySlugs: ["toyota-alphard-01"],
     vehicleClass: "minivan" as const,
+    imagePath: "/images/alphard.png",
     featured: true,
     sortOrder: 10,
     recommendedPassengers: 6,
@@ -40,6 +41,7 @@ const vehicleMappings = [
     // avoids leaving two public Alphard records after this backfill.
     legacySlugs: ["toyota-alphard-02"],
     vehicleClass: "minivan" as const,
+    imagePath: "/images/vellfire.png",
     featured: true,
     sortOrder: 20,
     recommendedPassengers: 6,
@@ -52,6 +54,7 @@ const vehicleMappings = [
     slug: "toyota-sienta",
     legacySlugs: ["toyota-sienta-01"],
     vehicleClass: "compact" as const,
+    imagePath: "/images/sienta.png",
     featured: true,
     sortOrder: 30,
     recommendedPassengers: 6,
@@ -254,27 +257,47 @@ export async function runRentalCatalogBackfill(
         });
       }
 
-      const imageUrls = [...new Set([...(legacy.imageUrls ?? []), legacy.imageUrl].filter(Boolean))];
       const currentImages = await tx
         .select()
         .from(rentalVehicleImagesTable)
         .where(eq(rentalVehicleImagesTable.vehicleId, vehicle.id));
-      for (const [sortOrder, url] of imageUrls.entries()) {
-        const current = currentImages.find((image) => image.url === url);
-        if (current) {
-          await tx
-            .update(rentalVehicleImagesTable)
-            .set({ sortOrder, isCover: sortOrder === 0 })
-            .where(eq(rentalVehicleImagesTable.id, current.id));
-        } else {
-          await tx.insert(rentalVehicleImagesTable).values({
-            vehicleId: vehicle.id,
-            url,
-            sortOrder,
-            isCover: sortOrder === 0,
-          });
-        }
-      }
+       const isKnownGoogleHostedImage = (url: string) => {
+         try {
+           const hostname = new URL(url).hostname.toLowerCase();
+           return hostname === "gstatic.com" || hostname.endsWith(".gstatic.com") ||
+             hostname === "googleusercontent.com" || hostname.endsWith(".googleusercontent.com") ||
+             hostname === "ggpht.com" || hostname.endsWith(".ggpht.com");
+         } catch {
+           return false;
+         }
+       };
+       const localImage = currentImages.find((image) => image.url === mapping.imagePath);
+       const legacyImages = currentImages.filter((image) => isKnownGoogleHostedImage(image.url));
+       if (legacyImages.length > 0) {
+         if (localImage) {
+           for (const legacyImage of legacyImages) {
+             await tx.delete(rentalVehicleImagesTable).where(eq(rentalVehicleImagesTable.id, legacyImage.id));
+           }
+         } else {
+           const [primary, ...duplicates] = legacyImages;
+           await tx.update(rentalVehicleImagesTable)
+             .set({ url: mapping.imagePath, sortOrder: primary.sortOrder, isCover: primary.isCover })
+             .where(eq(rentalVehicleImagesTable.id, primary.id));
+           for (const duplicate of duplicates) {
+             await tx.delete(rentalVehicleImagesTable).where(eq(rentalVehicleImagesTable.id, duplicate.id));
+           }
+         }
+       } else if (!localImage) {
+         await tx.update(rentalVehicleImagesTable)
+           .set({ sortOrder: sql`${rentalVehicleImagesTable.sortOrder} + 1`, isCover: false })
+           .where(eq(rentalVehicleImagesTable.vehicleId, vehicle.id));
+         await tx.insert(rentalVehicleImagesTable).values({
+           vehicleId: vehicle.id,
+           url: mapping.imagePath,
+           sortOrder: 0,
+           isCover: true,
+         });
+       }
     }
 
     for (const addonDefault of addonDefaults) {

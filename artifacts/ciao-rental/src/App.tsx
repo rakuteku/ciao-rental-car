@@ -102,6 +102,14 @@ function Router() {
       <Route path="/admin/rental-cars" component={() => <AdminLayout><AdminRentalCars /></AdminLayout>} />
 
       {/* Language-prefixed public routes preserve the unprefixed English URLs. */}
+      <Route path="/:language/rentalcar/cars/:slug" component={() => <MainLayout><CarDetailPage /></MainLayout>} />
+      <Route path="/:language/rentalcar/cars" component={() => <MainLayout><CarsPage /></MainLayout>} />
+      <Route path="/:language/rentalcar/checkout" component={() => <MainLayout><CheckoutPage /></MainLayout>} />
+      <Route path="/:language/rentalcar/booking/confirmation" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
+      <Route path="/:language/rentalcar/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
+      <Route path="/:language/rentalcar/my-bookings/:id" component={() => <MainLayout><MyBookingDetail /></MainLayout>} />
+      <Route path="/:language/rentalcar/my-bookings" component={() => <MainLayout><MyBookings /></MainLayout>} />
+      <Route path="/:language/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
       <Route path="/:language/rentalcar" component={() => <MainLayout><RentalCarHome /></MainLayout>} />
       <Route path="/:language/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
       <Route path="/:language" component={() => <MainLayout><Home /></MainLayout>} />

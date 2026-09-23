@@ -3,14 +3,14 @@ import { Link } from "wouter";
 import { useAdminMe, useAdminLogout, getAdminMeQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { useLanguage } from "@/lib/language";
+import { localizedPath, useLanguage } from "@/lib/language";
 
 export function Navbar() {
   const { data: admin } = useAdminMe({ query: { retry: false, queryKey: getAdminMeQueryKey() } });
   const logout = useAdminLogout();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
-  const localizedHref = (path: string) => language === "en" ? path : `/${language}${path === "/" ? "" : path}`;
+  const localizedHref = (path: string) => localizedPath(path, language);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
@@ -106,7 +106,7 @@ export function Navbar() {
               <Link href={localizedHref("/rentalcar")} onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
                 Rental Car
               </Link>
-              <Link href="/rentalcar/my-bookings" onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
+              <Link href={localizedHref("/rentalcar/my-bookings")} onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
                 My Bookings
               </Link>
               {admin?.authenticated ? (

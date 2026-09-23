@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 export type Language = "en" | "ja" | "zh-CN";
 
 const LANGUAGE_STORAGE_KEY = "ciao-public-language";
+const SUPPORTED_LANGUAGES: Language[] = ["en", "ja", "zh-CN"];
 
 type LanguageContextValue = {
   language: Language;
@@ -11,15 +12,29 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | undefined>(undefined);
 
+function languageFromPath(pathname: string): Language | undefined {
+  const pathLanguage = pathname.split("/")[1];
+  return SUPPORTED_LANGUAGES.includes(pathLanguage as Language) ? pathLanguage as Language : undefined;
+}
+
 function initialLanguage(): Language {
   if (typeof window === "undefined") return "en";
-  const pathLanguage = window.location.pathname.split("/")[1];
-  if (pathLanguage === "en" || pathLanguage === "ja" || pathLanguage === "zh-CN") return pathLanguage;
+  const pathLanguage = languageFromPath(window.location.pathname);
+  if (pathLanguage) return pathLanguage;
   const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  if (saved === "en" || saved === "ja" || saved === "zh-CN") return saved;
+  if (SUPPORTED_LANGUAGES.includes(saved as Language)) return saved as Language;
   if (navigator.language.toLowerCase().startsWith("ja")) return "ja";
   if (navigator.language.toLowerCase().startsWith("zh")) return "zh-CN";
   return "en";
+}
+
+export function stripLanguagePrefix(pathname: string): string {
+  return pathname.replace(/^\/(?:en|ja|zh-CN)(?=\/|$)/, "") || "/";
+}
+
+export function localizedPath(path: string, language: Language): string {
+  if (language === "en") return path || "/";
+  return `/${language}${path === "/" ? "" : path.startsWith("/") ? path : `/${path}`}`;
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -27,12 +42,27 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const setLanguage = (nextLanguage: Language) => {
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+    const currentPath = `${stripLanguagePrefix(window.location.pathname)}${window.location.search}${window.location.hash}`;
+    const nextPath = localizedPath(currentPath, nextLanguage);
+    if (nextPath !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+      window.history.pushState({}, "", nextPath);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
     setLanguageState(nextLanguage);
   };
 
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
+
+  useEffect(() => {
+    const syncLanguageFromUrl = () => {
+      const nextLanguage = languageFromPath(window.location.pathname);
+      if (nextLanguage) setLanguageState(nextLanguage);
+    };
+    window.addEventListener("popstate", syncLanguageFromUrl);
+    return () => window.removeEventListener("popstate", syncLanguageFromUrl);
+  }, []);
 
   const value = useMemo(() => ({ language, setLanguage }), [language]);
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useParams, Link } from "wouter";
 import { useMyBookingDetail, useSubmitBookingDocuments, useCancelBookingRequest } from "@/hooks/use-rental-operations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, FileCheck, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { localizedPath, useLanguage } from "@/lib/language";
 
 export function MyBookingDetail() {
-  const [, params] = useRoute("/rentalcar/my-bookings/:id");
-  const id = Number(params?.id);
+  const params = useParams();
+  const id = Number(params.id);
+  const { language } = useLanguage();
   
   const { data: res, isLoading } = useMyBookingDetail(id);
   const docMut = useSubmitBookingDocuments();
@@ -51,7 +53,7 @@ export function MyBookingDetail() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6 min-h-[80vh]">
       <div className="flex items-center gap-4">
-        <Link href="/rentalcar/my-bookings">
+        <Link href={localizedPath("/rentalcar/my-bookings", language)}>
           <Button variant="outline" size="icon"><ChevronLeft className="w-4 h-4" /></Button>
         </Link>
         <div>

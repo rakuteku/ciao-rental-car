@@ -13,6 +13,12 @@ export interface CheckoutDraft {
   documents?: Record<string, string>;
   differentReturnLocation?: boolean;
   additionalDrivers?: boolean;
+  selectedRoom?: {
+    id: number;
+    slug: string;
+    title: string;
+    startingPrice: number;
+  };
   driver: {
     fullName: string;
     email: string;
@@ -29,6 +35,27 @@ export interface CheckoutDraft {
 }
 
 const STORAGE_KEY = 'ciao_rental_checkout_draft';
+export const SELECTED_ROOM_STORAGE_KEY = 'ciao_selected_room';
+
+export function readSelectedRoom(): CheckoutDraft["selectedRoom"] {
+  try {
+    const stored = sessionStorage.getItem(SELECTED_ROOM_STORAGE_KEY);
+    if (!stored) return undefined;
+    const parsed = JSON.parse(stored) as CheckoutDraft["selectedRoom"];
+    if (
+      !parsed ||
+      typeof parsed.id !== "number" ||
+      typeof parsed.slug !== "string" ||
+      typeof parsed.title !== "string" ||
+      typeof parsed.startingPrice !== "number"
+    ) {
+      return undefined;
+    }
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
 
 export function useCheckoutDraft() {
   const [draft, setDraftState] = useState<CheckoutDraft | null>(() => {

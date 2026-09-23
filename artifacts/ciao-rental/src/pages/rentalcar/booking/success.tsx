@@ -2,14 +2,17 @@ import { Link, useSearch } from "wouter";
 import { CheckCircle2, MapPin, Upload, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { localizedPath, useLanguage } from "@/lib/language";
 
 export function BookingSuccessPage() {
   const search = useSearch();
-  const reservationId = new URLSearchParams(search).get("id") ?? "Pending";
+  const reservationId = Number(new URLSearchParams(search).get("id"));
+  const { language } = useLanguage();
   const confirmation = (() => {
     try {
       return JSON.parse(window.sessionStorage.getItem("ciao_rental_confirmation") ?? "null") as {
         reservation?: { finalTotal?: number; outstanding?: number; id?: number };
+        selectedRoom?: { title?: string; startingPrice?: number } | null;
         pricing?: { addons?: Array<{ addonId: number; name: string; qty: number; totalPrice: number }>; addonsTotal?: number };
         draft?: { pickupAt?: string; returnAt?: string; pickupLocation?: string; returnLocation?: string; documents?: Record<string, string> };
         vehicle?: { title?: string; image?: string };
@@ -18,7 +21,30 @@ export function BookingSuccessPage() {
       return null;
     }
   })();
-  const bookingNumber = `CIAO-${String(confirmation?.reservation?.id ?? reservationId).padStart(6, "0")}`;
+  const isValidConfirmation = Number.isInteger(reservationId) && reservationId > 0 && confirmation?.reservation?.id === reservationId;
+
+  if (!isValidConfirmation) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-6">
+        <div className="max-w-lg w-full rounded-xl border bg-background p-8 text-center shadow-sm">
+          <h1 className="font-serif text-3xl font-bold">No booking confirmation found</h1>
+          <p className="mt-3 text-muted-foreground">
+            This confirmation link is missing or has expired. You can look up an existing booking or search for another vehicle.
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <Link href={localizedPath("/rentalcar/my-bookings", language)}>
+              <Button variant="outline" className="w-full">My Bookings</Button>
+            </Link>
+            <Link href={localizedPath("/rentalcar", language)}>
+              <Button className="w-full">Search Vehicles</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const bookingNumber = `CIAO-${String(confirmation.reservation?.id).padStart(6, "0")}`;
 
   return (
     <div className="min-h-[100dvh] p-4 py-12 relative overflow-hidden">
@@ -37,11 +63,11 @@ export function BookingSuccessPage() {
         </div>
         <div className="space-y-3 text-center">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold">CIAO Rental Car</p>
-          <h1 className="font-serif text-4xl font-bold tracking-tight">Booking Confirmed</h1>
+          <h1 className="font-serif text-4xl font-bold tracking-tight">Car Booking Confirmed</h1>
           <p className="font-mono text-sm text-muted-foreground">Booking reference: {bookingNumber}</p>
         </div>
         <p className="text-center text-muted-foreground leading-relaxed">
-          Thank you for choosing CIAO. We have sent your booking details and pickup instructions to your email address.
+           Thank you for choosing CIAO. Your rental car is confirmed. Room availability is confirmed separately by the CIAO team.
         </p>
         <div className="grid gap-5 md:grid-cols-[1fr_auto]">
           <div className="space-y-4 rounded-lg border p-5">
@@ -69,6 +95,13 @@ export function BookingSuccessPage() {
              )}
             <div className="flex justify-between border-t pt-4 text-sm"><span>Paid today</span><strong>¥0</strong></div>
             <div className="flex justify-between text-sm"><span>Outstanding at pickup</span><strong>¥{(confirmation?.reservation?.outstanding ?? confirmation?.reservation?.finalTotal ?? 0).toLocaleString()}</strong></div>
+             {confirmation.selectedRoom?.title && (
+               <div className="mt-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
+                 <p className="font-semibold">Stay planning</p>
+                 <p className="mt-1">{confirmation.selectedRoom.title}</p>
+                 <p className="mt-1 text-muted-foreground">Room availability is confirmed separately by staff.</p>
+               </div>
+             )}
             {(confirmation?.reservation as { customerAccessToken?: string } | undefined)?.customerAccessToken && <div className="mt-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm"><p className="font-semibold">Booking access code</p><p className="mt-1 break-all font-mono">{(confirmation?.reservation as { customerAccessToken?: string }).customerAccessToken}</p><p className="mt-1 text-muted-foreground">Keep this code with your booking ID to view or manage your reservation.</p></div>}
           </div>
           <div className="flex flex-col items-center justify-center gap-3 rounded-lg border bg-muted/30 p-5 text-center">
@@ -80,9 +113,9 @@ export function BookingSuccessPage() {
           <div className="flex gap-3"><Upload className="h-5 w-5" /><div><h2 className="font-semibold">Documents reminder</h2><p className="mt-1 text-muted-foreground">Bring your driver’s license and passport or photo ID. Upload documents before pickup to speed up collection.</p></div></div>
         </div>
         <div className="pt-2 grid gap-3 sm:grid-cols-3">
-          <Link href="/rentalcar/my-bookings?section=documents"><Button variant="outline" className="w-full">Upload documents</Button></Link>
-          <Link href="/rentalcar/my-bookings"><Button variant="outline" className="w-full">My bookings</Button></Link>
-          <Link href="/rentalcar">
+           <Link href={`${localizedPath("/rentalcar/my-bookings", language)}?section=documents`}><Button variant="outline" className="w-full">Upload documents</Button></Link>
+           <Link href={localizedPath("/rentalcar/my-bookings", language)}><Button variant="outline" className="w-full">My bookings</Button></Link>
+           <Link href={localizedPath("/rentalcar", language)}>
             <Button className="w-full" size="lg">Return to Home</Button>
           </Link>
         </div>

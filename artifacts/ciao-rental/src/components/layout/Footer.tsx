@@ -1,3 +1,5 @@
+import { CONTACT_EMAIL, CONTACT_PHONE } from "@/lib/contact";
+
 export function Footer() {
   return (
     <footer className="border-t bg-background">
@@ -20,8 +22,8 @@ export function Footer() {
           <div className="space-y-3">
             <h4 className="text-xs font-semibold tracking-[0.2em] uppercase">Contact</h4>
             <ul className="space-y-1.5 text-xs text-muted-foreground">
-              <li>support@ciaorental.jp</li>
-              <li>+81 11-123-4567</li>
+              <li>{CONTACT_EMAIL}</li>
+              {CONTACT_PHONE && <li>{CONTACT_PHONE}</li>}
             </ul>
           </div>
           <div className="space-y-3">

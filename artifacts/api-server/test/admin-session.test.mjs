@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 const port = 19000 + (process.pid % 1000);
 const baseUrl = `http://127.0.0.1:${port}`;
+const testAdminPassword = "test-admin-password-123";
 
 async function waitForServer(child) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
@@ -43,6 +44,7 @@ test("production proxy trust preserves the admin session cookie", async () => {
       NODE_ENV: "production",
       PORT: String(port),
       SESSION_SECRET: process.env.SESSION_SECRET ?? "admin-session-regression-test-secret",
+      ADMIN_PASSWORD: testAdminPassword,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -56,7 +58,7 @@ test("production proxy trust preserves the admin session cookie", async () => {
         "content-type": "application/json",
         "x-forwarded-proto": "https",
       },
-      body: JSON.stringify({ username: "admin", password: "ciao2024" }),
+       body: JSON.stringify({ username: "admin", password: testAdminPassword }),
     });
 
     assert.equal(login.status, 200);

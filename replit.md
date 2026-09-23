@@ -28,8 +28,8 @@ Full-stack all-in-one Hokkaido travel site for CIAO, a Sapporo-based building of
 
 ## Admin Credentials
 
-- Username: `admin`
-- Password: `ciao2024`
+- Username: `ADMIN_USERNAME` (defaults to `admin`)
+- Password: `ADMIN_PASSWORD` (must be at least 12 characters in production)
 - URL: `/admin/login`
 
 ## Site Routes

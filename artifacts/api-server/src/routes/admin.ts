@@ -8,19 +8,41 @@ import {
 } from "@workspace/api-zod";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "ciao2024";
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME?.trim() || "admin";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (process.env.NODE_ENV === "production" && (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 12)) {
+  throw new Error("ADMIN_PASSWORD must be configured with at least 12 characters in production");
+}
 
 const router: IRouter = Router();
+const loginAttempts = new Map<string, number[]>();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const MAX_LOGIN_ATTEMPTS = 10;
+
+function isRateLimited(ip: string) {
+  const now = Date.now();
+  const recent = (loginAttempts.get(ip) ?? []).filter((timestamp) => now - timestamp < LOGIN_WINDOW_MS);
+  if (recent.length >= MAX_LOGIN_ATTEMPTS) {
+    loginAttempts.set(ip, recent);
+    return true;
+  }
+  recent.push(now);
+  loginAttempts.set(ip, recent);
+  return false;
+}
 
 router.post("/admin/login", async (req, res): Promise<void> => {
+  if (isRateLimited(req.ip || "unknown")) {
+    res.status(429).json({ error: "Too many login attempts. Try again later." });
+    return;
+  }
   const body = AdminLoginBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
     return;
   }
 
-  if (body.data.username !== ADMIN_USERNAME || body.data.password !== ADMIN_PASSWORD) {
+  if (!ADMIN_PASSWORD || body.data.username !== ADMIN_USERNAME || body.data.password !== ADMIN_PASSWORD) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }
