@@ -390,6 +390,20 @@ export function CarDetailPage() {
                             </span>
                             <span className="tabular-nums">¥{priceData.subtotal.toLocaleString()}</span>
                           </div>
+                          {priceData.addonsTotal > 0 && (
+                            <div data-testid="price-addons-summary">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Add-ons</span>
+                                <span className="tabular-nums">¥{priceData.addonsTotal.toLocaleString()}</span>
+                              </div>
+                              {priceData.addons?.map((addon) => (
+                                <div key={addon.addonId} data-testid={`price-addon-${addon.addonId}`} className="flex justify-between pl-3 text-xs">
+                                  <span className="text-muted-foreground">{addon.name} × {addon.qty}</span>
+                                  <span className="tabular-nums">¥{addon.totalPrice.toLocaleString()}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           {priceData.airportPickupFee > 0 && (
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Airport Pickup Fee</span>
