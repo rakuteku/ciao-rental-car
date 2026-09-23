@@ -10,6 +10,7 @@ export function BookingSuccessPage() {
     try {
       return JSON.parse(window.sessionStorage.getItem("ciao_rental_confirmation") ?? "null") as {
         reservation?: { finalTotal?: number; outstanding?: number; id?: number };
+        pricing?: { addons?: Array<{ addonId: number; name: string; qty: number; totalPrice: number }>; addonsTotal?: number };
         draft?: { pickupAt?: string; returnAt?: string; pickupLocation?: string; returnLocation?: string; documents?: Record<string, string> };
         vehicle?: { title?: string; image?: string };
       } | null;
@@ -49,6 +50,23 @@ export function BookingSuccessPage() {
               <div><p className="text-xs uppercase text-muted-foreground">Pickup</p><p>{confirmation?.draft?.pickupAt ? format(new Date(confirmation.draft.pickupAt), "MMM d, yyyy · HH:mm") : "See booking email"}</p><p className="text-muted-foreground">{confirmation?.draft?.pickupLocation}</p></div>
               <div><p className="text-xs uppercase text-muted-foreground">Return</p><p>{confirmation?.draft?.returnAt ? format(new Date(confirmation.draft.returnAt), "MMM d, yyyy · HH:mm") : "See booking email"}</p><p className="text-muted-foreground">{confirmation?.draft?.returnLocation}</p></div>
             </div>
+             {confirmation?.pricing?.addons && confirmation.pricing.addons.length > 0 && (
+               <div className="border-t pt-4 text-sm">
+                 <p className="mb-2 text-xs uppercase text-muted-foreground">Add-ons</p>
+                 <div className="space-y-1">
+                   {confirmation.pricing.addons.map((addon) => (
+                     <div key={addon.addonId} className="flex justify-between gap-4">
+                       <span>{addon.name} × {addon.qty}</span>
+                       <strong>¥{addon.totalPrice.toLocaleString()}</strong>
+                     </div>
+                   ))}
+                 </div>
+                 <div className="mt-2 flex justify-between border-t pt-2">
+                   <span>Add-ons total</span>
+                   <strong>¥{(confirmation.pricing.addonsTotal ?? 0).toLocaleString()}</strong>
+                 </div>
+               </div>
+             )}
             <div className="flex justify-between border-t pt-4 text-sm"><span>Paid today</span><strong>¥0</strong></div>
             <div className="flex justify-between text-sm"><span>Outstanding at pickup</span><strong>¥{(confirmation?.reservation?.outstanding ?? confirmation?.reservation?.finalTotal ?? 0).toLocaleString()}</strong></div>
             {(confirmation?.reservation as { customerAccessToken?: string } | undefined)?.customerAccessToken && <div className="mt-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm"><p className="font-semibold">Booking access code</p><p className="mt-1 break-all font-mono">{(confirmation?.reservation as { customerAccessToken?: string }).customerAccessToken}</p><p className="mt-1 text-muted-foreground">Keep this code with your booking ID to view or manage your reservation.</p></div>}

@@ -14,7 +14,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LOCATIONS } from "@/lib/constants";
-import { useGetCars, useGetPageContent } from "@workspace/api-client-react";
+import { useGetPageContent, useGetRentalAddons, useGetRentalVehicles } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeContent, useLanguage } from "@/lib/language";
@@ -30,19 +30,13 @@ interface Plan {
   price: string;
 }
 
-interface AddOn {
-  name: string;
-  description: string;
-  price: string;
-}
-
 interface RentalCarContent {
   hero: { eyebrow: string; title: string; subtitle: string };
   search: Record<string, string>;
   sections: Record<string, string>;
   pricingTable: { title: string; description: string; rows: PricingRow[] };
   plans: Plan[];
-  addOns: AddOn[];
+  addOns?: Array<{ name: string; description: string; price: string }>;
   importantNotes: string[];
 }
 
@@ -71,7 +65,8 @@ const searchSchema = z.object({
 export function RentalCarHome() {
   const { language } = useLanguage();
   const [, setLocation] = useLocation();
-  const { data: cars, isLoading } = useGetCars();
+  const { data: vehicles, isLoading } = useGetRentalVehicles();
+  const { data: addons } = useGetRentalAddons();
   const { data: contentData } = useGetPageContent("rentalcar");
   const content = contentData ? localizeContent(contentData.content.en as unknown as RentalCarContent, contentData.content, language) : undefined;
   useSeoMeta("rentalcar");
@@ -382,21 +377,21 @@ export function RentalCarHome() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {cars?.slice(0, 3).map((car) => (
-                <Link key={car.id} href={`/rentalcar/cars/${car.id}`} className="group block">
+              {vehicles?.filter((vehicle) => vehicle.featured).slice(0, 3).map((vehicle) => (
+                <Link key={vehicle.id} href={`/rentalcar/cars/${vehicle.slug}`} className="group block">
                   <div className="overflow-hidden bg-muted aspect-[4/3]">
                     <img
-                      src={car.imageUrl}
-                      alt={car.name}
+                      src={vehicle.images?.[0]?.url ?? "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80"}
+                      alt={`${vehicle.brand} ${vehicle.model}`}
                       className="object-cover w-full h-full group-hover:scale-103 transition-transform duration-700"
                     />
                   </div>
                   <div className="pt-4 pb-2 space-y-1">
                     <div className="flex items-baseline justify-between">
-                      <h3 className="font-serif text-xl font-semibold group-hover:text-muted-foreground transition-colors">{car.name}</h3>
-                       <span className="text-sm font-medium tabular-nums">¥{car.pricePerDay.toLocaleString()}<span className="text-muted-foreground text-xs">{content?.sections.perDay ?? "/day"}</span></span>
+                      <h3 className="font-serif text-xl font-semibold group-hover:text-muted-foreground transition-colors">{vehicle.publicTitle || vehicle.model}</h3>
+                       <span className="text-sm font-medium tabular-nums">¥{(vehicle.basePrice ?? 0).toLocaleString()}<span className="text-muted-foreground text-xs">{content?.sections.perDay ?? "/day"}</span></span>
                     </div>
-                     <p className="text-xs text-muted-foreground">{car.passengerCapacity} {content?.sections.passengers ?? "Passengers"}</p>
+                     <p className="text-xs text-muted-foreground">{vehicle.seats} {content?.sections.passengers ?? "Passengers"}</p>
                   </div>
                 </Link>
               ))}
@@ -441,15 +436,18 @@ export function RentalCarHome() {
             <div className="space-y-6">
                <h3 className="text-2xl font-serif font-bold tracking-tight">{content.sections.addOns}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {content.addOns.map((addOn) => (
-                  <div key={addOn.name} className="border p-6 space-y-2">
+                {addons?.map((addOn) => {
+                  const price = addOn.pricingType === "per_day" ? addOn.perDayFee : addOn.pricingType === "per_unit" ? addOn.perUnitFee : addOn.flatFee;
+                  return (
+                  <div key={addOn.id} className="border p-6 space-y-2">
                     <div className="flex items-baseline justify-between">
                       <h4 className="font-semibold text-sm">{addOn.name}</h4>
-                      <span className="text-sm font-medium tabular-nums">{addOn.price}</span>
+                      <span className="text-sm font-medium tabular-nums">¥{price.toLocaleString()}{addOn.pricingType === "per_day" ? " / day" : ""}</span>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">{addOn.description}</p>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

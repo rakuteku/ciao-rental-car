@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, isNull, asc, desc, sql } from "drizzle-orm";
+import { eq, and, isNull, asc, desc, inArray, sql } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   rentalVehiclesTable,
@@ -64,6 +64,18 @@ function serializeVehicle(v: RentalVehicle & { images?: RentalVehicleImage[] }) 
       createdAt: img.createdAt.toISOString(),
     })),
   };
+}
+
+async function getBasePrices(vehicleIds: number[]) {
+  if (vehicleIds.length === 0) return new Map<number, number>();
+  const rows = await db
+    .select({
+      vehicleId: rentalVehiclePricingTable.vehicleId,
+      basePrice: rentalVehiclePricingTable.basePrice,
+    })
+    .from(rentalVehiclePricingTable)
+    .where(inArray(rentalVehiclePricingTable.vehicleId, vehicleIds));
+  return new Map(rows.map((row) => [row.vehicleId, row.basePrice]));
 }
 
 export async function isVehicleAvailable(
@@ -275,8 +287,12 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
     }
   }
 
+  const pricingByVehicle = await getBasePrices(vehicles.map((vehicle) => vehicle.id));
   const serialize = (v: RentalVehicle) =>
-    serializeVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] });
+    ({
+      ...serializeVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
+      basePrice: pricingByVehicle.get(v.id) ?? null,
+    });
 
   res.json({
     available: available.map(serialize),
@@ -312,7 +328,11 @@ router.get("/rental/vehicles", async (_req, res): Promise<void> => {
     imagesByVehicle.get(img.vehicleId)!.push(img);
   }
 
-  res.json(vehicles.map((v) => serializeVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] })));
+  const pricingByVehicle = await getBasePrices(ids);
+  res.json(vehicles.map((v) => ({
+    ...serializeVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
+    basePrice: pricingByVehicle.get(v.id) ?? null,
+  })));
 });
 
 router.get("/rental/vehicles/:slug", async (req, res): Promise<void> => {

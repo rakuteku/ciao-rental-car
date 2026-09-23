@@ -431,7 +431,7 @@ export interface RentalVehicle {
   /** Manual operational state: available | cleaning | maintenance */
   operationalStatus?: string;
   /**
-   * Base price per day from pricing table (admin list only)
+   * Base price per day from the vehicle pricing table
    * @nullable
    */
   basePrice?: number | null;
@@ -608,6 +608,15 @@ export interface DayRate {
   ruleApplied?: string | null;
 }
 
+export interface RentalAddonLineItem {
+  addonId: number;
+  name: string;
+  qty: number;
+  unitPrice: number;
+  totalPrice: number;
+  pricingType: string;
+}
+
 export interface RentalPriceBreakdown {
   days: number;
   dayRates: DayRate[];
@@ -615,6 +624,7 @@ export interface RentalPriceBreakdown {
   deliveryFee: number;
   airportPickupFee: number;
   airportDropoffFee: number;
+  addons: RentalAddonLineItem[];
   addonsTotal: number;
   discount: number;
   tax: number;

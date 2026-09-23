@@ -78,17 +78,20 @@ function parseDateStr(dateStr: string): Date {
   return new Date(dateStr + "T00:00:00Z");
 }
 
-export async function calculatePrice(input: PricingInput): Promise<PriceBreakdown> {
-  const [pricing] = await db
+export async function calculatePrice(
+  input: PricingInput,
+  client: any = db,
+): Promise<PriceBreakdown> {
+  const [pricing] = await client
     .select()
     .from(rentalVehiclePricingTable)
     .where(eq(rentalVehiclePricingTable.vehicleId, input.vehicleId));
-  const [vehicle] = await db
+  const [vehicle] = await client
     .select({ vehicleClass: rentalVehiclesTable.vehicleClass })
     .from(rentalVehiclesTable)
     .where(eq(rentalVehiclesTable.id, input.vehicleId));
 
-  const seasonalRules = await db
+  const seasonalRules = await client
     .select()
     .from(rentalSeasonalPricingRulesTable)
     .where(
@@ -174,7 +177,7 @@ export async function calculatePrice(input: PricingInput): Promise<PriceBreakdow
   const addonLineItems: AddonLineItem[] = [];
   if (input.addons && input.addons.length > 0) {
     const addonIds = input.addons.map((a) => a.addonId);
-    const addonRecords = await db
+    const addonRecords: Array<typeof rentalAddonsTable.$inferSelect> = await client
       .select()
       .from(rentalAddonsTable)
       .where(

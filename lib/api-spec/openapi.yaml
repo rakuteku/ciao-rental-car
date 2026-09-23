@@ -2792,7 +2792,7 @@ components:
           description: "Manual operational state: available | cleaning | maintenance"
         basePrice:
           type: ["number", "null"]
-          description: "Base price per day from pricing table (admin list only)"
+          description: "Base price per day from the vehicle pricing table"
         deliveryLeadTimeHours:
           type: ["integer", "null"]
         deliveryFeeOverride:
@@ -3249,6 +3249,10 @@ components:
           type: number
         airportDropoffFee:
           type: number
+        addons:
+          type: array
+          items:
+            $ref: "#/components/schemas/RentalAddonLineItem"
         addonsTotal:
           type: number
         discount:
@@ -3270,6 +3274,7 @@ components:
         - deliveryFee
         - airportPickupFee
         - airportDropoffFee
+        - addons
         - addonsTotal
         - discount
         - tax
@@ -3277,6 +3282,29 @@ components:
         - finalTotal
         - taxIncluded
         - currency
+
+    RentalAddonLineItem:
+      type: object
+      properties:
+        addonId:
+          type: integer
+        name:
+          type: string
+        qty:
+          type: integer
+        unitPrice:
+          type: number
+        totalPrice:
+          type: number
+        pricingType:
+          type: string
+      required:
+        - addonId
+        - name
+        - qty
+        - unitPrice
+        - totalPrice
+        - pricingType
 
     RentalReservationWithPricing:
       allOf:

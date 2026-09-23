@@ -8,6 +8,7 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "test:admin-session": "pnpm run build && node --test ./test/admin-session.test.mjs",
+    "test:rental-catalog": "pnpm run build && node --test ./test/rental-catalog.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

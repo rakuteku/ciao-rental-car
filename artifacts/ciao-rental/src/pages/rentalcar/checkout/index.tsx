@@ -172,7 +172,9 @@ export function CheckoutPage() {
             docType: document.toLowerCase().includes("passport") ? "passport" : document.toLowerCase().includes("international") ? "international_license" : document.toLowerCase().includes("insurance") ? "insurance" : document.toLowerCase().includes("credit") ? "credit_card" : document.toLowerCase().includes("license") ? "drivers_license" : "other",
             fileUrl,
           })),
-        addons: draft.addons,
+         addons: Object.entries(selectedAddons)
+           .filter(([, qty]) => qty > 0)
+           .map(([id, qty]) => ({ addonId: parseInt(id), qty })),
         source: "web",
       }
     }, {
@@ -186,6 +188,7 @@ export function CheckoutPage() {
             returnLocation: draft.returnLocation,
           },
           vehicle: car ? { title: car.publicTitle || car.model, image: car.images?.[0]?.url } : null,
+           pricing: reservation.pricing,
         }));
         clearDraft();
         setLocation(`/rentalcar/booking/confirmation?id=${reservation.id}`);
@@ -494,6 +497,23 @@ export function CheckoutPage() {
                           </div>
                         </div>
                       </div>
+                      {priceData?.addons && priceData.addons.length > 0 && (
+                        <div>
+                          <h3 className="font-bold text-lg mb-4 border-b pb-2">Selected add-ons</h3>
+                          <div className="space-y-2 text-sm">
+                            {priceData.addons.map((addon) => (
+                              <div key={addon.addonId} className="flex justify-between gap-4">
+                                <span>{addon.name} × {addon.qty}</span>
+                                <span className="tabular-nums">¥{addon.totalPrice.toLocaleString()}</span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between border-t pt-2 font-medium">
+                              <span>Add-ons total</span>
+                              <span className="tabular-nums">¥{priceData.addonsTotal.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-start gap-3 border-t pt-5">
                         <Checkbox id="rental-agreement" checked={agreedTerms} onCheckedChange={(checked) => setAgreedTerms(Boolean(checked))} />
                         <label htmlFor="rental-agreement" className="text-sm text-muted-foreground">
@@ -585,10 +605,18 @@ export function CheckoutPage() {
                         <span>¥{priceData.subtotal.toLocaleString()}</span>
                       </div>
                       {priceData.addonsTotal > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Add-ons</span>
-                          <span>¥{priceData.addonsTotal.toLocaleString()}</span>
-                        </div>
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Add-ons</span>
+                            <span>¥{priceData.addonsTotal.toLocaleString()}</span>
+                          </div>
+                          {priceData.addons?.map((addon) => (
+                            <div key={addon.addonId} className="flex justify-between pl-3 text-xs">
+                              <span className="text-muted-foreground">{addon.name} × {addon.qty}</span>
+                              <span>¥{addon.totalPrice.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </>
                       )}
                       {priceData.airportPickupFee > 0 && (
                         <div className="flex justify-between">

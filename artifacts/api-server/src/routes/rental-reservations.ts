@@ -252,14 +252,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
   const pickupAt = preHold.pickupAt;
   const returnAt = preHold.returnAt;
 
-  const pricing = await calculatePrice({
-    vehicleId,
-    pickupAt,
-    returnAt,
-    addons: body.data.addons,
-    pickupLocation: body.data.pickupLocation,
-    returnLocation: body.data.returnLocation,
-  });
+  let pricing: Awaited<ReturnType<typeof calculatePrice>> | null = null;
 
   let result: { reservation: typeof rentalReservationsTable.$inferSelect };
   try {
@@ -356,6 +349,15 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
         }
       }
 
+      pricing = await calculatePrice({
+        vehicleId,
+        pickupAt: canonicalPickupAt,
+        returnAt: canonicalReturnAt,
+        addons: body.data.addons,
+        pickupLocation: body.data.pickupLocation,
+        returnLocation: body.data.returnLocation,
+      }, tx);
+
       const [driver] = await tx
         .insert(rentalDriversTable)
         .values({
@@ -444,6 +446,10 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
     return;
   }
 
+  if (!pricing) {
+    res.status(500).json({ error: "Unable to calculate reservation pricing" });
+    return;
+  }
   res.status(201).json({ ...serializeReservation(result.reservation), pricing });
   await queueRentalNotification({
     email: body.data.driver.email,

@@ -1028,7 +1028,7 @@ export const SearchRentalVehiclesResponse = zod.object({
       basePrice: zod
         .number()
         .nullish()
-        .describe("Base price per day from pricing table (admin list only)"),
+        .describe("Base price per day from the vehicle pricing table"),
       deliveryLeadTimeHours: zod.number().nullish(),
       deliveryFeeOverride: zod.number().nullish(),
       metaTitle: zod.string(),
@@ -1119,7 +1119,7 @@ export const SearchRentalVehiclesResponse = zod.object({
       basePrice: zod
         .number()
         .nullish()
-        .describe("Base price per day from pricing table (admin list only)"),
+        .describe("Base price per day from the vehicle pricing table"),
       deliveryLeadTimeHours: zod.number().nullish(),
       deliveryFeeOverride: zod.number().nullish(),
       metaTitle: zod.string(),
@@ -1212,7 +1212,7 @@ export const GetRentalVehiclesResponseItem = zod.object({
   basePrice: zod
     .number()
     .nullish()
-    .describe("Base price per day from pricing table (admin list only)"),
+    .describe("Base price per day from the vehicle pricing table"),
   deliveryLeadTimeHours: zod.number().nullish(),
   deliveryFeeOverride: zod.number().nullish(),
   metaTitle: zod.string(),
@@ -1311,7 +1311,7 @@ export const GetRentalVehicleResponse = zod
     basePrice: zod
       .number()
       .nullish()
-      .describe("Base price per day from pricing table (admin list only)"),
+      .describe("Base price per day from the vehicle pricing table"),
     deliveryLeadTimeHours: zod.number().nullish(),
     deliveryFeeOverride: zod.number().nullish(),
     metaTitle: zod.string(),
@@ -1520,6 +1520,16 @@ export const CalculateRentalPriceResponse = zod.object({
   deliveryFee: zod.number(),
   airportPickupFee: zod.number(),
   airportDropoffFee: zod.number(),
+  addons: zod.array(
+    zod.object({
+      addonId: zod.number(),
+      name: zod.string(),
+      qty: zod.number(),
+      unitPrice: zod.number(),
+      totalPrice: zod.number(),
+      pricingType: zod.string(),
+    }),
+  ),
   addonsTotal: zod.number(),
   discount: zod.number(),
   tax: zod.number(),
@@ -1596,7 +1606,7 @@ export const GetAdminRentalVehiclesResponseItem = zod.object({
   basePrice: zod
     .number()
     .nullish()
-    .describe("Base price per day from pricing table (admin list only)"),
+    .describe("Base price per day from the vehicle pricing table"),
   deliveryLeadTimeHours: zod.number().nullish(),
   deliveryFeeOverride: zod.number().nullish(),
   metaTitle: zod.string(),
@@ -1763,7 +1773,7 @@ export const GetAdminRentalVehicleResponse = zod
     basePrice: zod
       .number()
       .nullish()
-      .describe("Base price per day from pricing table (admin list only)"),
+      .describe("Base price per day from the vehicle pricing table"),
     deliveryLeadTimeHours: zod.number().nullish(),
     deliveryFeeOverride: zod.number().nullish(),
     metaTitle: zod.string(),
@@ -1956,7 +1966,7 @@ export const UpdateAdminRentalVehicleResponse = zod.object({
   basePrice: zod
     .number()
     .nullish()
-    .describe("Base price per day from pricing table (admin list only)"),
+    .describe("Base price per day from the vehicle pricing table"),
   deliveryLeadTimeHours: zod.number().nullish(),
   deliveryFeeOverride: zod.number().nullish(),
   metaTitle: zod.string(),
