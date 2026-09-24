@@ -89,12 +89,12 @@ export function MyBookingDetail() {
             <div className="pt-4 border-t">
               <h3 className="font-semibold mb-2">Payment Summary</h3>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span>Base Rate</span> <span>${res.subtotal}</span></div>
-                {res.addonsTotal > 0 && <div className="flex justify-between"><span>Addons</span> <span>${res.addonsTotal}</span></div>}
-                <div className="flex justify-between"><span>Taxes & Fees</span> <span>${(Number(res.tax || 0) + Number(res.deliveryFee || 0)).toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Base Rate</span> <span>¥{Number(res.subtotal).toLocaleString()}</span></div>
+                {res.addonsTotal > 0 && <div className="flex justify-between"><span>Add-ons</span> <span>¥{res.addonsTotal.toLocaleString()}</span></div>}
+                <div className="flex justify-between"><span>Taxes & Fees</span> <span>¥{(Number(res.tax || 0) + Number(res.deliveryFee || 0)).toLocaleString()}</span></div>
                 <div className="flex justify-between font-bold text-base pt-2 mt-2 border-t">
                   <span>Total Paid</span>
-                  <span>${res.finalTotal}</span>
+                  <span>¥{Number(res.finalTotal).toLocaleString()}</span>
                 </div>
               </div>
             </div>

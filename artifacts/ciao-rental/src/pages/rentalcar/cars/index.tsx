@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizedPath, useLanguage } from "@/lib/language";
+import { localizeVehicle, rentalCopy } from "@/lib/rental-localization";
 
 function EstimatedPrice({ vehicle, pickupAt, returnAt, pickupLocation, returnLocation }: {
   vehicle: RentalVehicle;
@@ -14,6 +15,8 @@ function EstimatedPrice({ vehicle, pickupAt, returnAt, pickupLocation, returnLoc
   pickupLocation?: string;
   returnLocation?: string;
 }) {
+  const { language } = useLanguage();
+  const copy = rentalCopy(language);
   const quote = useCalculateRentalPrice();
   useEffect(() => {
     if (pickupAt && returnAt) {
@@ -21,18 +24,19 @@ function EstimatedPrice({ vehicle, pickupAt, returnAt, pickupLocation, returnLoc
     }
   }, [vehicle.id, pickupAt, returnAt, pickupLocation, returnLocation]);
 
-  if (!pickupAt || !returnAt) return <span className="text-sm">Select dates for a total</span>;
-  if (!quote.data) return <span className="text-sm">Calculating total…</span>;
-  return <span className="text-sm font-semibold">¥{quote.data.finalTotal.toLocaleString()} <span className="font-normal text-muted-foreground">estimated total</span></span>;
+  if (!pickupAt || !returnAt) return <span className="text-sm">{copy.selectDates}</span>;
+  if (!quote.data) return <span className="text-sm">{copy.calculating}</span>;
+  return <span className="text-sm font-semibold">¥{quote.data.finalTotal.toLocaleString()} <span className="font-normal text-muted-foreground">{copy.estimatedTotal}</span></span>;
 }
 
 export function CarsPage() {
   const { language } = useLanguage();
+  const copy = rentalCopy(language);
   useInlineSeoMeta({
-    metaTitle: "Rental Cars in Sapporo | CIAO Hokkaido Car Rental",
-    metaDescription: "Compare CIAO's available rental vehicles in Sapporo and choose the right car for your Hokkaido journey.",
-    ogTitle: "Rental Cars in Sapporo | CIAO",
-    ogDescription: "Compare available CIAO rental cars for your Hokkaido trip.",
+    metaTitle: language === "ja" ? "札幌のレンタカー一覧｜CIAO北海道" : language === "zh-CN" ? "札幌租車車輛｜CIAO北海道" : "Rental Cars in Sapporo | CIAO Hokkaido Car Rental",
+    metaDescription: language === "ja" ? "札幌で利用できるCIAOのレンタカーを比較し、北海道旅行に合う車両をお選びください。" : language === "zh-CN" ? "比較 CIAO 在札幌提供的租車車輛，選擇適合北海道旅程的車款。" : "Compare CIAO's available rental vehicles in Sapporo and choose the right car for your Hokkaido journey.",
+    ogTitle: language === "ja" ? "札幌のレンタカー一覧｜CIAO" : language === "zh-CN" ? "札幌租車車輛｜CIAO" : "Rental Cars in Sapporo | CIAO",
+    ogDescription: language === "ja" ? "北海道旅行に利用できるCIAOの車両をご覧ください。" : language === "zh-CN" ? "查看適合北海道旅程的 CIAO 租車。" : "Compare available CIAO rental cars for your Hokkaido trip.",
     ogImage: "",
   });
   const searchString = useSearch();
@@ -76,17 +80,17 @@ export function CarsPage() {
     <div className="min-h-[100dvh] flex flex-col">
       <div className="border-b py-12 bg-white">
         <div className="container">
-          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-2">Fleet</p>
-          <h1 className="text-4xl font-serif font-bold tracking-tight">Our Vehicles</h1>
+          <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-2">{copy.fleet}</p>
+          <h1 className="text-4xl font-serif font-bold tracking-tight">{copy.vehicles}</h1>
           <p className="text-muted-foreground mt-3 text-sm max-w-xl">
-            Premium vehicles, meticulously maintained for your Hokkaido journey.
+            {copy.vehiclesIntro}
           </p>
           {(pickupAt && returnAt) && (
             <div className="mt-6 flex flex-wrap gap-4 text-sm font-medium text-muted-foreground bg-muted/40 p-4 rounded-lg inline-flex">
               <span>{pickupLocation} → {returnLocation}</span>
               <span>•</span>
               <span>{new Date(pickupAt).toLocaleDateString()} — {new Date(returnAt).toLocaleDateString()}</span>
-                  <Link href={localizedPath("/rentalcar", language)} className="text-primary hover:underline ml-2">Edit Search</Link>
+                  <Link href={localizedPath("/rentalcar", language)} className="text-primary hover:underline ml-2">{copy.editSearch}</Link>
             </div>
           )}
         </div>
@@ -107,20 +111,20 @@ export function CarsPage() {
           <div className="space-y-16">
             {cars.length === 0 && unavailableCars.length === 0 && (
               <div className="text-center py-20 bg-muted/30 rounded-xl">
-                <h3 className="text-lg font-medium mb-2">No vehicles found</h3>
-                <p className="text-muted-foreground">Try adjusting your search criteria or dates.</p>
+                <h3 className="text-lg font-medium mb-2">{copy.noVehicles}</h3>
+                <p className="text-muted-foreground">{copy.adjustSearch}</p>
                 <Link href={localizedPath("/rentalcar", language)}>
-                  <Button className="mt-6">Back to Search</Button>
+                  <Button className="mt-6">{copy.backToSearch}</Button>
                 </Link>
               </div>
             )}
 
             {cars.length > 0 && (
               <div className="space-y-5">
-                <h2 className="text-2xl font-serif font-bold">Available Vehicles</h2>
+                <h2 className="text-2xl font-serif font-bold">{copy.available}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {cars.map((car) => (
-                  <Link key={car.id} href={`/rentalcar/cars/${car.slug || car.id}?${searchString}`} className="group block">
+                  <Link key={car.id} href={`${localizedPath(`/rentalcar/cars/${car.slug || car.id}`, language)}?${searchString}`} className="group block">
                     <div className="overflow-hidden bg-muted aspect-[4/3] relative">
                       <img
                         src={car.images?.[0]?.url || "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80"}
@@ -129,7 +133,7 @@ export function CarsPage() {
                       />
                       {car.basePrice && (
                         <div className="absolute top-4 right-4 bg-background/95 backdrop-blur px-3 py-1.5 rounded text-sm font-semibold shadow-sm">
-                          ¥{car.basePrice.toLocaleString()}<span className="text-xs font-normal text-muted-foreground">/day</span>
+                          ¥{car.basePrice.toLocaleString()}<span className="text-xs font-normal text-muted-foreground">{copy.perDay}</span>
                         </div>
                       )}
                     </div>
@@ -137,26 +141,26 @@ export function CarsPage() {
                       <div className="flex items-baseline justify-between">
                         <div>
                           <p className="text-xs text-muted-foreground">{car.brand} · {car.year}</p>
-                          <h2 className="font-serif text-xl font-semibold group-hover:text-muted-foreground transition-colors">{car.publicTitle || car.model}</h2>
+                          <h2 className="font-serif text-xl font-semibold group-hover:text-muted-foreground transition-colors">{localizeVehicle(car, language).title || car.model}</h2>
                         </div>
                         <EstimatedPrice vehicle={car} pickupAt={pickupAt} returnAt={returnAt} pickupLocation={pickupLocation} returnLocation={returnLocation} />
                       </div>
                       <div className="flex flex-wrap items-center gap-3">
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          <CarIcon className="h-3.5 w-3.5" /> {car.seats} pax
+                          <CarIcon className="h-3.5 w-3.5" /> {car.seats} {copy.passengers}
                         </p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                           <Fuel className="h-3.5 w-3.5" /> {car.fuelType}
                         </p>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{car.description}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{localizeVehicle(car, language).description}</p>
                       <div className="pt-2">
                         <Button
                           variant="outline"
                           size="sm"
                           className="w-full text-xs tracking-wide group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                         >
-                          Select Vehicle
+                          {copy.selectVehicle}
                         </Button>
                       </div>
                     </div>
@@ -168,7 +172,7 @@ export function CarsPage() {
 
             {unavailableCars.length > 0 && (
               <div className="space-y-6 pt-10 border-t">
-                <h2 className="text-2xl font-serif font-bold text-muted-foreground">Not available for your selected dates</h2>
+                <h2 className="text-2xl font-serif font-bold text-muted-foreground">{copy.unavailable}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-60 grayscale-[0.5]">
                   {unavailableCars.map((car) => (
                     <div key={car.id} className="block">

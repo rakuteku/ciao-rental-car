@@ -59,6 +59,8 @@ function slugify(str: string) {
 type VehicleFormData = {
   internalName: string;
   publicTitle: string;
+  publicTitleJa: string;
+  publicTitleZhTw: string;
   slug: string;
   brand: string;
   model: string;
@@ -69,6 +71,8 @@ type VehicleFormData = {
   vin: string;
   vehicleClass: string;
   description: string;
+  descriptionJa: string;
+  descriptionZhTw: string;
   internalNotes: string;
   seats: number;
   recommendedPassengers: number;
@@ -110,6 +114,10 @@ type VehicleFormData = {
   sortOrder: number;
   metaTitle: string;
   metaDescription: string;
+  metaTitleJa: string;
+  metaDescriptionJa: string;
+  metaTitleZhTw: string;
+  metaDescriptionZhTw: string;
   ogTitle: string;
   ogDescription: string;
   ogImage: string;
@@ -153,6 +161,8 @@ type PricingFormData = {
 const defaultVehicle: VehicleFormData = {
   internalName: "",
   publicTitle: "",
+  publicTitleJa: "",
+  publicTitleZhTw: "",
   slug: "",
   brand: "Toyota",
   model: "",
@@ -163,6 +173,8 @@ const defaultVehicle: VehicleFormData = {
   vin: "",
   vehicleClass: "compact",
   description: "",
+  descriptionJa: "",
+  descriptionZhTw: "",
   internalNotes: "",
   seats: 5,
   recommendedPassengers: 4,
@@ -204,6 +216,10 @@ const defaultVehicle: VehicleFormData = {
   sortOrder: 0,
   metaTitle: "",
   metaDescription: "",
+  metaTitleJa: "",
+  metaDescriptionJa: "",
+  metaTitleZhTw: "",
+  metaDescriptionZhTw: "",
   ogTitle: "",
   ogDescription: "",
   ogImage: "",
@@ -248,6 +264,8 @@ function vehicleToForm(v: RentalVehicle): VehicleFormData {
   return {
     internalName: v.internalName,
     publicTitle: v.publicTitle,
+    publicTitleJa: v.publicTitleJa ?? "",
+    publicTitleZhTw: v.publicTitleZhTw ?? "",
     slug: v.slug,
     brand: v.brand,
     model: v.model,
@@ -258,6 +276,8 @@ function vehicleToForm(v: RentalVehicle): VehicleFormData {
     vin: v.vin ?? "",
     vehicleClass: v.vehicleClass,
     description: v.description ?? "",
+    descriptionJa: v.descriptionJa ?? "",
+    descriptionZhTw: v.descriptionZhTw ?? "",
     internalNotes: v.internalNotes ?? "",
     seats: v.seats,
     recommendedPassengers: v.recommendedPassengers,
@@ -299,6 +319,10 @@ function vehicleToForm(v: RentalVehicle): VehicleFormData {
     sortOrder: v.sortOrder,
     metaTitle: v.metaTitle ?? "",
     metaDescription: v.metaDescription ?? "",
+    metaTitleJa: v.metaTitleJa ?? "",
+    metaDescriptionJa: v.metaDescriptionJa ?? "",
+    metaTitleZhTw: v.metaTitleZhTw ?? "",
+    metaDescriptionZhTw: v.metaDescriptionZhTw ?? "",
     ogTitle: v.ogTitle ?? "",
     ogDescription: v.ogDescription ?? "",
     ogImage: v.ogImage ?? "",
@@ -789,6 +813,8 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
     const payload = {
       internalName: form.internalName,
       publicTitle: form.publicTitle,
+      publicTitleJa: form.publicTitleJa || undefined,
+      publicTitleZhTw: form.publicTitleZhTw || undefined,
       slug: form.slug || slugify(form.publicTitle),
       brand: form.brand,
       model: form.model,
@@ -799,6 +825,8 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
       vin: form.vin || undefined,
       vehicleClass: form.vehicleClass as "economy" | "compact" | "midsize" | "fullsize" | "suv" | "minivan" | "van" | "luxury" | "sports" | "truck",
       description: form.description,
+      descriptionJa: form.descriptionJa || undefined,
+      descriptionZhTw: form.descriptionZhTw || undefined,
       internalNotes: form.internalNotes || undefined,
       seats: form.seats,
       recommendedPassengers: form.recommendedPassengers,
@@ -854,6 +882,10 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
       ],
       metaTitle: form.metaTitle || undefined,
       metaDescription: form.metaDescription || undefined,
+      metaTitleJa: form.metaTitleJa || undefined,
+      metaDescriptionJa: form.metaDescriptionJa || undefined,
+      metaTitleZhTw: form.metaTitleZhTw || undefined,
+      metaDescriptionZhTw: form.metaDescriptionZhTw || undefined,
       ogTitle: form.ogTitle || undefined,
       ogDescription: form.ogDescription || undefined,
       ogImage: form.ogImage || undefined,
@@ -971,6 +1003,7 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="basic">Basic Info</TabsTrigger>
+          <TabsTrigger value="translations">Translations</TabsTrigger>
           <TabsTrigger value="specs">Specifications</TabsTrigger>
           <TabsTrigger value="hokkaido">Hokkaido Features</TabsTrigger>
           <TabsTrigger value="photos">Photos</TabsTrigger>
@@ -1111,6 +1144,33 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
               onChange={(e) => set("internalNotes", e.target.value)}
               rows={2}
             />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="translations" className="space-y-7 pt-4">
+          <div>
+            <h2 className="text-lg font-semibold">Japanese</h2>
+            <p className="text-sm text-muted-foreground">Empty fields fall back to English.</p>
+          </div>
+          <div className="grid gap-5">
+            <div className="space-y-1.5"><Label>Public Listing Title</Label><Input value={form.publicTitleJa} onChange={(event) => set("publicTitleJa", event.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Public Description</Label><Textarea rows={4} value={form.descriptionJa} onChange={(event) => set("descriptionJa", event.target.value)} /></div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitleJa} onChange={(event) => set("metaTitleJa", event.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Meta Description</Label><Textarea rows={3} value={form.metaDescriptionJa} onChange={(event) => set("metaDescriptionJa", event.target.value)} /></div>
+            </div>
+          </div>
+          <div className="border-t pt-7">
+            <h2 className="text-lg font-semibold">Traditional Chinese</h2>
+            <p className="text-sm text-muted-foreground">Used by the existing Chinese-language routes; empty fields fall back to English.</p>
+          </div>
+          <div className="grid gap-5">
+            <div className="space-y-1.5"><Label>Public Listing Title</Label><Input value={form.publicTitleZhTw} onChange={(event) => set("publicTitleZhTw", event.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Public Description</Label><Textarea rows={4} value={form.descriptionZhTw} onChange={(event) => set("descriptionZhTw", event.target.value)} /></div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-1.5"><Label>Meta Title</Label><Input value={form.metaTitleZhTw} onChange={(event) => set("metaTitleZhTw", event.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Meta Description</Label><Textarea rows={3} value={form.metaDescriptionZhTw} onChange={(event) => set("metaDescriptionZhTw", event.target.value)} /></div>
+            </div>
           </div>
         </TabsContent>
 

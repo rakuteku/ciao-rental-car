@@ -364,6 +364,10 @@ export interface RentalVehicle {
   id: number;
   internalName: string;
   publicTitle: string;
+  /** @nullable */
+  publicTitleJa?: string | null;
+  /** @nullable */
+  publicTitleZhTw?: string | null;
   slug: string;
   brand: string;
   model: string;
@@ -374,6 +378,10 @@ export interface RentalVehicle {
   color?: string | null;
   vehicleClass: string;
   description: string;
+  /** @nullable */
+  descriptionJa?: string | null;
+  /** @nullable */
+  descriptionZhTw?: string | null;
   seats: number;
   recommendedPassengers: number;
   maxPassengers: number;
@@ -441,6 +449,14 @@ export interface RentalVehicle {
   deliveryFeeOverride?: number | null;
   metaTitle: string;
   metaDescription: string;
+  /** @nullable */
+  metaTitleJa?: string | null;
+  /** @nullable */
+  metaDescriptionJa?: string | null;
+  /** @nullable */
+  metaTitleZhTw?: string | null;
+  /** @nullable */
+  metaDescriptionZhTw?: string | null;
   ogTitle: string;
   ogDescription: string;
   ogImage: string;
@@ -494,13 +510,20 @@ export interface RentalVehicleSearchResult {
 export interface RentalAddon {
   id: number;
   name: string;
+  /** @nullable */
+  nameJa?: string | null;
+  /** @nullable */
+  nameZhTw?: string | null;
   description: string;
+  /** @nullable */
+  descriptionJa?: string | null;
+  /** @nullable */
+  descriptionZhTw?: string | null;
   /** @nullable */
   image?: string | null;
   pricingType: string;
   flatFee: number;
   perDayFee: number;
-  perUnitFee: number;
   maxQty: number;
   /** @nullable */
   inventoryLimit?: number | null;
@@ -716,6 +739,8 @@ export interface PriceCalculateBody {
 export interface CreateRentalVehicleBody {
   internalName: string;
   publicTitle: string;
+  publicTitleJa?: string;
+  publicTitleZhTw?: string;
   slug?: string;
   brand: string;
   model: string;
@@ -726,6 +751,8 @@ export interface CreateRentalVehicleBody {
   vin?: string;
   vehicleClass?: string;
   description?: string;
+  descriptionJa?: string;
+  descriptionZhTw?: string;
   internalNotes?: string;
   seats?: number;
   recommendedPassengers?: number;
@@ -773,6 +800,10 @@ export interface CreateRentalVehicleBody {
   deliveryFeeOverride?: number;
   metaTitle?: string;
   metaDescription?: string;
+  metaTitleJa?: string;
+  metaDescriptionJa?: string;
+  metaTitleZhTw?: string;
+  metaDescriptionZhTw?: string;
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
@@ -781,6 +812,8 @@ export interface CreateRentalVehicleBody {
 export interface UpdateRentalVehicleBody {
   internalName?: string;
   publicTitle?: string;
+  publicTitleJa?: string;
+  publicTitleZhTw?: string;
   slug?: string;
   brand?: string;
   model?: string;
@@ -791,6 +824,8 @@ export interface UpdateRentalVehicleBody {
   vin?: string;
   vehicleClass?: string;
   description?: string;
+  descriptionJa?: string;
+  descriptionZhTw?: string;
   internalNotes?: string;
   seats?: number;
   recommendedPassengers?: number;
@@ -838,6 +873,10 @@ export interface UpdateRentalVehicleBody {
   deliveryFeeOverride?: number;
   metaTitle?: string;
   metaDescription?: string;
+  metaTitleJa?: string;
+  metaDescriptionJa?: string;
+  metaTitleZhTw?: string;
+  metaDescriptionZhTw?: string;
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
@@ -902,12 +941,15 @@ export interface UpdateReservationBody {
 
 export interface CreateAddonBody {
   name: string;
+  nameJa?: string;
+  nameZhTw?: string;
   description?: string;
+  descriptionJa?: string;
+  descriptionZhTw?: string;
   image?: string;
   pricingType?: string;
   flatFee?: number;
   perDayFee?: number;
-  perUnitFee?: number;
   maxQty?: number;
   inventoryLimit?: number;
   vehicleCompatibility?: string[];

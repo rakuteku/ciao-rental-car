@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
+import { localizeAddon, localizeVehicle, rentalCopy } from "@/lib/rental-localization";
 import {
   useGetRentalAddons,
   useGetRentalVehicle,
@@ -46,6 +47,7 @@ export function CheckoutPage() {
   const { draft, updateDraft, clearDraft } = useCheckoutDraft();
   const { toast } = useToast();
   const { language } = useLanguage();
+  const copy = rentalCopy(language);
   useInlineSeoMeta({
     metaTitle: "Checkout | CIAO Rental Car Sapporo",
     metaDescription: "Review your CIAO Sapporo rental car booking, driver details, add-ons, and pickup information.",
@@ -69,6 +71,11 @@ export function CheckoutPage() {
   const { data: car } = useGetRentalVehicle(draft?.vehicleSlug || "", {
     query: { enabled: !!draft?.vehicleSlug, queryKey: getGetRentalVehicleQueryKey(draft?.vehicleSlug || "") }
   });
+  const localizedCar = car ? localizeVehicle(car, language) : undefined;
+  const addonName = (addonId: number, fallback: string) => {
+    const addon = addons?.find((candidate) => candidate.id === addonId);
+    return addon ? localizeAddon(addon, language).name : fallback;
+  };
   const { data: holdStatus } = useGetRentalHold(draft?.holdId ?? 0, {
     query: {
       enabled: Boolean(draft?.holdId),
@@ -300,8 +307,8 @@ export function CheckoutPage() {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">{car.brand} · {car.year}</p>
-                        <h3 className="font-serif font-bold text-xl">{car.publicTitle || car.model}</h3>
-                        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><Car className="w-4 h-4"/> {car.seats} passengers</p>
+                        <h3 className="font-serif font-bold text-xl">{localizedCar?.title || car.model}</h3>
+                        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5"><Car className="w-4 h-4"/> {car.seats} {copy.passengers}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -313,26 +320,27 @@ export function CheckoutPage() {
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">Enhance Your Trip</h2>
-                  <p className="text-muted-foreground">Add extras to make your journey more comfortable.</p>
+                  <h2 className="text-2xl font-serif font-bold">{copy.enhanceTrip}</h2>
+                  <p className="text-muted-foreground">{copy.enhanceTripHelp}</p>
                 </div>
                 <div className="space-y-4">
                   {addons?.map(addon => {
                     const qty = selectedAddons[addon.id] || 0;
+                    const localizedAddon = localizeAddon(addon, language);
                     return (
                       <Card key={addon.id} className={qty > 0 ? "border-primary" : ""}>
                         <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                           <div className="flex items-center gap-4 flex-1">
                             {addon.image && (
                               <div className="w-16 h-16 bg-muted rounded shrink-0 overflow-hidden">
-                                <img src={addon.image} alt={addon.name} className="w-full h-full object-cover" />
+                                <img src={addon.image} alt={localizedAddon.name} className="w-full h-full object-cover" />
                               </div>
                             )}
                             <div>
-                              <h4 className="font-bold">{addon.name}</h4>
-                              <p className="text-sm text-muted-foreground line-clamp-2">{addon.description}</p>
+                              <h4 className="font-bold">{localizedAddon.name}</h4>
+                              <p className="text-sm text-muted-foreground line-clamp-2">{localizedAddon.description}</p>
                               <p className="text-sm font-semibold mt-1">
-                                {addon.pricingType === 'per_day' ? `¥${addon.perDayFee.toLocaleString()}/day` : `¥${addon.flatFee.toLocaleString()} flat`}
+                                {addon.pricingType === "per_day" ? `¥${addon.perDayFee.toLocaleString()}${copy.perDay}` : `¥${addon.flatFee.toLocaleString()} ${copy.flatFee}`}
                               </p>
                             </div>
                           </div>
@@ -350,7 +358,7 @@ export function CheckoutPage() {
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8"
-                              onClick={() => setSelectedAddons(prev => ({ ...prev, [addon.id]: Math.min(addon.maxQty || 10, (prev[addon.id] || 0) + 1) }))}
+                              onClick={() => setSelectedAddons(prev => ({ ...prev, [addon.id]: Math.min(addon.pricingType === "flat" ? 1 : (addon.maxQty || 10), (prev[addon.id] || 0) + 1) }))}
                             >
                               +
                             </Button>
@@ -361,7 +369,7 @@ export function CheckoutPage() {
                   })}
                   {!addons?.length && (
                     <div className="p-8 text-center bg-white border rounded-xl text-muted-foreground">
-                      No add-ons available for this location.
+                      {copy.noAddons}
                     </div>
                   )}
                 </div>
@@ -523,7 +531,7 @@ export function CheckoutPage() {
                           <div className="space-y-2 text-sm">
                             {priceData.addons.map((addon) => (
                               <div key={addon.addonId} className="flex justify-between gap-4">
-                                <span>{addon.name} × {addon.qty}</span>
+                                <span>{addonName(addon.addonId, addon.name)} × {addon.qty}</span>
                                 <span className="tabular-nums">¥{addon.totalPrice.toLocaleString()}</span>
                               </div>
                             ))}
@@ -600,7 +608,7 @@ export function CheckoutPage() {
             <Card className="sticky top-6">
               <CardContent className="p-6 space-y-6">
                 <div>
-                  <h3 className="font-serif font-bold text-lg">Booking Summary</h3>
+                  <h3 className="font-serif font-bold text-lg">{copy.bookingSummary}</h3>
                 </div>
                 
                 {car && (
@@ -609,7 +617,7 @@ export function CheckoutPage() {
                       <img src={car.images?.[0]?.url || "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80"} alt={car.model} className="w-full h-full object-cover" />
                     </div>
                     <div>
-                      <div className="font-bold text-sm leading-tight">{car.publicTitle || car.model}</div>
+                      <div className="font-bold text-sm leading-tight">{localizedCar?.title || car.model}</div>
                       <div className="text-xs text-muted-foreground">{car.vehicleClass}</div>
                     </div>
                   </div>
@@ -621,18 +629,18 @@ export function CheckoutPage() {
                   {priceData ? (
                     <>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Rental ({priceData.days} days)</span>
+                        <span className="text-muted-foreground">{copy.rental} ({priceData.days} {copy.days})</span>
                         <span>¥{priceData.subtotal.toLocaleString()}</span>
                       </div>
                       {priceData.addonsTotal > 0 && (
                         <>
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Add-ons</span>
+                            <span className="text-muted-foreground">{copy.addons}</span>
                             <span>¥{priceData.addonsTotal.toLocaleString()}</span>
                           </div>
                           {priceData.addons?.map((addon) => (
                             <div key={addon.addonId} className="flex justify-between pl-3 text-xs">
-                              <span className="text-muted-foreground">{addon.name} × {addon.qty}</span>
+                              <span className="text-muted-foreground">{addonName(addon.addonId, addon.name)} × {addon.qty}</span>
                               <span>¥{addon.totalPrice.toLocaleString()}</span>
                             </div>
                           ))}
@@ -652,13 +660,13 @@ export function CheckoutPage() {
                       )}
                       <Separator className="my-2" />
                       <div className="flex justify-between font-bold text-lg">
-                        <span>Total</span>
+                        <span>{copy.total}</span>
                         <span>¥{priceData.finalTotal.toLocaleString()}</span>
                       </div>
                     </>
                   ) : (
                     <div className="text-center text-muted-foreground py-4">
-                      Calculating price...
+                      {copy.calculating}
                     </div>
                   )}
                 </div>

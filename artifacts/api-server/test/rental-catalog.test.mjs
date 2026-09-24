@@ -57,6 +57,10 @@ test("published rental catalog, live add-ons, pricing, slugs, and CMS cleanup ar
     assert.ok(vehicles.every((vehicle) => vehicle.status === "published"));
     assert.ok(vehicles.every((vehicle) => vehicle.featured));
     assert.ok(vehicles.every((vehicle) => vehicle.images.length > 0));
+    assert.ok(vehicles.every((vehicle) => vehicle.publicTitleJa));
+    assert.ok(vehicles.every((vehicle) => vehicle.publicTitleZhTw));
+    assert.ok(vehicles.every((vehicle) => vehicle.descriptionJa));
+    assert.ok(vehicles.every((vehicle) => vehicle.descriptionZhTw));
 
     for (const slug of ["toyota-alphard", "toyota-vellfire", "toyota-sienta"]) {
       const detail = await getJson(`/api/rental/vehicles/${slug}`);
@@ -75,6 +79,9 @@ test("published rental catalog, live add-ons, pricing, slugs, and CMS cleanup ar
       ],
     );
     assert.ok(addons.every((addon) => addon.published));
+    assert.ok(addons.every((addon) => addon.pricingType === "flat" || addon.pricingType === "per_day"));
+    assert.ok(addons.every((addon) => addon.nameJa && addon.nameZhTw));
+    assert.ok(addons.every((addon) => addon.descriptionJa && addon.descriptionZhTw));
 
     const childSeat = addons.find((addon) => addon.name === "Child Safety Seat");
     const priceResponse = await fetch(`${baseUrl}/api/rental/pricing/calculate`, {

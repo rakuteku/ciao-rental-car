@@ -18,6 +18,7 @@ import { useGetPageContent, useGetRentalAddons, useGetRentalVehicles } from "@wo
 import { cn } from "@/lib/utils";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeContent, localizedPath, useLanguage } from "@/lib/language";
+import { localizeAddon, rentalCopy } from "@/lib/rental-localization";
 
 interface PricingRow {
   label: string;
@@ -64,6 +65,7 @@ const searchSchema = z.object({
 
 export function RentalCarHome() {
   const { language } = useLanguage();
+  const rentalLabels = rentalCopy(language);
   const [, setLocation] = useLocation();
   const { data: vehicles, isLoading } = useGetRentalVehicles();
   const { data: addons } = useGetRentalAddons();
@@ -437,14 +439,15 @@ export function RentalCarHome() {
                <h3 className="text-2xl font-serif font-bold tracking-tight">{content.sections.addOns}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {addons?.map((addOn) => {
-                  const price = addOn.pricingType === "per_day" ? addOn.perDayFee : addOn.pricingType === "per_unit" ? addOn.perUnitFee : addOn.flatFee;
+                  const price = addOn.pricingType === "per_day" ? addOn.perDayFee : addOn.flatFee;
+                  const localizedAddOn = localizeAddon(addOn, language);
                   return (
                   <div key={addOn.id} className="border p-6 space-y-2">
                     <div className="flex items-baseline justify-between">
-                      <h4 className="font-semibold text-sm">{addOn.name}</h4>
-                      <span className="text-sm font-medium tabular-nums">¥{price.toLocaleString()}{addOn.pricingType === "per_day" ? " / day" : ""}</span>
+                      <h4 className="font-semibold text-sm">{localizedAddOn.name}</h4>
+                      <span className="text-sm font-medium tabular-nums">¥{price.toLocaleString()}{addOn.pricingType === "per_day" ? rentalLabels.perDay : rentalLabels.perBooking}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{addOn.description}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{localizedAddOn.description}</p>
                   </div>
                   );
                 })}

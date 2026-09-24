@@ -46,7 +46,7 @@ export function Navbar() {
                   language === item ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {item === "en" ? "ENG" : item === "ja" ? "JP" : "简中"}
+                {item === "en" ? "ENG" : item === "ja" ? "JP" : "中文"}
               </button>
             ))}
           </div>
@@ -95,7 +95,7 @@ export function Navbar() {
                         language === item ? "bg-foreground text-background" : "text-muted-foreground"
                       }`}
                     >
-                      {item === "en" ? "ENG" : item === "ja" ? "JP" : "简中"}
+                      {item === "en" ? "ENG" : item === "ja" ? "JP" : "中文"}
                     </button>
                   ))}
                 </div>

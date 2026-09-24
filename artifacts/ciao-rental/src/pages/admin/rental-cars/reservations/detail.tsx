@@ -126,7 +126,7 @@ export function AdminReservationDetail() {
                   {res.addons.map((a: any) => (
                     <li key={a.id} className="flex justify-between">
                       <span>{a.qty}x Addon #{a.addonId}</span>
-                      <span>${a.totalPrice}</span>
+                      <span>¥{Number(a.totalPrice).toLocaleString()}</span>
                     </li>
                   ))}
                 </ul>
@@ -146,15 +146,15 @@ export function AdminReservationDetail() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>${res.subtotal}</span>
+              <span>¥{Number(res.subtotal).toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Taxes & Fees</span>
-              <span>${(Number(res.tax || 0) + Number(res.deliveryFee || 0)).toFixed(2)}</span>
+              <span>¥{(Number(res.tax || 0) + Number(res.deliveryFee || 0)).toLocaleString()}</span>
             </div>
             <div className="flex justify-between font-bold mt-2 pt-2 border-t">
               <span>Total</span>
-              <span>${res.finalTotal}</span>
+              <span>¥{Number(res.finalTotal).toLocaleString()}</span>
             </div>
           </CardContent>
         </Card>

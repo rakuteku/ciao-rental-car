@@ -29,6 +29,7 @@ import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
 import { readSelectedRoom } from "@/hooks/use-checkout-draft";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
+import { localizeAddon, localizeVehicle, rentalCopy } from "@/lib/rental-localization";
 
 const bookingSchema = z.object({
   pickupLocation: z.string({ required_error: "Pickup location is required" }),
@@ -46,6 +47,7 @@ export function CarDetailPage() {
   const { toast } = useToast();
   const { setDraft } = useCheckoutDraft();
   const { language } = useLanguage();
+  const copy = rentalCopy(language);
 
   const { data: car, isLoading } = useGetRentalVehicle(slug, {
     query: { enabled: !!slug, queryKey: getGetRentalVehicleQueryKey(slug) }
@@ -84,13 +86,19 @@ export function CarDetailPage() {
   const calculatePrice = useCalculateRentalPrice();
   const priceData = calculatePrice.data;
 
+  const localizedCar = car ? localizeVehicle(car, language) : undefined;
+  const addonName = (addonId: number, fallback: string) => {
+    const addon = addons?.find((candidate) => candidate.id === addonId);
+    return addon ? localizeAddon(addon, language).name : fallback;
+  };
+
   useInlineSeoMeta(
     car
       ? {
-          metaTitle: `${car.publicTitle || car.model} Rental Car in Sapporo | CIAO`,
-          metaDescription: `Book the ${car.publicTitle || car.model} from CIAO Sapporo for your Hokkaido trip with transparent pricing and flexible pickup.`,
-          ogTitle: `${car.publicTitle || car.model} | CIAO Rental Car`,
-          ogDescription: `Reserve the ${car.publicTitle || car.model} for your Hokkaido journey.`,
+          metaTitle: localizedCar?.metaTitle || `${localizedCar?.title || car.model} Rental Car in Sapporo | CIAO`,
+          metaDescription: localizedCar?.metaDescription || localizedCar?.description || `Book the ${localizedCar?.title || car.model} from CIAO Sapporo.`,
+          ogTitle: `${localizedCar?.title || car.model} | CIAO Rental Car`,
+          ogDescription: localizedCar?.description || `Reserve the ${localizedCar?.title || car.model} for your Hokkaido journey.`,
           ogImage: car.images?.[0]?.url ?? "",
         }
       : undefined,
@@ -196,7 +204,7 @@ export function CarDetailPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-sm text-muted-foreground font-medium tracking-wide uppercase">{car.brand} · {car.year}</p>
-                    <h1 className="text-3xl font-serif font-bold mt-1">{car.publicTitle || car.model}</h1>
+                    <h1 className="text-3xl font-serif font-bold mt-1">{localizedCar?.title || car.model}</h1>
                     <div className="flex flex-wrap gap-3 mt-3">
                       <Badge variant="secondary" className="gap-1">
                         <Users className="w-3 h-3" /> {car.seats} passengers
@@ -219,9 +227,9 @@ export function CarDetailPage() {
                 <Separator />
 
                 <div className="space-y-4">
-                  <h3 className="font-bold text-lg">Description</h3>
+                  <h3 className="font-bold text-lg">{copy.description}</h3>
                   <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                    {car.description || "A premium vehicle perfectly suited for exploring the scenic routes of Hokkaido. Features advanced safety systems, comfortable seating, and excellent handling in all weather conditions."}
+                    {localizedCar?.description || "A premium vehicle perfectly suited for exploring the scenic routes of Hokkaido."}
                   </p>
                 </div>
 
@@ -282,8 +290,8 @@ export function CarDetailPage() {
           <div className="space-y-6">
             <Card className="sticky top-24 shadow-lg border-primary/10">
               <CardHeader>
-                <CardTitle className="font-serif">Reserve this Vehicle</CardTitle>
-                <CardDescription>Select dates to check availability and calculate price</CardDescription>
+            <CardTitle className="font-serif">{copy.reserve}</CardTitle>
+                <CardDescription>{copy.reserveHelp}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
@@ -295,7 +303,7 @@ export function CarDetailPage() {
                         name="pickupLocation"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Pickup Location</FormLabel>
+                            <FormLabel>{copy.pickup}</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
@@ -316,7 +324,7 @@ export function CarDetailPage() {
                         name="returnLocation"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Return Location</FormLabel>
+                            <FormLabel>{copy.return}</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
                                 <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
@@ -339,7 +347,7 @@ export function CarDetailPage() {
                         name="pickupDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
-                            <FormLabel>Pickup Date</FormLabel>
+                            <FormLabel>{copy.pickupDate}</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
@@ -362,7 +370,7 @@ export function CarDetailPage() {
                         name="returnDate"
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
-                            <FormLabel>Return Date</FormLabel>
+                            <FormLabel>{copy.returnDate}</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
@@ -382,17 +390,18 @@ export function CarDetailPage() {
                       />
                     </div>
                     <div className="space-y-3 border-t pt-4">
-                      <div className="flex items-center justify-between"><h3 className="font-semibold">Add-ons</h3><span className="text-xs text-muted-foreground">Optional</span></div>
+                      <div className="flex items-center justify-between"><h3 className="font-semibold">{copy.addons}</h3><span className="text-xs text-muted-foreground">{copy.optional}</span></div>
                       {addons?.map((addon) => {
                         const qty = selectedAddons[addon.id] ?? 0;
-                        const displayedPrice = addon.pricingType === "per_day" ? addon.perDayFee : addon.pricingType === "per_unit" ? addon.perUnitFee : addon.flatFee;
+                        const displayedPrice = addon.pricingType === "per_day" ? addon.perDayFee : addon.flatFee;
+                        const localizedAddon = localizeAddon(addon, language);
                         return (
                           <div key={addon.id} className="flex items-center justify-between gap-2 text-xs">
-                            <div><p className="font-medium">{addon.name}</p><p className="text-muted-foreground">¥{displayedPrice.toLocaleString()} {addon.pricingType === "per_day" ? "/ day" : ""}</p></div>
+                            <div><p className="font-medium">{localizedAddon.name}</p><p className="text-muted-foreground">{localizedAddon.description}</p><p className="text-muted-foreground">¥{displayedPrice.toLocaleString()} {addon.pricingType === "per_day" ? copy.perDay : copy.perBooking}</p></div>
                             <div className="flex items-center gap-1">
                               <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.max(0, qty - 1) }))}>−</Button>
                               <span className="w-4 text-center">{qty}</span>
-                              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.min(addon.maxQty, qty + 1) }))}>+</Button>
+                              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.min(addon.pricingType === "flat" ? 1 : addon.maxQty, qty + 1) }))}>+</Button>
                             </div>
                           </div>
                         );
@@ -404,19 +413,19 @@ export function CarDetailPage() {
                         <>
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">
-                              Rental ({priceData.days} {priceData.days === 1 ? 'day' : 'days'})
+                              {copy.rental} ({priceData.days} {copy.days})
                             </span>
                             <span className="tabular-nums">¥{priceData.subtotal.toLocaleString()}</span>
                           </div>
                           {priceData.addonsTotal > 0 && (
                             <div data-testid="price-addons-summary">
                               <div className="flex justify-between">
-                                <span className="text-muted-foreground">Add-ons</span>
+                                <span className="text-muted-foreground">{copy.addons}</span>
                                 <span className="tabular-nums">¥{priceData.addonsTotal.toLocaleString()}</span>
                               </div>
                               {priceData.addons?.map((addon) => (
                                 <div key={addon.addonId} data-testid={`price-addon-${addon.addonId}`} className="flex justify-between pl-3 text-xs">
-                                  <span className="text-muted-foreground">{addon.name} × {addon.qty}</span>
+                                  <span className="text-muted-foreground">{addonName(addon.addonId, addon.name)} × {addon.qty}</span>
                                   <span className="tabular-nums">¥{addon.totalPrice.toLocaleString()}</span>
                                 </div>
                               ))}
@@ -435,12 +444,12 @@ export function CarDetailPage() {
                             </div>
                           )}
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Insurance & Taxes</span>
-                            <span>Included</span>
+                            <span className="text-muted-foreground">{copy.insurance}</span>
+                            <span>{copy.included}</span>
                           </div>
                           <Separator className="my-2" />
                           <div className="flex justify-between font-bold text-base">
-                            <span>Total</span>
+                            <span>{copy.total}</span>
                             <span className="tabular-nums">¥{priceData.finalTotal.toLocaleString()}</span>
                           </div>
                         </>
@@ -452,7 +461,7 @@ export function CarDetailPage() {
                     </div>
 
                     <Button type="submit" className="w-full mt-4" size="lg" disabled={createHold.isPending || calculatePrice.isPending || !priceData || !isStillAvailable}>
-                      {createHold.isPending ? "Holding Vehicle..." : "Continue to Booking"}
+                      {createHold.isPending ? copy.calculating : copy.continueBooking}
                     </Button>
 
                   </form>

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getGetRentalAddonsQueryKey } from "@workspace/api-client-react";
 
 const BASE_URL = "/api";
 
@@ -166,6 +167,7 @@ export const useCreateAdminAddon = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "addons"] });
+      queryClient.invalidateQueries({ queryKey: getGetRentalAddonsQueryKey() });
     },
   });
 };
@@ -180,6 +182,7 @@ export const useUpdateAdminAddon = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "addons"] });
+      queryClient.invalidateQueries({ queryKey: getGetRentalAddonsQueryKey() });
     },
   });
 };
@@ -193,6 +196,7 @@ export const useDeleteAdminAddon = () => {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "addons"] });
+      queryClient.invalidateQueries({ queryKey: getGetRentalAddonsQueryKey() });
     },
   });
 };

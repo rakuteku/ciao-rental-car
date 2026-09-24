@@ -112,7 +112,7 @@ export function AdminMaintenance() {
                   <TableCell>#{log.vehicleId}</TableCell>
                   <TableCell className="font-medium">{log.type}</TableCell>
                   <TableCell className="capitalize">{log.status.replace("_", " ")}</TableCell>
-                  <TableCell>${log.cost}</TableCell>
+                  <TableCell>¥{Number(log.cost || 0).toLocaleString()}</TableCell>
                   <TableCell>{new Date(log.createdAt || Date.now()).toLocaleDateString()}</TableCell>
                 </TableRow>
               ))

@@ -202,7 +202,7 @@ export async function calculatePrice(
         unitPrice = addon.perUnitFee;
       }
 
-      const qty = Math.min(req.qty, addon.maxQty);
+      const qty = addon.pricingType === "per_day" ? Math.min(req.qty, addon.maxQty) : Math.min(req.qty, 1);
       const totalPrice = unitPrice * qty;
 
       addonLineItems.push({

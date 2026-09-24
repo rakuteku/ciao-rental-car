@@ -13,8 +13,11 @@ function adminName(req: { session: unknown }) {
 const router: IRouter = Router();
 
 function serializeAddon(addon: typeof rentalAddonsTable.$inferSelect) {
+  const isLegacyPerUnit = addon.pricingType === "per_unit";
   return {
     ...addon,
+    pricingType: isLegacyPerUnit ? "flat" : addon.pricingType,
+    flatFee: isLegacyPerUnit ? addon.perUnitFee : addon.flatFee,
     createdAt: addon.createdAt.toISOString(),
     updatedAt: addon.updatedAt.toISOString(),
   };
@@ -22,12 +25,15 @@ function serializeAddon(addon: typeof rentalAddonsTable.$inferSelect) {
 
 const AddonSchema = z.object({
   name: z.string().min(1),
+  nameJa: z.string().nullable().optional(),
+  nameZhTw: z.string().nullable().optional(),
   description: z.string().optional(),
+  descriptionJa: z.string().nullable().optional(),
+  descriptionZhTw: z.string().nullable().optional(),
   image: z.string().nullable().optional(),
-  pricingType: z.enum(["flat", "per_day", "per_unit"]).optional(),
+  pricingType: z.enum(["flat", "per_day"]).optional(),
   flatFee: z.coerce.number().optional(),
   perDayFee: z.coerce.number().optional(),
-  perUnitFee: z.coerce.number().optional(),
   maxQty: z.coerce.number().int().optional(),
   inventoryLimit: z.coerce.number().int().nullable().optional(),
   vehicleCompatibility: z.array(z.string()).optional(),
@@ -60,7 +66,13 @@ router.post("/admin/rental/addons", requireAdminAuth, async (req, res): Promise<
     return;
   }
 
-  const [addon] = await db.insert(rentalAddonsTable).values(body.data).returning();
+  const values = {
+    ...body.data,
+    flatFee: body.data.pricingType === "per_day" ? 0 : body.data.flatFee,
+    perDayFee: body.data.pricingType === "flat" ? 0 : body.data.perDayFee,
+    perUnitFee: 0,
+  };
+  const [addon] = await db.insert(rentalAddonsTable).values(values).returning();
   await logRentalAudit({ adminUser: adminName(req), action: "addon_created", recordType: "addon", recordId: addon.id, newValue: { name: addon.name } });
   res.status(201).json(serializeAddon(addon));
 });
@@ -79,9 +91,14 @@ router.put("/admin/rental/addons/:id", requireAdminAuth, async (req, res): Promi
     return;
   }
 
+  const values = {
+    ...body.data,
+    ...(body.data.pricingType === "per_day" ? { flatFee: 0, perUnitFee: 0 } : {}),
+    ...(body.data.pricingType === "flat" ? { perDayFee: 0, perUnitFee: 0 } : {}),
+  };
   const [addon] = await db
     .update(rentalAddonsTable)
-    .set({ ...body.data, updatedAt: new Date() })
+    .set({ ...values, updatedAt: new Date() })
     .where(eq(rentalAddonsTable.id, id))
     .returning();
 

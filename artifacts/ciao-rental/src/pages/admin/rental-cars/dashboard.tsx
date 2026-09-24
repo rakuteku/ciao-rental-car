@@ -1,6 +1,6 @@
 import { useAdminRentalDashboard } from "@/hooks/use-rental-operations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Car, ClipboardList, DollarSign, CalendarRange, Clock } from "lucide-react";
+import { Car, ClipboardList, JapaneseYen, CalendarRange, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export function AdminRentalDashboard() {
@@ -53,10 +53,10 @@ export function AdminRentalDashboard() {
         <Card className="hover-elevate shadow-sm border-t-4 border-t-primary/50 transition-all">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">MTD Revenue</CardTitle>
-            <div className="p-2 bg-muted rounded-full"><DollarSign className="w-4 h-4" /></div>
+            <div className="p-2 bg-muted rounded-full"><JapaneseYen className="w-4 h-4" /></div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-mono">${stats.mtdRevenue || 0}</div>
+            <div className="text-3xl font-bold font-mono">¥{Number(stats.mtdRevenue || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">Month to date</p>
           </CardContent>
         </Card>

@@ -25,7 +25,11 @@ export const rentalAddonsTable = pgTable(
   {
     id: serial("id").primaryKey(),
     name: text("name").notNull(),
+    nameJa: text("name_ja"),
+    nameZhTw: text("name_zh_tw"),
     description: text("description").notNull().default(""),
+    descriptionJa: text("description_ja"),
+    descriptionZhTw: text("description_zh_tw"),
     image: text("image"),
     pricingType: rentalAddonPricingTypeEnum("pricing_type").notNull().default("flat"),
     flatFee: real("flat_fee").notNull().default(0),
