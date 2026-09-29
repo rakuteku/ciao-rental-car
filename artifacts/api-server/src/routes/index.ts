@@ -13,6 +13,8 @@ import rentalAvailabilityBlocksRouter from "./rental-availability-blocks";
 import rentalAddonsRouter from "./rental-addons";
 import rentalReservationsRouter from "./rental-reservations";
 import rentalOperationsRouter from "./rental-operations";
+import rentalPrivateDocumentsRouter from "./rental-private-documents";
+import operatorsRouter from "./operators";
 
 const router: IRouter = Router();
 
@@ -28,7 +30,9 @@ router.use(sitemapRouter);
 router.use(rentalVehiclesRouter);
 router.use(rentalAvailabilityBlocksRouter);
 router.use(rentalAddonsRouter);
+router.use(rentalPrivateDocumentsRouter);
 router.use(rentalReservationsRouter);
 router.use(rentalOperationsRouter);
+router.use(operatorsRouter);
 
 export default router;

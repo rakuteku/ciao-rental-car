@@ -11,7 +11,10 @@ import {
   db,
   pageContentTable,
   rentalAddonsTable,
+  rentalOperatorsTable,
+  rentalReservationsTable,
   rentalSettingsTable,
+  rentalDriverDocumentsTable,
   rentalVehicleImagesTable,
   rentalVehiclePricingTable,
   rentalVehiclesTable,
@@ -166,12 +169,82 @@ export async function runRentalCatalogBackfill(
   log("Rental catalog backfill starting.");
 
   await db.transaction(async (tx) => {
+    // The stable slug, rather than a hard-coded serial value, identifies the
+    // platform tenant across fresh databases and repeated backfills.
+    await tx
+      .insert(rentalOperatorsTable)
+      .values({
+        slug: "platform",
+        name: "Platform",
+        status: "active",
+        verificationStatus: "approved",
+        isPlatform: true,
+      })
+      .onConflictDoNothing({ target: rentalOperatorsTable.slug });
+    const [platformOperator] = await tx
+      .select()
+      .from(rentalOperatorsTable)
+      .where(eq(rentalOperatorsTable.slug, "platform"));
+    if (!platformOperator) throw new Error("Platform operator backfill failed");
+
+    // Publish first adds these ownership columns as nullable. Adopt existing
+    // rows as platform-owned in the same transaction before serving requests.
+    await tx
+      .update(rentalVehiclesTable)
+      .set({ operatorId: platformOperator.id })
+      .where(isNull(rentalVehiclesTable.operatorId));
+    await tx
+      .update(rentalAddonsTable)
+      .set({ operatorId: platformOperator.id })
+      .where(isNull(rentalAddonsTable.operatorId));
+    await tx
+      .update(rentalReservationsTable)
+      .set({ operatorId: platformOperator.id })
+      .where(isNull(rentalReservationsTable.operatorId));
+    await tx
+      .update(rentalDriverDocumentsTable)
+      .set({ operatorId: platformOperator.id })
+      .where(isNull(rentalDriverDocumentsTable.operatorId));
+
+    if (process.env.RENTAL_MARKETPLACE_ENABLED?.trim().toLowerCase() === "true") {
+      const unownedVehicle = await tx
+        .select({ id: rentalVehiclesTable.id })
+        .from(rentalVehiclesTable)
+        .where(isNull(rentalVehiclesTable.operatorId))
+        .limit(1);
+      const unownedAddon = await tx
+        .select({ id: rentalAddonsTable.id })
+        .from(rentalAddonsTable)
+        .where(isNull(rentalAddonsTable.operatorId))
+        .limit(1);
+      const unownedReservation = await tx
+        .select({ id: rentalReservationsTable.id })
+        .from(rentalReservationsTable)
+        .where(isNull(rentalReservationsTable.operatorId))
+        .limit(1);
+      const unownedDocument = await tx
+        .select({ id: rentalDriverDocumentsTable.id })
+        .from(rentalDriverDocumentsTable)
+        .where(isNull(rentalDriverDocumentsTable.operatorId))
+        .limit(1);
+      if (
+        unownedVehicle.length ||
+        unownedAddon.length ||
+        unownedReservation.length ||
+        unownedDocument.length
+      ) {
+        throw new Error(
+          "Marketplace startup blocked: null operator ownership remains after platform backfill",
+        );
+      }
+    }
+
     const legacyCars = await tx.select().from(carsTable).orderBy(carsTable.id);
     const legacyByName = new Map(legacyCars.map((car) => [normalize(car.name), car]));
     const existingVehicles = await tx
       .select()
       .from(rentalVehiclesTable)
-      .where(isNull(rentalVehiclesTable.deletedAt));
+      .where(and(isNull(rentalVehiclesTable.deletedAt), eq(rentalVehiclesTable.operatorId, platformOperator.id)));
     const claimedVehicleIds = new Set<number>();
 
     for (const mapping of vehicleMappings) {
@@ -186,11 +259,13 @@ export async function runRentalCatalogBackfill(
         existingVehicles.find(
           (vehicle) =>
             !claimedVehicleIds.has(vehicle.id) &&
+            vehicle.legacyCarId === legacy.id &&
             (normalize(vehicle.model) === normalize(legacy.name) ||
               normalize(vehicle.publicTitle).includes(normalize(legacy.name))),
         );
 
       const values = {
+        legacyCarId: legacy.id,
         internalName: `${legacy.model} ${legacy.name}`,
         publicTitle: `${legacy.model} ${legacy.name}`,
         publicTitleJa: mapping.publicTitleJa,
@@ -248,7 +323,7 @@ export async function runRentalCatalogBackfill(
       } else {
         [vehicle] = await tx
           .insert(rentalVehiclesTable)
-          .values(values)
+          .values({ ...values, operatorId: platformOperator.id })
           .returning();
         log(`Rental vehicle ${mapping.slug} created (id=${vehicle.id}, source cars.id=${legacy.id}).`);
       }
@@ -332,7 +407,12 @@ export async function runRentalCatalogBackfill(
       const [existing] = await tx
         .select()
         .from(rentalAddonsTable)
-        .where(eq(rentalAddonsTable.name, addonDefault.name));
+        .where(
+          and(
+            eq(rentalAddonsTable.operatorId, platformOperator.id),
+            eq(rentalAddonsTable.name, addonDefault.name),
+          ),
+        );
       if (existing) {
         await tx
           .update(rentalAddonsTable)
@@ -342,7 +422,12 @@ export async function runRentalCatalogBackfill(
       } else {
         const [addon] = await tx
           .insert(rentalAddonsTable)
-          .values({ ...addonDefault, published: true, required: false })
+          .values({
+            ...addonDefault,
+            operatorId: platformOperator.id,
+            published: true,
+            required: false,
+          })
           .returning();
         log(`Rental add-on ${addonDefault.name} created (id=${addon.id}).`);
       }

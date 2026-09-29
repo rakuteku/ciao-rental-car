@@ -9,10 +9,13 @@ import {
   timestamp,
   jsonb,
   unique,
+  uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { carsTable } from "./cars";
+import { rentalOperatorsTable } from "./rental-marketplace";
 
 export const rentalVehicleStatusEnum = pgEnum("rental_vehicle_status", [
   "draft",
@@ -59,6 +62,8 @@ export const rentalVehiclesTable = pgTable(
   "rental_vehicles",
   {
     id: serial("id").primaryKey(),
+    operatorId: integer("operator_id").references(() => rentalOperatorsTable.id),
+    legacyCarId: integer("legacy_car_id").references(() => carsTable.id, { onDelete: "set null" }),
     internalName: text("internal_name").notNull(),
     publicTitle: text("public_title").notNull(),
     publicTitleJa: text("public_title_ja"),
@@ -136,6 +141,8 @@ export const rentalVehiclesTable = pgTable(
   },
   (table) => [
     unique("rental_vehicles_slug_unique").on(table.slug),
+    uniqueIndex("rental_vehicles_legacy_car_unique").on(table.legacyCarId),
+    index("rental_vehicles_operator_idx").on(table.operatorId),
     index("rental_vehicles_status_idx").on(table.status),
     index("rental_vehicles_sort_idx").on(table.sortOrder),
   ],

@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { db } from "@workspace/db";
-import { rentalAddonsTable } from "@workspace/db";
+import { rentalAddonsTable, rentalOperatorsTable } from "@workspace/db";
 import { requireAdminAuth } from "../middlewares/admin-auth";
+import { platformOperatorId } from "../lib/platform-operator";
 import { z } from "zod/v4";
 import { logRentalAudit } from "../lib/rental-events";
 
@@ -43,12 +44,19 @@ const AddonSchema = z.object({
 });
 
 router.get("/rental/addons", async (_req, res): Promise<void> => {
+  const enabled = process.env.RENTAL_MARKETPLACE_ENABLED === "true";
   const addons = await db
-    .select()
+    .select({ addon: rentalAddonsTable })
     .from(rentalAddonsTable)
-    .where(eq(rentalAddonsTable.published, true))
+    .innerJoin(rentalOperatorsTable, eq(rentalAddonsTable.operatorId, rentalOperatorsTable.id))
+    .where(and(
+      eq(rentalAddonsTable.published, true),
+      enabled
+        ? and(eq(rentalOperatorsTable.status, "active"), eq(rentalOperatorsTable.verificationStatus, "approved"))
+        : eq(rentalOperatorsTable.slug, "platform"),
+    ))
     .orderBy(asc(rentalAddonsTable.sortOrder));
-  res.json(addons.map(serializeAddon));
+  res.json(addons.map(({ addon }) => serializeAddon(addon)));
 });
 
 router.get("/admin/rental/addons", requireAdminAuth, async (_req, res): Promise<void> => {
@@ -72,7 +80,7 @@ router.post("/admin/rental/addons", requireAdminAuth, async (req, res): Promise<
     perDayFee: body.data.pricingType === "flat" ? 0 : body.data.perDayFee,
     perUnitFee: 0,
   };
-  const [addon] = await db.insert(rentalAddonsTable).values(values).returning();
+  const [addon] = await db.insert(rentalAddonsTable).values({ ...values, operatorId: await platformOperatorId() }).returning();
   await logRentalAudit({ adminUser: adminName(req), action: "addon_created", recordType: "addon", recordId: addon.id, newValue: { name: addon.name } });
   res.status(201).json(serializeAddon(addon));
 });

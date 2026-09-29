@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
-import { useMyBookingDetail, useSubmitBookingDocuments, useCancelBookingRequest } from "@/hooks/use-rental-operations";
+import {
+  useMyBookingDetail,
+  useSubmitBookingDocuments,
+  useUploadPrivateBookingDocument,
+  useCancelBookingRequest,
+  useRentalMarketplaceConfig,
+} from "@/hooks/use-rental-operations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,16 +24,49 @@ export function MyBookingDetail() {
   
   const { data: res, isLoading } = useMyBookingDetail(id);
   const docMut = useSubmitBookingDocuments();
+  const privateDocMut = useUploadPrivateBookingDocument();
   const cancelMut = useCancelBookingRequest();
+  const { data: marketplaceConfig, isLoading: isMarketplaceConfigLoading, isError: isMarketplaceConfigError } = useRentalMarketplaceConfig();
   const { toast } = useToast();
 
-  const [docType, setDocType] = useState("passport");
+  const [docType, setDocType] = useState<"passport" | "drivers_license" | "international_license">("passport");
   const [fileUrl, setFileUrl] = useState("");
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
 
   if (isLoading) return <div className="p-8 text-center min-h-[60vh]">Loading booking details...</div>;
   if (!res) return <div className="p-8 text-center text-destructive min-h-[60vh]">Booking not found or email doesn't match.</div>;
 
   const handleDocSubmit = () => {
+    if (isMarketplaceConfigLoading || !marketplaceConfig) {
+      toast({
+        title: "Document upload unavailable",
+        description: isMarketplaceConfigError ? "Could not check secure upload availability. Please try again." : "Checking secure upload availability. Please try again shortly.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (marketplaceConfig.enabled) {
+      if (!documentFile) {
+        toast({ title: "Choose a document file", variant: "destructive" });
+        return;
+      }
+      if (!["application/pdf", "image/jpeg", "image/png"].includes(documentFile.type)) {
+        toast({ title: "Unsupported file type", description: "Choose a PDF, JPEG, or PNG file.", variant: "destructive" });
+        return;
+      }
+      if (documentFile.size > 10 * 1024 * 1024) {
+        toast({ title: "File is too large", description: "Documents must be 10 MB or smaller.", variant: "destructive" });
+        return;
+      }
+      privateDocMut.mutate({ id, docType, file: documentFile }, {
+        onSuccess: () => {
+          toast({ title: "Document submitted" });
+          setDocumentFile(null);
+        },
+        onError: (err: Error) => toast({ title: "Upload failed", description: err.message, variant: "destructive" })
+      });
+      return;
+    }
     if (!fileUrl) {
       toast({ title: "Provide a document URL", variant: "destructive" });
       return;
@@ -112,7 +151,10 @@ export function MyBookingDetail() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Document Type</Label>
-                <Select value={docType} onValueChange={setDocType}>
+                <Select
+                  value={docType}
+                  onValueChange={(value) => setDocType(value as typeof docType)}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="passport">Passport</SelectItem>
@@ -122,10 +164,31 @@ export function MyBookingDetail() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>File URL (Demo)</Label>
-                <Input value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="https://..." />
+                {isMarketplaceConfigLoading ? (
+                  <p className="text-sm text-muted-foreground">Checking secure document upload...</p>
+                ) : isMarketplaceConfigError || !marketplaceConfig ? (
+                  <p className="text-sm text-destructive">Secure document upload availability could not be checked. Please refresh and try again.</p>
+                ) : marketplaceConfig.enabled ? (
+                  <>
+                    <Label htmlFor="booking-document-file">Document file</Label>
+                    <Input
+                      id="booking-document-file"
+                      data-testid="input-booking-document-file"
+                      type="file"
+                      accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+                      onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)}
+                    />
+                    <p className="text-xs text-muted-foreground">PDF, JPEG, or PNG; maximum 10 MB.</p>
+                    {documentFile && <p className="text-sm text-muted-foreground">{documentFile.name}</p>}
+                  </>
+                ) : (
+                  <>
+                    <Label>File URL (Demo)</Label>
+                    <Input value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="https://..." />
+                  </>
+                )}
               </div>
-              <Button className="w-full" onClick={handleDocSubmit} disabled={docMut.isPending}>
+              <Button className="w-full" onClick={handleDocSubmit} disabled={docMut.isPending || privateDocMut.isPending || isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig}>
                 Submit Document
               </Button>
             </CardContent>

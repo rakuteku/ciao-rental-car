@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
+import { useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeAddon, localizeVehicle, rentalCopy } from "@/lib/rental-localization";
@@ -68,6 +69,7 @@ export function CheckoutPage() {
   const [agreedTerms, setAgreedTerms] = useState(false);
   
   const { data: addons } = useGetRentalAddons();
+  const { data: marketplaceConfig, isLoading: isMarketplaceConfigLoading, isError: isMarketplaceConfigError } = useRentalMarketplaceConfig();
   const { data: car } = useGetRentalVehicle(draft?.vehicleSlug || "", {
     query: { enabled: !!draft?.vehicleSlug, queryKey: getGetRentalVehicleQueryKey(draft?.vehicleSlug || "") }
   });
@@ -153,7 +155,20 @@ export function CheckoutPage() {
         setStep(3);
       })();
     } else if (step === 3) {
-      updateDraft({ documents });
+      if (isMarketplaceConfigLoading || !marketplaceConfig) {
+        toast({
+          title: "Document settings unavailable",
+          description: isMarketplaceConfigError ? "Could not check secure document settings. Please try again." : "Checking document settings. Please try again shortly.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (marketplaceConfig.enabled) {
+        setDocuments({});
+        updateDraft({ documents: {} });
+      } else {
+        updateDraft({ documents });
+      }
       setStep(4);
     } else if (step === 4) {
       updateDraft({ differentReturnLocation });
@@ -168,6 +183,14 @@ export function CheckoutPage() {
   };
 
   const handleConfirm = () => {
+    if (isMarketplaceConfigLoading || !marketplaceConfig) {
+      toast({
+        title: "Booking unavailable",
+        description: isMarketplaceConfigError ? "Could not verify document settings. Please try again." : "Checking document settings. Please try again shortly.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!draft.holdId || holdExpired) {
       toast({ title: "Error", description: "Hold expired or invalid", variant: "destructive" });
       return;
@@ -183,12 +206,14 @@ export function CheckoutPage() {
         returnLocation: draft.returnLocation,
         driver: draft.driver,
         additionalDrivers: draft.additionalDrivers ? [additionalDriver] : [],
-        documents: Object.entries(documents)
-          .filter(([, fileUrl]) => Boolean(fileUrl))
-          .map(([document, fileUrl]) => ({
-            docType: document.toLowerCase().includes("passport") ? "passport" : document.toLowerCase().includes("international") ? "international_license" : document.toLowerCase().includes("insurance") ? "insurance" : document.toLowerCase().includes("credit") ? "credit_card" : document.toLowerCase().includes("license") ? "drivers_license" : "other",
-            fileUrl,
-          })),
+        ...(!marketplaceConfig.enabled ? {
+          documents: Object.entries(documents)
+            .filter(([, fileUrl]) => Boolean(fileUrl))
+            .map(([document, fileUrl]) => ({
+              docType: document.toLowerCase().includes("passport") ? "passport" : document.toLowerCase().includes("international") ? "international_license" : document.toLowerCase().includes("insurance") ? "insurance" : document.toLowerCase().includes("credit") ? "credit_card" : document.toLowerCase().includes("license") ? "drivers_license" : "other",
+              fileUrl,
+            })),
+        } : {}),
          addons: Object.entries(selectedAddons)
            .filter(([, qty]) => qty > 0)
            .map(([id, qty]) => ({ addonId: parseInt(id), qty })),
@@ -446,29 +471,47 @@ export function CheckoutPage() {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
                   <h2 className="text-2xl font-serif font-bold">Required Documents</h2>
-                  <p className="text-muted-foreground">Add a file or secure document link now. You can also finish this after booking.</p>
+                  <p className="text-muted-foreground">
+                    {marketplaceConfig?.enabled
+                      ? "For your privacy, upload required documents securely from your booking details after confirming."
+                      : "Add a file or secure document link now. You can also finish this after booking."}
+                  </p>
                 </div>
-                {(car?.requiredDocuments?.length ? car.requiredDocuments : ["Driver's license", "Passport or photo ID"]).map((document, index) => (
-                  <Card key={document}>
-                    <CardContent className="p-5 flex flex-col gap-4 sm:flex-row sm:items-center">
-                      <div className="flex-1">
-                        <p className="font-medium">{document}</p>
-                        <p className="text-xs text-muted-foreground">{index === 0 ? "Required before pickup" : "Required for international rentals"}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          aria-label={`${document} link`}
-                          placeholder="Image/PDF URL"
-                          value={documents[document] ?? ""}
-                          onChange={(event) => setDocuments((current) => ({ ...current, [document]: event.target.value }))}
-                        />
-                      </div>
-                      <span className={`text-xs font-medium ${documents[document] ? "text-emerald-700" : "text-muted-foreground"}`}>
-                        {documents[document] ? "Ready to submit" : "Not submitted"}
-                      </span>
+                {marketplaceConfig?.enabled ? (
+                  <Card>
+                    <CardContent className="p-5 text-sm text-muted-foreground">
+                      No document links are submitted with your booking. After booking, upload PDF, JPEG, or PNG documents securely from your booking details.
                     </CardContent>
                   </Card>
-                ))}
+                ) : isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig ? (
+                  <Card>
+                    <CardContent className="p-5 text-sm text-muted-foreground">
+                      {isMarketplaceConfigLoading ? "Checking secure document settings..." : "Document settings could not be checked. Please refresh before continuing."}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  (car?.requiredDocuments?.length ? car.requiredDocuments : ["Driver's license", "Passport or photo ID"]).map((document, index) => (
+                    <Card key={document}>
+                      <CardContent className="p-5 flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <div className="flex-1">
+                          <p className="font-medium">{document}</p>
+                          <p className="text-xs text-muted-foreground">{index === 0 ? "Required before pickup" : "Required for international rentals"}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            aria-label={`${document} link`}
+                            placeholder="Image/PDF URL"
+                            value={documents[document] ?? ""}
+                            onChange={(event) => setDocuments((current) => ({ ...current, [document]: event.target.value }))}
+                          />
+                        </div>
+                        <span className={`text-xs font-medium ${documents[document] ? "text-emerald-700" : "text-muted-foreground"}`}>
+                          {documents[document] ? "Ready to submit" : "Not submitted"}
+                        </span>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             )}
 
@@ -591,11 +634,11 @@ export function CheckoutPage() {
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
               {step < 6 ? (
-                <Button onClick={handleNext} className="gap-2" size="lg">
+                <Button onClick={handleNext} className="gap-2" size="lg" disabled={step === 3 && (isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig)}>
                   Continue <ChevronRight className="w-4 h-4" />
                 </Button>
               ) : (
-                <Button onClick={handleConfirm} disabled={!agreedTerms || createReservation.isPending} className="gap-2 px-8" size="lg">
+                <Button onClick={handleConfirm} disabled={!agreedTerms || createReservation.isPending || isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig} className="gap-2 px-8" size="lg">
                   {createReservation.isPending ? "Confirming..." : "Confirm Booking"} <Check className="w-4 h-4" />
                 </Button>
               )}

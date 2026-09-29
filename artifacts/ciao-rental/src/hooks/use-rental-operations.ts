@@ -327,6 +327,11 @@ export const useBookingLookup = () => useMutation({
     fetchWithAuth(`/rental/my-bookings?${new URLSearchParams({ email, bookingId, accessCode }).toString()}`),
 });
 
+export const useRentalMarketplaceConfig = () => useQuery({
+  queryKey: ["rental", "marketplace", "config"],
+  queryFn: () => fetchWithAuth(`/rental/marketplace/config`) as Promise<{ enabled: boolean }>,
+});
+
 export const useSubmitBookingDocuments = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -335,6 +340,43 @@ export const useSubmitBookingDocuments = () => {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["my-bookings", id] });
+    },
+  });
+};
+
+export const useUploadPrivateBookingDocument = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, docType, file }: {
+      id: number;
+      docType: "drivers_license" | "passport" | "international_license";
+      file: File;
+    }) => {
+      const uploadRequest = await fetchWithAuth(`/rental/my-bookings/${id}/documents/upload-request`, {
+        method: "POST",
+        body: JSON.stringify({ docType, contentType: file.type }),
+      }) as { uploadPath: string; method: "PUT"; contentType: string };
+
+      const response = await fetch(uploadRequest.uploadPath, {
+        method: uploadRequest.method,
+        headers: { "Content-Type": uploadRequest.contentType },
+        body: file,
+        credentials: "include",
+      });
+      if (!response.ok) {
+        let message = "Document upload failed";
+        try {
+          const errorData = await response.json();
+          message = errorData.error || errorData.message || message;
+        } catch {
+          // Keep the upload error message when the response has no JSON body.
+        }
+        throw new Error(message);
+      }
+      return null;
+    },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["my-bookings", id] });
     },

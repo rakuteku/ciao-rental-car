@@ -87,9 +87,12 @@ export async function calculatePrice(
     .from(rentalVehiclePricingTable)
     .where(eq(rentalVehiclePricingTable.vehicleId, input.vehicleId));
   const [vehicle] = await client
-    .select({ vehicleClass: rentalVehiclesTable.vehicleClass })
+    .select({ vehicleClass: rentalVehiclesTable.vehicleClass, operatorId: rentalVehiclesTable.operatorId })
     .from(rentalVehiclesTable)
     .where(eq(rentalVehiclesTable.id, input.vehicleId));
+  if (process.env.RENTAL_MARKETPLACE_ENABLED === "true" && (!vehicle || vehicle.operatorId == null)) {
+    throw Object.assign(new Error("Vehicle unavailable"), { status: 404 });
+  }
 
   const seasonalRules = await client
     .select()
@@ -184,6 +187,9 @@ export async function calculatePrice(
         and(
           inArray(rentalAddonsTable.id, addonIds),
           eq(rentalAddonsTable.published, true),
+          ...(process.env.RENTAL_MARKETPLACE_ENABLED === "true" && vehicle?.operatorId != null
+            ? [eq(rentalAddonsTable.operatorId, vehicle.operatorId)]
+            : []),
         ),
       );
 
@@ -191,7 +197,12 @@ export async function calculatePrice(
 
     for (const req of input.addons) {
       const addon = addonMap.get(req.addonId);
-      if (!addon) continue;
+      if (!addon) {
+        if (process.env.RENTAL_MARKETPLACE_ENABLED === "true") {
+          throw Object.assign(new Error("Add-on not available for this vehicle"), { status: 400 });
+        }
+        continue;
+      }
 
       let unitPrice = 0;
       if (addon.pricingType === "flat") {

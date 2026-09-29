@@ -9,12 +9,15 @@ import {
   rentalReservationsTable,
   rentalReservationHoldsTable,
   rentalSettingsTable,
+  bookingsTable,
+  rentalOperatorsTable,
   type RentalVehicle,
   type RentalVehicleImage,
 } from "@workspace/db";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { z } from "zod/v4";
 import { logRentalAudit } from "../lib/rental-events";
+import { platformOperatorId } from "../lib/platform-operator";
 
 export async function getTurnaroundBufferHours(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -66,6 +69,18 @@ function serializeVehicle(v: RentalVehicle & { images?: RentalVehicleImage[] }) 
   };
 }
 
+export function serializePublicVehicle(v: RentalVehicle & { images?: RentalVehicleImage[] }) {
+  const { plate: _plate, vin: _vin, internalNotes: _notes, legacyCarId: _legacy, ...publicVehicle } = serializeVehicle(v);
+  return publicVehicle;
+}
+
+export async function visibleOperatorIds(): Promise<number[] | null> {
+  if (process.env.RENTAL_MARKETPLACE_ENABLED !== "true") return null;
+  const rows = await db.select({ id: rentalOperatorsTable.id }).from(rentalOperatorsTable)
+    .where(and(eq(rentalOperatorsTable.status, "active"), eq(rentalOperatorsTable.verificationStatus, "approved")));
+  return rows.map((row) => row.id);
+}
+
 async function getBasePrices(vehicleIds: number[]) {
   if (vehicleIds.length === 0) return new Map<number, number>();
   const rows = await db
@@ -91,6 +106,21 @@ export async function isVehicleAvailable(
   const bufferMs = bufferHours * 60 * 60 * 1000;
   const bufferedStart = new Date(pickupAt.getTime() - bufferMs);
   const bufferedEnd = new Date(returnAt.getTime() + bufferMs);
+
+  if (process.env.RENTAL_MARKETPLACE_ENABLED === "true") {
+    const [mapped] = await client.select({ legacyCarId: rentalVehiclesTable.legacyCarId })
+      .from(rentalVehiclesTable).where(eq(rentalVehiclesTable.id, vehicleId));
+    if (mapped?.legacyCarId) {
+      // Legacy return dates are inclusive calendar dates, not timestamps.
+      const conflicts = await client.select({ id: bookingsTable.id }).from(bookingsTable)
+        .where(and(
+          eq(bookingsTable.carId, mapped.legacyCarId),
+          sql`${bookingsTable.pickupDate}::date < ${bufferedEnd}::date + INTERVAL '1 day'`,
+          sql`${bookingsTable.returnDate}::date >= ${bufferedStart}::date`,
+        )).limit(1);
+      if (conflicts.length) return false;
+    }
+  }
 
   const blocks = await client
     .select()
@@ -234,6 +264,7 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
     .orderBy(asc(rentalVehiclesTable.sortOrder));
 
   const vehicles = await vehicleQuery;
+  const approvedIds = await visibleOperatorIds();
 
   const pickup = pickupAt ? new Date(pickupAt) : null;
   const returnD = returnAt ? new Date(returnAt) : null;
@@ -242,6 +273,7 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
   const unavailable: typeof vehicles = [];
 
   for (const v of vehicles) {
+    if (approvedIds && (v.operatorId == null || !approvedIds.includes(v.operatorId))) continue;
     if (slug && v.slug !== slug) continue;
     if (!isVehicleServiceable(v, pickupLocation, returnLocation)) continue;
     if (vehicleClass && v.vehicleClass !== vehicleClass) continue;
@@ -290,7 +322,7 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
   const pricingByVehicle = await getBasePrices(vehicles.map((vehicle) => vehicle.id));
   const serialize = (v: RentalVehicle) =>
     ({
-      ...serializeVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
+       ...serializePublicVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
       basePrice: pricingByVehicle.get(v.id) ?? null,
     });
 
@@ -311,6 +343,7 @@ router.get("/rental/vehicles", async (_req, res): Promise<void> => {
       ),
     )
     .orderBy(asc(rentalVehiclesTable.sortOrder));
+  const approvedIds = await visibleOperatorIds();
 
   const ids = vehicles.map((v) => v.id);
   let images: RentalVehicleImage[] = [];
@@ -329,8 +362,8 @@ router.get("/rental/vehicles", async (_req, res): Promise<void> => {
   }
 
   const pricingByVehicle = await getBasePrices(ids);
-  res.json(vehicles.map((v) => ({
-    ...serializeVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
+  res.json(vehicles.filter((v) => !approvedIds || (v.operatorId != null && approvedIds.includes(v.operatorId))).map((v) => ({
+    ...serializePublicVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
     basePrice: pricingByVehicle.get(v.id) ?? null,
   })));
 });
@@ -353,6 +386,11 @@ router.get("/rental/vehicles/:slug", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Vehicle not found" });
     return;
   }
+  const approvedIds = await visibleOperatorIds();
+  if (approvedIds && (vehicle.operatorId == null || !approvedIds.includes(vehicle.operatorId))) {
+    res.status(404).json({ error: "Vehicle not found" });
+    return;
+  }
 
   const images = await db
     .select()
@@ -365,7 +403,7 @@ router.get("/rental/vehicles/:slug", async (req, res): Promise<void> => {
     .from(rentalVehiclePricingTable)
     .where(eq(rentalVehiclePricingTable.vehicleId, vehicle.id));
 
-  res.json({ ...serializeVehicle({ ...vehicle, images }), pricing: pricing[0] ?? null });
+  res.json({ ...serializePublicVehicle({ ...vehicle, images }), pricing: pricing[0] ?? null });
 });
 
 router.get("/admin/rental/vehicles", requireAdminAuth, async (_req, res): Promise<void> => {
@@ -493,7 +531,7 @@ router.post("/admin/rental/vehicles", requireAdminAuth, async (req, res): Promis
 
   const [vehicle] = await db
     .insert(rentalVehiclesTable)
-    .values({ ...body.data, slug })
+    .values({ ...body.data, slug, operatorId: await platformOperatorId() })
     .returning();
 
   await db.insert(rentalVehiclePricingTable).values({ vehicleId: vehicle.id });
@@ -711,11 +749,16 @@ router.post("/admin/rental/vehicles/:id/duplicate", requireAdminAuth, async (req
   const newSlug = await ensureUniqueSlug(baseSlug);
   const newTitle = `${original.publicTitle} (Copy)`;
 
-  const { id: _id, createdAt: _ca, updatedAt: _ua, deletedAt: _da, ...rest } = original;
+  // A copy is a new physical vehicle. Never inherit its legacy checkout link
+  // or identifying registration details from the source vehicle.
+  const {
+    id: _id, legacyCarId: _legacyCarId, plate: _plate, vin: _vin,
+    createdAt: _ca, updatedAt: _ua, deletedAt: _da, ...rest
+  } = original;
 
   const [duplicate] = await db
     .insert(rentalVehiclesTable)
-    .values({ ...rest, publicTitle: newTitle, slug: newSlug, status: "draft" })
+    .values({ ...rest, legacyCarId: null, plate: null, vin: null, publicTitle: newTitle, slug: newSlug, status: "draft" })
     .returning();
 
   const [originalPricing] = await db

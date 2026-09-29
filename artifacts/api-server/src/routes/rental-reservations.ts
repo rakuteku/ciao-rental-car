@@ -19,7 +19,7 @@ import {
 } from "@workspace/db";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { calculatePrice } from "../lib/rental-pricing";
-import { isVehicleAvailable, isVehicleServiceable } from "./rental-vehicles";
+import { isVehicleAvailable, isVehicleServiceable, serializePublicVehicle, visibleOperatorIds } from "./rental-vehicles";
 import { z } from "zod/v4";
 import { logRentalAudit, queueRentalNotification } from "../lib/rental-events";
 
@@ -123,6 +123,10 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
         const err = new Error("Vehicle not found or not available") as Error & { status: number };
         err.status = 404;
         throw err;
+      }
+      const approvedIds = await visibleOperatorIds();
+      if (approvedIds && (vehicle.operatorId == null || !approvedIds.includes(vehicle.operatorId))) {
+        throw Object.assign(new Error("Vehicle not found or not available"), { status: 404 });
       }
 
       if (!isVehicleServiceable(vehicle, body.data.pickupLocation, body.data.returnLocation)) {
@@ -233,6 +237,10 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
   }
 
   const vehicleId = body.data.vehicleId;
+  if (process.env.RENTAL_MARKETPLACE_ENABLED === "true" && body.data.documents?.length) {
+    res.status(400).json({ error: "Upload documents through the private booking document flow" });
+    return;
+  }
 
   const [preHold] = await db
     .select()
@@ -289,6 +297,10 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
         err.status = 409;
         throw err;
       }
+      const approvedIds = await visibleOperatorIds();
+      if (approvedIds && (vehicle.operatorId == null || !approvedIds.includes(vehicle.operatorId))) {
+        throw Object.assign(new Error("Vehicle is not available"), { status: 404 });
+      }
 
       const available = await isVehicleAvailable(vehicleId, canonicalPickupAt, canonicalReturnAt, hold.id, undefined, tx);
       if (!available) {
@@ -308,7 +320,8 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
 
         for (const reqAddon of body.data.addons) {
           const addon = addonMap.get(reqAddon.addonId);
-          if (!addon || !addon.published) {
+          if (!addon || !addon.published ||
+            (process.env.RENTAL_MARKETPLACE_ENABLED === "true" && addon.operatorId !== vehicle.operatorId)) {
             const err = new Error(`Add-on ${reqAddon.addonId} not found or unavailable`) as Error & { status: number };
             err.status = 400;
             throw err;
@@ -388,6 +401,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
       const [reservation] = await tx
         .insert(rentalReservationsTable)
         .values({
+          operatorId: vehicle.operatorId,
           vehicleId,
           primaryDriverId: driver.id,
           pickupAt: canonicalPickupAt,
@@ -424,6 +438,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
       if (body.data.documents?.length) {
         await tx.insert(rentalDriverDocumentsTable).values(
           body.data.documents.map((document) => ({
+            operatorId: vehicle.operatorId,
             driverId: driver.id,
             reservationId: reservation.id,
             docType: document.docType,
@@ -724,19 +739,34 @@ router.post("/admin/rental/reservations", requireAdminAuth, async (req, res): Pr
   }
   const [vehicle] = await db.select().from(rentalVehiclesTable).where(and(eq(rentalVehiclesTable.id, data.vehicleId), isNull(rentalVehiclesTable.deletedAt)));
   if (!vehicle || !isVehicleServiceable(vehicle, data.pickupLocation, data.returnLocation)) return void res.status(409).json({ error: "Vehicle cannot serve these locations" });
-  if (!await isVehicleAvailable(data.vehicleId, pickupAt, returnAt)) return void res.status(409).json({ error: "Vehicle is unavailable for those dates" });
-  const pricing = await calculatePrice({ vehicleId: data.vehicleId, pickupAt, returnAt, addons: data.addons, pickupLocation: data.pickupLocation, returnLocation: data.returnLocation });
-  const [driver] = await db.insert(rentalDriversTable).values(data.driver).returning();
-  const finalTotal = data.customPrice ?? Math.max(0, pricing.finalTotal - data.discount);
-  const [reservation] = await db.insert(rentalReservationsTable).values({
-    vehicleId: data.vehicleId, primaryDriverId: driver.id, pickupAt, returnAt, pickupLocation: data.pickupLocation, returnLocation: data.returnLocation,
-    status: data.status, paymentStatus: data.paymentStatus, subtotal: pricing.subtotal, addonsTotal: pricing.addonsTotal,
-    deliveryFee: pricing.deliveryFee, discount: data.discount, tax: pricing.tax, securityDeposit: pricing.securityDeposit,
-    finalTotal, outstanding: finalTotal, source: data.source, customerAccessToken: crypto.randomUUID(), internalNotes: [data.internalNotes, data.paymentMethod ? `Payment method: ${data.paymentMethod}` : ""].filter(Boolean).join("\n") || null,
-  }).returning();
-  if (pricing.addons.length) await db.insert(rentalReservationAddonsTable).values(pricing.addons.map((addon) => ({ reservationId: reservation.id, addonId: addon.addonId, qty: addon.qty, unitPrice: addon.unitPrice, totalPrice: addon.totalPrice })));
+  let result: { reservation: typeof rentalReservationsTable.$inferSelect; email: string };
+  try {
+    result = await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${data.vehicleId})`);
+      if (!await isVehicleAvailable(data.vehicleId, pickupAt, returnAt, undefined, undefined, tx)) {
+        throw Object.assign(new Error("Vehicle is unavailable for those dates"), { status: 409 });
+      }
+      const pricing = await calculatePrice({ vehicleId: data.vehicleId, pickupAt, returnAt, addons: data.addons, pickupLocation: data.pickupLocation, returnLocation: data.returnLocation }, tx);
+      const [driver] = await tx.insert(rentalDriversTable).values(data.driver).returning();
+      const finalTotal = data.customPrice ?? Math.max(0, pricing.finalTotal - data.discount);
+      const [reservation] = await tx.insert(rentalReservationsTable).values({
+        operatorId: vehicle.operatorId,
+        vehicleId: data.vehicleId, primaryDriverId: driver.id, pickupAt, returnAt, pickupLocation: data.pickupLocation, returnLocation: data.returnLocation,
+        status: data.status, paymentStatus: data.paymentStatus, subtotal: pricing.subtotal, addonsTotal: pricing.addonsTotal,
+        deliveryFee: pricing.deliveryFee, discount: data.discount, tax: pricing.tax, securityDeposit: pricing.securityDeposit,
+        finalTotal, outstanding: finalTotal, source: data.source, customerAccessToken: crypto.randomUUID(), internalNotes: [data.internalNotes, data.paymentMethod ? `Payment method: ${data.paymentMethod}` : ""].filter(Boolean).join("\n") || null,
+      }).returning();
+      if (pricing.addons.length) await tx.insert(rentalReservationAddonsTable).values(pricing.addons.map((addon) => ({ reservationId: reservation.id, addonId: addon.addonId, qty: addon.qty, unitPrice: addon.unitPrice, totalPrice: addon.totalPrice })));
+      return { reservation, email: driver.email };
+    });
+  } catch (error) {
+    const status = (error as { status?: number }).status;
+    if (status === 409 || status === 400) return void res.status(status).json({ error: status === 409 ? "Vehicle is unavailable for those dates" : "Add-on not available for this vehicle" });
+    throw error;
+  }
+  const { reservation } = result;
   await logRentalAudit({ adminUser: ((req.session as { admin?: { username?: string } }).admin?.username) ?? "admin", action: "manual_reservation_created", recordType: "reservation", recordId: reservation.id, newValue: { source: data.source, customPrice: data.customPrice ?? null } });
-  await queueRentalNotification({ email: driver.email, eventType: "new_booking", bookingId: reservation.id, extra: { accessCode: reservation.customerAccessToken } });
+  await queueRentalNotification({ email: result.email, eventType: "new_booking", bookingId: reservation.id, extra: { accessCode: reservation.customerAccessToken } });
   res.status(201).json(serializeReservation(reservation));
 });
 
@@ -751,9 +781,16 @@ router.post("/admin/rental/reservations/:id/change-vehicle", requireAdminAuth, a
   if (!id || !Number.isInteger(vehicleId)) return void res.status(400).json({ error: "Reservation and vehicle are required" });
   const [reservation] = await db.select().from(rentalReservationsTable).where(and(eq(rentalReservationsTable.id, id), isNull(rentalReservationsTable.deletedAt)));
   if (!reservation) return void res.status(404).json({ error: "Reservation not found" });
-  const available = await isVehicleAvailable(vehicleId, reservation.pickupAt, reservation.returnAt, undefined, id);
-  if (!available) return void res.status(409).json({ error: "The selected vehicle is unavailable" });
-  const [updated] = await db.update(rentalReservationsTable).set({ vehicleId, updatedAt: new Date() }).where(eq(rentalReservationsTable.id, id)).returning();
+  const [target] = await db.select({ operatorId: rentalVehiclesTable.operatorId }).from(rentalVehiclesTable)
+    .where(and(eq(rentalVehiclesTable.id, vehicleId), isNull(rentalVehiclesTable.deletedAt)));
+  if (!target) return void res.status(404).json({ error: "Vehicle not found" });
+  const updated = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(${vehicleId})`);
+    if (!await isVehicleAvailable(vehicleId, reservation.pickupAt, reservation.returnAt, undefined, id, tx)) return null;
+    const [row] = await tx.update(rentalReservationsTable).set({ vehicleId, operatorId: target.operatorId, updatedAt: new Date() }).where(eq(rentalReservationsTable.id, id)).returning();
+    return row;
+  });
+  if (!updated) return void res.status(409).json({ error: "The selected vehicle is unavailable" });
   await logRentalAudit({ adminUser: ((req.session as { admin?: { username?: string } }).admin?.username) ?? "admin", action: "vehicle_changed", recordType: "reservation", recordId: id, previousValue: { vehicleId: reservation.vehicleId }, newValue: { vehicleId } });
   res.json(serializeReservation(updated));
 });
@@ -868,10 +905,11 @@ router.get("/rental/my-bookings", async (req, res): Promise<void> => {
   const [reservation] = await db.select().from(rentalReservationsTable).where(and(eq(rentalReservationsTable.id, bookingId), eq(rentalReservationsTable.customerAccessToken, accessCode), isNull(rentalReservationsTable.deletedAt)));
   if (!reservation) return void res.status(404).json({ error: "Booking not found" });
   const session = req.session as unknown as Record<string, unknown>;
-  session.rentalCustomerEmail = email;
-  session.rentalCustomerBookingId = bookingId;
   const drivers = await db.select().from(rentalDriversTable).where(eq(rentalDriversTable.email, email));
   const ids = drivers.map((driver) => driver.id);
+  if (!ids.includes(reservation.primaryDriverId ?? -1)) return void res.status(404).json({ error: "Booking not found" });
+  session.rentalCustomerEmail = email;
+  session.rentalCustomerBookingId = bookingId;
   const reservations = ids.length ? await db.select().from(rentalReservationsTable).where(isNull(rentalReservationsTable.deletedAt)) : [];
   const filtered = reservations.filter((item) => ids.includes(item.primaryDriverId ?? -1) && item.id === reservation.id);
   res.json(filtered.map(serializeCustomerReservation));
@@ -889,7 +927,7 @@ router.get("/rental/my-bookings/:id", async (req, res): Promise<void> => {
   if (!driver) return void res.status(404).json({ error: "Booking not found" });
   const [vehicle] = await db.select().from(rentalVehiclesTable).where(eq(rentalVehiclesTable.id, reservation.vehicleId));
   const documents = await db.select().from(rentalDriverDocumentsTable).where(eq(rentalDriverDocumentsTable.reservationId, id));
-  res.json({ ...serializeCustomerReservation(reservation), driver, vehicle: vehicle ?? null, documents: documents.map((document) => ({ ...document, createdAt: document.createdAt.toISOString(), updatedAt: document.updatedAt.toISOString(), reviewedAt: document.reviewedAt?.toISOString() ?? null })) });
+  res.json({ ...serializeCustomerReservation(reservation), driver, vehicle: vehicle ? serializePublicVehicle(vehicle) : null, documents: documents.map((document) => ({ ...document, fileUrl: process.env.RENTAL_MARKETPLACE_ENABLED === "true" ? null : document.fileUrl, createdAt: document.createdAt.toISOString(), updatedAt: document.updatedAt.toISOString(), reviewedAt: document.reviewedAt?.toISOString() ?? null })) });
 });
 
 router.post("/rental/my-bookings/:id/documents", async (req, res): Promise<void> => {
@@ -902,7 +940,7 @@ router.post("/rental/my-bookings/:id/documents", async (req, res): Promise<void>
   if (!reservation?.primaryDriverId) return void res.status(404).json({ error: "Booking not found" });
   const [driver] = await db.select().from(rentalDriversTable).where(and(eq(rentalDriversTable.id, reservation.primaryDriverId), eq(rentalDriversTable.email, email)));
   if (!driver) return void res.status(404).json({ error: "Booking not found" });
-  const [document] = await db.insert(rentalDriverDocumentsTable).values({ driverId: driver.id, reservationId: id, docType: parsed.data.docType, fileUrl: parsed.data.fileUrl, status: "submitted" }).returning();
+  const [document] = await db.insert(rentalDriverDocumentsTable).values({ operatorId: reservation.operatorId, driverId: driver.id, reservationId: id, docType: parsed.data.docType, fileUrl: parsed.data.fileUrl, status: "submitted" }).returning();
   res.status(201).json({ ...document, createdAt: document.createdAt.toISOString(), updatedAt: document.updatedAt.toISOString() });
 });
 
@@ -968,15 +1006,29 @@ router.post("/rental/pricing/calculate", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Vehicle is not available at the selected pickup or return location" });
     return;
   }
+  const approvedIds = await visibleOperatorIds();
+  if (approvedIds && (vehicle.status !== "published" || vehicle.operatorId == null || !approvedIds.includes(vehicle.operatorId))) {
+    res.status(404).json({ error: "Vehicle not found" });
+    return;
+  }
 
-  const pricing = await calculatePrice({
-    vehicleId: body.data.vehicleId,
-    pickupAt,
-    returnAt,
-    addons: body.data.addons,
-    pickupLocation: body.data.pickupLocation,
-    returnLocation: body.data.returnLocation,
-  });
+  let pricing: Awaited<ReturnType<typeof calculatePrice>>;
+  try {
+    pricing = await calculatePrice({
+      vehicleId: body.data.vehicleId,
+      pickupAt,
+      returnAt,
+      addons: body.data.addons,
+      pickupLocation: body.data.pickupLocation,
+      returnLocation: body.data.returnLocation,
+    });
+  } catch (error) {
+    if ((error as { status?: number }).status === 400) {
+      res.status(400).json({ error: "Add-on not available for this vehicle" });
+      return;
+    }
+    throw error;
+  }
 
   res.json(pricing);
 });

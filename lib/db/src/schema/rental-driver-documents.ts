@@ -11,11 +11,13 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { rentalDocTypeEnum, rentalDocStatusEnum, rentalDriversTable } from "./rental-drivers";
 import { rentalReservationsTable } from "./rental-reservations";
+import { rentalOperatorsTable } from "./rental-marketplace";
 
 export const rentalDriverDocumentsTable = pgTable(
   "rental_driver_documents",
   {
     id: serial("id").primaryKey(),
+    operatorId: integer("operator_id").references(() => rentalOperatorsTable.id),
     driverId: integer("driver_id")
       .notNull()
       .references(() => rentalDriversTable.id, { onDelete: "cascade" }),
@@ -31,6 +33,7 @@ export const rentalDriverDocumentsTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    index("rental_driver_docs_operator_idx").on(table.operatorId),
     index("rental_driver_docs_driver_idx").on(table.driverId),
     index("rental_driver_docs_reservation_idx").on(table.reservationId),
   ],

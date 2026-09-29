@@ -1,11 +1,12 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
-import { db, bookingsTable, carsTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
+import { db, bookingsTable, carsTable, rentalVehiclesTable } from "@workspace/db";
 import {
   CreateBookingBody,
   GetAdminBookingsResponse,
 } from "@workspace/api-zod";
 import { requireAdminAuth } from "../middlewares/admin-auth";
+import { isVehicleAvailable } from "./rental-vehicles";
 
 const AIRPORT_LOCATION = "New Chitose Airport";
 
@@ -38,7 +39,7 @@ router.post("/bookings", async (req, res): Promise<void> => {
   const airportDropoffFee = body.data.returnLocation === AIRPORT_LOCATION ? car.airportDropoffFee : 0;
   const totalPrice = rentalCost + airportPickupFee + airportDropoffFee;
 
-  const [booking] = await db.insert(bookingsTable).values({
+  const values = {
     carId: body.data.carId,
     pickupDate: body.data.pickupDate,
     returnDate: body.data.returnDate,
@@ -50,7 +51,39 @@ router.post("/bookings", async (req, res): Promise<void> => {
     airportPickupFee,
     airportDropoffFee,
     totalPrice,
-  }).returning();
+  };
+  let booking: typeof bookingsTable.$inferSelect;
+  if (process.env.RENTAL_MARKETPLACE_ENABLED === "true") {
+    if (Number.isNaN(pickup.getTime()) || Number.isNaN(returnD.getTime()) || returnD <= pickup) {
+      res.status(400).json({ error: "Valid pickup and return dates are required" });
+      return;
+    }
+    try {
+      booking = await db.transaction(async (tx) => {
+        const [mapped] = await tx.select({ id: rentalVehiclesTable.id })
+          .from(rentalVehiclesTable).where(eq(rentalVehiclesTable.legacyCarId, car.id));
+        if (mapped) {
+          // Both checkout paths take the same per-vehicle lock before checking availability.
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(${mapped.id})`);
+          // Legacy return dates are calendar days, inclusive.
+          const endExclusive = new Date(returnD.getTime() + 24 * 60 * 60 * 1000);
+          if (!await isVehicleAvailable(mapped.id, pickup, endExclusive, undefined, undefined, tx)) {
+            throw Object.assign(new Error("Car is not available for selected dates"), { status: 409 });
+          }
+        }
+        const [created] = await tx.insert(bookingsTable).values(values).returning();
+        return created;
+      });
+    } catch (error) {
+      if ((error as { status?: number }).status === 409) {
+        res.status(409).json({ error: "Car is not available for selected dates" });
+        return;
+      }
+      throw error;
+    }
+  } else {
+    [booking] = await db.insert(bookingsTable).values(values).returning();
+  }
 
   res.status(201).json({
     ...booking,

@@ -13,6 +13,7 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { rentalReservationsTable } from "./rental-reservations";
+import { rentalOperatorsTable } from "./rental-marketplace";
 
 export const rentalAddonPricingTypeEnum = pgEnum("rental_addon_pricing_type", [
   "flat",
@@ -24,6 +25,7 @@ export const rentalAddonsTable = pgTable(
   "rental_addons",
   {
     id: serial("id").primaryKey(),
+    operatorId: integer("operator_id").references(() => rentalOperatorsTable.id),
     name: text("name").notNull(),
     nameJa: text("name_ja"),
     nameZhTw: text("name_zh_tw"),
@@ -45,6 +47,7 @@ export const rentalAddonsTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    index("rental_addons_operator_idx").on(table.operatorId),
     index("rental_addons_published_idx").on(table.published),
   ],
 );

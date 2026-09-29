@@ -89,7 +89,7 @@ export function AdminReservationDetail() {
           <CardContent className="space-y-3">
             {res.documents?.length ? res.documents.map((document: any) => (
               <div className="rounded border p-3 space-y-2" key={document.id}>
-                <div className="flex items-center justify-between gap-2"><a className="font-medium underline" href={document.fileUrl} target="_blank" rel="noreferrer">{document.docType.replace("_", " ")}</a><Badge variant="outline">{document.status}</Badge></div>
+                <div className="flex items-center justify-between gap-2"><a className="font-medium underline" href={typeof document.fileUrl === "string" && document.fileUrl.startsWith("rental-private://") ? `/api/admin/rental/reservations/${id}/driver-documents/${document.id}/content` : document.fileUrl} target="_blank" rel="noreferrer">{document.docType.replace("_", " ")}</a><Badge variant="outline">{document.status}</Badge></div>
                 {document.adminNotes && <p className="text-sm text-muted-foreground">{document.adminNotes}</p>}
                 <div className="flex gap-2">
                   <Button size="sm" onClick={() => reviewDocument.mutate({ id: document.id, data: { status: "approved" } }, { onSuccess: () => toast({ title: "Document approved" }) })}>Approve</Button>
