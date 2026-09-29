@@ -313,6 +313,10 @@ router.patch("/operator/rental/reservations/:id", requireOperatorAuth, async (re
     res.status(400).json({ error: parsed.success ? "Invalid reservation ID" : parsed.error.message });
     return;
   }
+  if (isRentalMarketplaceEnabled() && parsed.data.status !== undefined) {
+    res.status(409).json({ error: "Marketplace reservation status is managed by the request, offer, and payment lifecycle" });
+    return;
+  }
   if (identity.role === "counter" && parsed.data.status && !["confirmed", "awaiting_pickup"].includes(parsed.data.status)) {
     res.status(403).json({ error: "This staff role cannot set that reservation status" });
     return;

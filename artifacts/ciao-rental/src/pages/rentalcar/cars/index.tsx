@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { localizeVehicle, rentalCopy } from "@/lib/rental-localization";
+import { captureRentalAttribution, formatTokyo } from "@/lib/rental-marketplace";
 
 function EstimatedPrice({ vehicle, pickupAt, returnAt, pickupLocation, returnLocation }: {
   vehicle: RentalVehicle;
@@ -25,11 +26,13 @@ function EstimatedPrice({ vehicle, pickupAt, returnAt, pickupLocation, returnLoc
   }, [vehicle.id, pickupAt, returnAt, pickupLocation, returnLocation]);
 
   if (!pickupAt || !returnAt) return <span className="text-sm">{copy.selectDates}</span>;
+  if (quote.isError) return <span className="text-xs text-[#a84736]">{language === "ja" ? "料金を取得できません" : "Quote unavailable"}</span>;
   if (!quote.data) return <span className="text-sm">{copy.calculating}</span>;
   return <span className="text-sm font-semibold">¥{quote.data.finalTotal.toLocaleString()} <span className="font-normal text-muted-foreground">{copy.estimatedTotal}</span></span>;
 }
 
 export function CarsPage() {
+  useEffect(() => { captureRentalAttribution(); }, []);
   const { language } = useLanguage();
   const copy = rentalCopy(language);
   useInlineSeoMeta({
@@ -50,7 +53,7 @@ export function CarsPage() {
     return value ? Number(value) : undefined;
   };
 
-  const { data: searchResults, isLoading } = useSearchRentalVehicles({
+  const { data: searchResults, isLoading, isError, refetch } = useSearchRentalVehicles({
     pickupLocation,
     returnLocation,
     pickupAt,
@@ -89,7 +92,7 @@ export function CarsPage() {
             <div className="mt-6 flex flex-wrap gap-4 text-sm font-medium text-muted-foreground bg-muted/40 p-4 rounded-lg inline-flex">
               <span>{pickupLocation} → {returnLocation}</span>
               <span>•</span>
-              <span>{new Date(pickupAt).toLocaleDateString()} — {new Date(returnAt).toLocaleDateString()}</span>
+              <span>{formatTokyo(pickupAt, language)} — {formatTokyo(returnAt, language)}</span>
                   <Link href={localizedPath("/rentalcar", language)} className="text-primary hover:underline ml-2">{copy.editSearch}</Link>
             </div>
           )}
@@ -97,7 +100,11 @@ export function CarsPage() {
       </div>
 
       <div className="container py-16 flex-1">
-        {isLoading ? (
+        {isError ? <div role="alert" className="mx-auto max-w-xl border bg-[#fff8f0] p-8 text-center">
+          <h2 className="font-serif text-2xl">{language === "ja" ? "車両を検索できませんでした" : "Search could not be completed"}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{language === "ja" ? "通信状況を確認して再試行してください。" : "Check your connection and try again."}</p>
+          <Button className="mt-5" onClick={() => refetch()}>{language === "ja" ? "再試行" : "Try again"}</Button>
+        </div> : isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[1, 2, 3].map((i) => (
               <div key={i} className="space-y-3">

@@ -30,6 +30,9 @@ import { readSelectedRoom } from "@/hooks/use-checkout-draft";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeAddon, localizeVehicle, rentalCopy } from "@/lib/rental-localization";
+import { captureRentalAttribution, formatTokyo, tokyoInstant, tokyoParts } from "@/lib/rental-marketplace";
+import { useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
+import { MarketplaceTerms } from "@/components/rental/MarketplaceTerms";
 
 const bookingSchema = z.object({
   pickupLocation: z.string({ required_error: "Pickup location is required" }),
@@ -37,6 +40,7 @@ const bookingSchema = z.object({
   pickupDate: z.date({ required_error: "Pickup date is required" }),
   returnDate: z.date({ required_error: "Return date is required" }),
 });
+const pickupDateString = (date: Date, time: string) => tokyoInstant(format(date, "yyyy-MM-dd"), time);
 
 export function CarDetailPage() {
   const params = useParams();
@@ -47,6 +51,7 @@ export function CarDetailPage() {
   const { toast } = useToast();
   const { setDraft } = useCheckoutDraft();
   const { language } = useLanguage();
+  const marketplace = useRentalMarketplaceConfig();
   const copy = rentalCopy(language);
 
   const { data: car, isLoading } = useGetRentalVehicle(slug, {
@@ -56,9 +61,13 @@ export function CarDetailPage() {
   const createHold = useCreateRentalHold();
   const { data: addons } = useGetRentalAddons();
   const [selectedAddons, setSelectedAddons] = useState<Record<number, number>>({});
+  const [pickupTime, setPickupTime] = useState(tokyoParts(searchParams.get("pickupAt") || "").time);
+  const [returnTime, setReturnTime] = useState(tokyoParts(searchParams.get("returnAt") || "").time);
+  useEffect(() => { captureRentalAttribution(); }, []);
 
-  const defaultPickupDate = searchParams.get("pickupAt") ? new Date(searchParams.get("pickupAt")!) : searchParams.get("pickupDate") ? new Date(searchParams.get("pickupDate")!) : new Date();
-  const defaultReturnDate = searchParams.get("returnAt") ? new Date(searchParams.get("returnAt")!) : searchParams.get("returnDate") ? new Date(searchParams.get("returnDate")!) : addDays(new Date(), 3);
+  const tokyoToday = new Date(`${tokyoParts(new Date().toISOString()).date}T12:00:00`);
+  const defaultPickupDate = searchParams.get("pickupAt") ? new Date(`${tokyoParts(searchParams.get("pickupAt")!).date}T12:00:00`) : tokyoToday;
+  const defaultReturnDate = searchParams.get("returnAt") ? new Date(`${tokyoParts(searchParams.get("returnAt")!).date}T12:00:00`) : addDays(defaultPickupDate, 3);
 
   const form = useForm<z.infer<typeof bookingSchema>>({
     resolver: zodResolver(bookingSchema),
@@ -72,12 +81,14 @@ export function CarDetailPage() {
 
   const pickupDate = form.watch("pickupDate");
   const returnDate = form.watch("returnDate");
+  const pickupInstant = pickupDate ? pickupDateString(pickupDate, pickupTime) : undefined;
+  const returnInstant = returnDate ? pickupDateString(returnDate, returnTime) : undefined;
   const pickupLocation = form.watch("pickupLocation");
   const returnLocation = form.watch("returnLocation");
   const availabilitySearch = useSearchRentalVehicles({
     slug,
-    pickupAt: pickupDate?.toISOString(),
-    returnAt: returnDate?.toISOString(),
+    pickupAt: pickupInstant,
+    returnAt: returnInstant,
   });
   const isStillAvailable = availabilitySearch.data
     ? availabilitySearch.data.available.some((vehicle) => vehicle.id === car?.id)
@@ -112,8 +123,8 @@ export function CarDetailPage() {
       calculateRef.current({
         data: {
           vehicleId: car.id,
-          pickupAt: pickupDate.toISOString(),
-          returnAt: returnDate.toISOString(),
+          pickupAt: pickupInstant!,
+          returnAt: returnInstant!,
           pickupLocation: pickupLocation,
           returnLocation: returnLocation,
           addons: Object.entries(selectedAddons)
@@ -122,17 +133,22 @@ export function CarDetailPage() {
         }
       });
     }
-  }, [car?.id, pickupDate, returnDate, pickupLocation, returnLocation, selectedAddons]);
+  }, [car?.id, pickupInstant, returnInstant, pickupLocation, returnLocation, selectedAddons]);
 
 
   function onSubmit(data: z.infer<typeof bookingSchema>) {
     if (!car) return;
+    const start = pickupDateString(data.pickupDate, pickupTime);
+    const end = pickupDateString(data.returnDate, returnTime);
+    if (end <= start || start <= new Date().toISOString()) {
+      toast({ title: language === "ja" ? "日時を確認してください" : "Check your dates", description: language === "ja" ? "貸出は現在より後、返却は貸出より後にしてください。" : "Pickup must be in the future and return after pickup.", variant: "destructive" }); return;
+    }
 
     createHold.mutate({
       data: {
         vehicleId: car.id,
-        pickupAt: data.pickupDate.toISOString(),
-        returnAt: data.returnDate.toISOString(),
+        pickupAt: start,
+        returnAt: end,
         pickupLocation: data.pickupLocation,
         returnLocation: data.returnLocation,
         addons: Object.entries(selectedAddons)
@@ -145,8 +161,8 @@ export function CarDetailPage() {
         setDraft({
           vehicleId: car.id,
           vehicleSlug: car.slug,
-          pickupAt: data.pickupDate.toISOString(),
-          returnAt: data.returnDate.toISOString(),
+          pickupAt: start,
+          returnAt: end,
           pickupLocation: data.pickupLocation,
           returnLocation: data.returnLocation,
           holdId: hold.holdId,
@@ -166,11 +182,11 @@ export function CarDetailPage() {
   }
 
   const isDateUnavailable = (date: Date) => {
-    if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true;
+    if (format(date, "yyyy-MM-dd") < tokyoParts(new Date().toISOString()).date) return true;
     return false; // Real availability logic would go here if API provided it simply
   };
 
-  const displayImage = car?.images?.[0]?.url || "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80";
+  const displayImage = car?.images?.[0]?.url || "/hero-sapporo.png";
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -208,7 +224,7 @@ export function CarDetailPage() {
                     {typeof (car as typeof car & { operatorName?: string }).operatorName === "string" && (
                       <p className="mt-2 text-sm text-muted-foreground">{language === "ja" ? "運営事業者" : "Operated by"}: {(car as typeof car & { operatorName?: string }).operatorName}</p>
                     )}
-                    {Boolean((car as typeof car & { disclosures?: Record<string, unknown> }).disclosures) && (
+                    {marketplace.data?.enabled === false && Boolean((car as typeof car & { disclosures?: Record<string, unknown> }).disclosures) && (
                       <div className="mt-3 text-sm text-muted-foreground">
                         <p className="font-medium">{language === "ja" ? "ご利用に関するご案内" : "Rental disclosures"}</p>
                         {Object.entries((car as typeof car & { disclosures?: Record<string, unknown> }).disclosures ?? {}).map(([key, value]) => (
@@ -246,19 +262,28 @@ export function CarDetailPage() {
 
                 <Separator />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {marketplace.isLoading || marketplace.isError ? <div role="status" className="animate-pulse bg-muted p-5 text-sm">{language === "ja" ? "貸渡条件を確認しています…" : "Checking rental terms…"}</div> : marketplace.data?.enabled ? <div className="space-y-5">
+                  <h2 className="text-xl font-serif font-semibold">{language === "ja" ? "この車両の貸渡条件" : "Terms for this vehicle"}</h2>
+                  <MarketplaceTerms
+                    disclosures={(car as typeof car & { disclosures?: Record<string, unknown> }).disclosures}
+                    pickupLocations={car.pickupLocations}
+                    returnLocations={car.returnLocations}
+                    language={language}
+                  />
+                  <p className="text-sm text-muted-foreground">{language === "ja" ? "原本の運転免許証、必要な場合は国際運転免許証・パスポートを貸出時にお持ちください。未提示の条件は承諾前に事業者へご確認ください。" : "Bring original driving documents and, where required, an international driving permit and passport. Ask the operator about any terms not yet supplied before accepting."}</p>
+                </div> : <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex gap-3 items-start">
                     <Shield className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <div className="font-medium">Fully Insured</div>
-                      <div className="text-sm text-muted-foreground">Comprehensive coverage included</div>
+                         <div className="font-medium">Fully Insured</div>
+                         <div className="text-sm text-muted-foreground">Comprehensive coverage included</div>
                     </div>
                   </div>
                   <div className="flex gap-3 items-start">
                     <CheckCircle2 className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <div className="font-medium">Free Cancellation</div>
-                      <div className="text-sm text-muted-foreground">Up to 48 hours before pickup</div>
+                         <div className="font-medium">Free Cancellation</div>
+                         <div className="text-sm text-muted-foreground">Up to 48 hours before pickup</div>
                     </div>
                   </div>
                   <div className="flex gap-3 items-start">
@@ -271,11 +296,11 @@ export function CarDetailPage() {
                   <div className="flex gap-3 items-start">
                     <CreditCard className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                      <div className="font-medium">Secure Payment</div>
-                      <div className="text-sm text-muted-foreground">Pay online or at pickup</div>
+                         <div className="font-medium">Secure Payment</div>
+                         <div className="text-sm text-muted-foreground">Pay online or at pickup</div>
                     </div>
                   </div>
-                </div>
+                </div>}
                 <Separator />
                 <div className="space-y-4">
                   <h3 className="font-bold text-lg">Hokkaido & winter ready</h3>
@@ -290,10 +315,10 @@ export function CarDetailPage() {
                     ].filter(([included]) => included).map(([, label]) => <span key={String(label)} className="flex gap-2"><Snowflake className="h-4 w-4" />{label}</span>)}
                   </div>
                 </div>
-                <div className="grid gap-5 border-t pt-6 text-sm text-muted-foreground">
+                {marketplace.data?.enabled === false && <div className="grid gap-5 border-t pt-6 text-sm text-muted-foreground">
                   <div><h3 className="mb-1 font-bold text-foreground">Pickup & return</h3><p>We will send meeting instructions before your selected pickup time. Please return with the same fuel level.</p></div>
                   <div><h3 className="mb-1 font-bold text-foreground">Policies & insurance</h3><p>Free cancellation is available before the policy cutoff. Standard collision coverage is included; security deposit terms are shown at checkout.</p></div>
-                </div>
+                </div>}
               </div>
             </div>
           </div>
@@ -320,7 +345,7 @@ export function CarDetailPage() {
                                 <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {LOCATIONS.map(loc => (
+                                 {(car.pickupLocations?.length ? car.pickupLocations : LOCATIONS).map(loc => (
                                   <SelectItem key={loc} value={loc}>{loc}</SelectItem>
                                 ))}
                               </SelectContent>
@@ -341,7 +366,7 @@ export function CarDetailPage() {
                                 <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {LOCATIONS.map(loc => (
+                                 {(car.returnLocations?.length ? car.returnLocations : LOCATIONS).map(loc => (
                                   <SelectItem key={loc} value={loc}>{loc}</SelectItem>
                                 ))}
                               </SelectContent>
@@ -351,6 +376,11 @@ export function CarDetailPage() {
                         )}
                       />
                     </div>
+                     <div className="grid grid-cols-2 gap-4">
+                       <label className="text-sm font-medium">{language === "ja" ? "貸出時刻（日本時間）" : "Pickup time (JST)"}<input type="time" value={pickupTime} onChange={e => setPickupTime(e.target.value)} className="mt-2 h-11 w-full rounded border bg-background px-2" data-testid="input-detail-pickup-time" /></label>
+                       <label className="text-sm font-medium">{language === "ja" ? "返却時刻（日本時間）" : "Return time (JST)"}<input type="time" value={returnTime} onChange={e => setReturnTime(e.target.value)} className="mt-2 h-11 w-full rounded border bg-background px-2" data-testid="input-detail-return-time" /></label>
+                     </div>
+                     <p className="text-xs text-muted-foreground">{pickupInstant && returnInstant ? `${formatTokyo(pickupInstant, language)} — ${formatTokyo(returnInstant, language)}` : ""}</p>
 
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
@@ -471,7 +501,7 @@ export function CarDetailPage() {
                       )}
                     </div>
 
-                    <Button type="submit" className="w-full mt-4" size="lg" disabled={createHold.isPending || calculatePrice.isPending || !priceData || !isStillAvailable}>
+                     <Button type="submit" className="w-full mt-4" size="lg" disabled={createHold.isPending || calculatePrice.isPending || !priceData || !isStillAvailable || !pickupInstant || !returnInstant || returnInstant <= pickupInstant}>
                       {createHold.isPending ? copy.calculating : copy.continueBooking}
                     </Button>
 

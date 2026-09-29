@@ -1,8 +1,9 @@
 # Versioned marketplace migration
 
-`0022_marketplace_tenant_foundation.up.sql` is a reviewed, versioned PostgreSQL
-migration for controlled development rehearsal and external databases.
-`down.sql` is its explicit rollback. These SQL files are not the mechanism for
+`0022_marketplace_tenant_foundation.up.sql` and
+`0023_marketplace_requests.up.sql` are reviewed, versioned PostgreSQL migrations
+for controlled development rehearsal and external databases. Each has an
+explicit `.down.sql` rollback. These SQL files are not the mechanism for
 managed Replit production.
 
 ## Managed Replit production: staged Publish rollout
@@ -51,8 +52,15 @@ flow.
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f lib/db/migrations/0022_marketplace_tenant_foundation.up.sql
    ```
 
-4. Record version `0022` in that database's migration ledger. This repository
-   does not automatically apply SQL migrations at startup.
+4. Record versions `0022` and `0023` in that database's migration ledger after
+   applying the corresponding files. This repository does not automatically
+   apply SQL migrations at startup.
+
+Migration `0023` adds marketplace request/offer lifecycle storage, alternate
+vehicle inventory holds, immutable accepted price/policy snapshots, booking
+attribution/marketing consent, and configured per-vehicle billable-period
+hours. It does not invent cancellation, coverage, commission, or payment terms;
+those remain administrator/operator disclosures.
 
 The versioned SQL migration is for controlled development/external databases:
 it creates/resolves the stable `platform` slug, backfills existing ownership,

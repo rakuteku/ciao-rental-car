@@ -6,6 +6,7 @@ import { requireAdminAuth } from "../middlewares/admin-auth";
 import { platformOperatorId } from "../lib/platform-operator";
 import { z } from "zod/v4";
 import { logRentalAudit } from "../lib/rental-events";
+import { isMarketplaceEnabled } from "../lib/rental-request-policy.mjs";
 
 function adminName(req: { session: unknown }) {
   return ((req.session as { admin?: { username?: string } }).admin?.username) ?? "admin";
@@ -44,7 +45,7 @@ const AddonSchema = z.object({
 });
 
 router.get("/rental/addons", async (_req, res): Promise<void> => {
-  const enabled = process.env.RENTAL_MARKETPLACE_ENABLED === "true";
+  const enabled = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED);
   const addons = await db
     .select({ addon: rentalAddonsTable })
     .from(rentalAddonsTable)

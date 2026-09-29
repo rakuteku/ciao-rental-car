@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "wouter";
+import { useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
+import { formatTokyo, tokyoInstant } from "@/lib/rental-marketplace";
 import { PartnerShell, Section, Field, inputClass, textareaClass, PrimaryButton, SecondaryButton, StatusMessage, partnerRequest, usePartnerText, type PartnerIdentity, record, arrayFrom } from "./shared";
 
 type Vehicle = Record<string, any> & { id?: string | number; internalName?: string; publicTitle?: string; brand?: string; model?: string };
@@ -26,6 +28,124 @@ const requirementLabels: Record<string, [string, string]> = {
   validInsurance: ["Valid insurance", "有効な保険"], validPermissions: ["Valid permissions", "有効な許可証"],
   acceptedEvidence: ["Uploaded supporting documents", "必要書類のアップロード"],
 };
+
+type OperatorRequest = {
+  id: number; status: string; vehicleId?: number; vehicleName?: string;
+  vehicle?: { publicTitle?: string };
+  offer?: { pickupAt?: string; returnAt?: string; pickupLocation?: string; returnLocation?: string; totalPrice?: number };
+  pickupAt?: string; returnAt?: string; pickupLocation?: string; returnLocation?: string;
+  driver?: { fullName?: string; email?: string }; travelNotes?: string;
+  finalTotal?: number; quotedTotal?: number;
+};
+
+function PartnerRequestQueue({ role, vehicles }: { role: string; vehicles: Vehicle[] }) {
+  const t = usePartnerText();
+  const marketplace = useRentalMarketplaceConfig();
+  const [requests, setRequests] = useState<OperatorRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [offer, setOffer] = useState({ total: "", vehicleId: "", notes: "" });
+  const [quote, setQuote] = useState({ vehicleId: "", pickupDate: "", pickupTime: "10:00", returnDate: "", returnTime: "10:00", pickupLocation: "", returnLocation: "", fullName: "", email: "", phone: "", total: "", reason: "", travelNotes: "", marketingConsent: false });
+  const [quoteBusy, setQuoteBusy] = useState(false);
+  const [quoteLink, setQuoteLink] = useState("");
+  const reload = useCallback(async () => {
+    setLoading(true); setError("");
+    try {
+      const response = await partnerRequest("/api/partner/rental/requests");
+      setRequests(arrayFrom(response, ["requests", "items"]) as OperatorRequest[]);
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not load requests."); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { if (marketplace.data?.enabled) void reload(); }, [reload, marketplace.data?.enabled]);
+  const action = async (request: OperatorRequest, kind: "confirm" | "offer" | "decline") => {
+    const reason = kind === "decline" ? window.prompt(t("Reason for declining this request", "お断りする理由"))?.trim() : undefined;
+    if (kind === "decline" && !reason) return;
+    setBusyId(request.id); setError(""); setNotice("");
+    try {
+      await partnerRequest(`/api/partner/rental/requests/${request.id}/${kind === "confirm" ? "accept" : kind}`, {
+        method: "POST", body: JSON.stringify(kind === "offer" ? {
+          totalPrice: Number(offer.total), reason: offer.notes.trim(), vehicleId: Number(offer.vehicleId),
+        } : kind === "decline" ? { reason } : {}),
+      });
+      setSelected(null); setNotice(t("Request updated. The customer can review its status.", "リクエストを更新しました。お客様は状況を確認できます。"));
+      await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : t("Could not update request.", "更新できませんでした。")); }
+    finally { setBusyId(null); }
+  };
+  const createQuote = async (event: FormEvent) => {
+    event.preventDefault(); setError(""); setNotice(""); setQuoteBusy(true); setQuoteLink("");
+    try {
+      const start = tokyoInstant(quote.pickupDate, quote.pickupTime);
+      const end = tokyoInstant(quote.returnDate, quote.returnTime);
+      if (start <= new Date().toISOString() || end <= start) throw new Error(t("Choose a future pickup and a later return in Japan time.", "日本時間で現在より後の貸出日時と、その後の返却日時を指定してください。"));
+      const created = await partnerRequest<{ id: number; customerAccessToken: string }>("/api/partner/rental/requests/quote", { method: "POST", body: JSON.stringify({
+        vehicleId: Number(quote.vehicleId), pickupAt: start, returnAt: end,
+        pickupLocation: quote.pickupLocation.trim(), returnLocation: quote.returnLocation.trim(),
+        driver: { fullName: quote.fullName.trim(), email: quote.email.trim(), phone: quote.phone.trim() },
+        travelNotes: quote.travelNotes.trim() || undefined, marketingConsent: quote.marketingConsent,
+        totalPrice: quote.total ? Number(quote.total) : undefined, reason: quote.reason.trim(),
+      }) });
+      if (!created.id || !created.customerAccessToken) throw new Error(t("Quote created but access link was not supplied. Contact support.", "見積は作成されましたがアクセスリンクがありません。サポートにご連絡ください。"));
+      setQuoteLink(`${window.location.origin}/rentalcar/requests/${created.id}?accessCode=${encodeURIComponent(created.customerAccessToken)}`);
+      setNotice(t("Quote created. Share the private link with the customer through an agreed service channel only.", "見積を作成しました。お客様が同意された連絡手段でのみ、専用リンクを共有してください。"));
+      await reload();
+    } catch (e) { setError(e instanceof Error ? e.message : t("Could not create quote.", "見積を作成できませんでした。")); }
+    finally { setQuoteBusy(false); }
+  };
+  const canAct = ["owner", "manager", "operations", "counter"].includes(role);
+  if (!marketplace.data?.enabled) return null;
+  return <Section title={t("Rental requests", "レンタルリクエスト")} aside={<SecondaryButton onClick={() => void reload()} disabled={loading}>{t("Refresh queue", "一覧を更新")}</SecondaryButton>}>
+    <p className="text-sm text-slate-600">{t("Review new requests before confirming. Send a revised vehicle or price as an offer for explicit customer approval. No payment is captured here.", "確定前にリクエストを確認してください。車両または料金の変更は、お客様の明示的な承諾を必要とする変更提案として送信します。この画面では決済されません。")}</p>
+    {canAct && <form onSubmit={createQuote} className="space-y-4 rounded-lg border border-slate-200 bg-[#faf9f4] p-4 sm:p-5">
+      <div><h3 className="font-serif text-xl font-semibold">{t("Create staff quote", "スタッフ見積を作成")}</h3><p className="mt-1 text-xs text-slate-600">{t("For a customer inquiry handled by staff. This creates an offer for customer approval, not a paid booking. Times are Japan Standard Time.", "スタッフが対応したお問い合わせ向けです。お客様の承諾を待つ見積を作成し、決済や予約確定は行いません。日時は日本標準時です。")}</p></div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Field label={t("Vehicle", "車両")}><select required className={inputClass()} value={quote.vehicleId} onChange={e => setQuote({ ...quote, vehicleId: e.target.value })}><option value="">{t("Select your vehicle", "自社の車両を選択")}</option>{vehicles.filter(v => v.id != null && v.status === "published").map(v => <option key={v.id} value={String(v.id)}>{v.publicTitle || `${v.brand} ${v.model}`} · #{v.id}</option>)}</select></Field>
+        <Field label={t("Pickup date (JST)", "貸出日（日本時間）")}><input required type="date" className={inputClass()} value={quote.pickupDate} onChange={e => setQuote({ ...quote, pickupDate: e.target.value })} /></Field>
+        <Field label={t("Pickup time (JST)", "貸出時刻（日本時間）")}><input required type="time" className={inputClass()} value={quote.pickupTime} onChange={e => setQuote({ ...quote, pickupTime: e.target.value })} /></Field>
+        <Field label={t("Return date (JST)", "返却日（日本時間）")}><input required type="date" className={inputClass()} value={quote.returnDate} onChange={e => setQuote({ ...quote, returnDate: e.target.value })} /></Field>
+        <Field label={t("Return time (JST)", "返却時刻（日本時間）")}><input required type="time" className={inputClass()} value={quote.returnTime} onChange={e => setQuote({ ...quote, returnTime: e.target.value })} /></Field>
+        <Field label={t("Pickup location", "貸出場所")}><input required maxLength={300} className={inputClass()} value={quote.pickupLocation} onChange={e => setQuote({ ...quote, pickupLocation: e.target.value })} /></Field>
+        <Field label={t("Return location", "返却場所")}><input required maxLength={300} className={inputClass()} value={quote.returnLocation} onChange={e => setQuote({ ...quote, returnLocation: e.target.value })} /></Field>
+        <Field label={t("Customer legal name", "お客様の氏名")}><input required maxLength={200} className={inputClass()} value={quote.fullName} onChange={e => setQuote({ ...quote, fullName: e.target.value })} /></Field>
+        <Field label={t("Customer email", "お客様のメール")}><input required type="email" className={inputClass()} value={quote.email} onChange={e => setQuote({ ...quote, email: e.target.value })} /></Field>
+        <Field label={t("Customer phone", "お客様の電話番号")}><input required type="tel" className={inputClass()} value={quote.phone} onChange={e => setQuote({ ...quote, phone: e.target.value })} /></Field>
+        <Field label={t("Revised total (JPY, optional)", "見積総額（円、任意）")}><input type="number" min="0" step="1" className={inputClass()} value={quote.total} onChange={e => setQuote({ ...quote, total: e.target.value })} /></Field>
+        <Field label={t("Reason for quote", "見積の理由")}><input required maxLength={2000} className={inputClass()} value={quote.reason} onChange={e => setQuote({ ...quote, reason: e.target.value })} /></Field>
+        <div className="sm:col-span-2 lg:col-span-3"><Field label={t("Travel notes (optional)", "旅程メモ（任意）")}><textarea maxLength={5000} className={textareaClass()} value={quote.travelNotes} onChange={e => setQuote({ ...quote, travelNotes: e.target.value })} /></Field></div>
+      </div>
+      <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={quote.marketingConsent} onChange={e => setQuote({ ...quote, marketingConsent: e.target.checked })} /><span>{t("Customer explicitly opted in to marketing (leave unchecked unless recorded). This does not control essential request communication.", "お客様から販促案内の明示的な同意を得ています（記録がなければ未選択）。見積に必要な連絡とは別です。")}</span></label>
+      <PrimaryButton disabled={quoteBusy || !vehicles.length}>{quoteBusy ? t("Creating…", "作成中…") : t("Create quote for approval", "承諾待ち見積を作成")}</PrimaryButton>
+      {quoteLink && <div className="rounded-lg border bg-white p-4 text-sm"><p className="font-semibold">{t("Private customer link", "お客様専用リンク")}</p><p className="mt-2 break-all text-slate-600">{quoteLink}</p><SecondaryButton onClick={() => { void navigator.clipboard.writeText(quoteLink).then(() => setNotice(t("Link copied. Share privately with this customer only.", "リンクをコピーしました。対象のお客様にのみ安全に共有してください。"))).catch(() => setError(t("Could not copy. Select and copy the link above.", "コピーできませんでした。上のリンクを選択してコピーしてください。"))); }}>{t("Copy private link", "専用リンクをコピー")}</SecondaryButton></div>}
+    </form>}
+    {error && <StatusMessage error>{error} <button type="button" className="underline" onClick={() => void reload()}>{t("Retry", "再試行")}</button></StatusMessage>}
+    {notice && <StatusMessage>{notice}</StatusMessage>}
+    {loading ? <div className="space-y-2"><div className="h-16 animate-pulse rounded bg-slate-100" /><div className="h-16 animate-pulse rounded bg-slate-100" /></div> :
+      requests.length === 0 ? <div className="rounded-lg border border-dashed p-7 text-center text-sm text-slate-500">{t("No rental requests in the queue.", "現在リクエストはありません。")}</div> :
+      <div className="divide-y rounded-lg border">{requests.map(request => <article key={request.id} className="p-4" data-testid={`request-${request.id}`}>
+        <div className="flex flex-wrap justify-between gap-2"><div><p className="font-semibold">#{request.id} · {request.vehicle?.publicTitle || request.vehicleName || t("Vehicle", "車両")} {request.vehicleId ?? ""}</p><p className="mt-1 text-xs text-slate-500">{request.driver?.fullName} · {request.driver?.email}</p></div><span className="h-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">{request.status}</span></div>
+        <p className="mt-3 text-sm text-slate-600">{request.offer?.pickupAt || request.pickupAt ? formatTokyo(request.offer?.pickupAt || request.pickupAt!, "en") : "—"} · {request.offer?.pickupLocation || request.pickupLocation || "—"} → {request.offer?.returnAt || request.returnAt ? formatTokyo(request.offer?.returnAt || request.returnAt!, "en") : "—"} · {request.offer?.returnLocation || request.returnLocation || "—"}</p>
+        {(request.offer?.totalPrice ?? request.finalTotal ?? request.quotedTotal) != null && <p className="mt-2 text-sm font-semibold">¥{Number(request.offer?.totalPrice ?? request.finalTotal ?? request.quotedTotal).toLocaleString()}</p>}
+        {request.travelNotes && <p className="mt-2 whitespace-pre-wrap border-l-2 border-amber-500 pl-3 text-sm">{request.travelNotes}</p>}
+        {canAct && request.status === "requested" && <div className="mt-4 flex flex-wrap gap-2">
+          <PrimaryButton type="button" disabled={busyId === request.id} onClick={() => void action(request, "confirm")}>{t("Confirm as requested", "内容どおり確定")}</PrimaryButton>
+          <SecondaryButton disabled={busyId === request.id} onClick={() => { setSelected(selected === request.id ? null : request.id); setOffer({ total: String(request.offer?.totalPrice ?? request.finalTotal ?? request.quotedTotal ?? ""), vehicleId: String(request.vehicleId), notes: "" }); }}>{t("Create revised quote", "変更見積を作成")}</SecondaryButton>
+          <SecondaryButton disabled={busyId === request.id} onClick={() => void action(request, "decline")}>{t("Decline", "お断りする")}</SecondaryButton>
+        </div>}
+        {selected === request.id && <div className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 sm:grid-cols-2">
+          <div className="sm:col-span-2"><p className="font-semibold">{t("Revised quote for customer approval", "お客様の承諾を必要とする変更見積")}</p><p className="mt-1 text-xs text-slate-600">{t("Choose a vehicle from your own fleet. Availability and pickup coverage are checked when you send the offer.", "自社の車両から選択してください。提案送信時に空車状況と貸出対応エリアが確認されます。")}</p></div>
+          <Field label={t("Proposed vehicle", "提案車両")}><select className={inputClass()} value={offer.vehicleId} onChange={e => setOffer({ ...offer, vehicleId: e.target.value })}>
+            {vehicles.filter(vehicle => vehicle.id != null && vehicle.status === "published").map(vehicle => <option key={vehicle.id} value={String(vehicle.id)}>{vehicle.publicTitle || `${vehicle.brand || ""} ${vehicle.model || ""}`} · #{vehicle.id}{String(vehicle.id) === String(request.vehicleId) ? ` (${t("original", "元の車両")})` : ""}</option>)}
+          </select></Field>
+          <Field label={t("Revised total (JPY)", "変更後の総額（円）")}><input required type="number" min="0" className={inputClass()} value={offer.total} onChange={e => setOffer({ ...offer, total: e.target.value })} /></Field>
+          <div className="sm:col-span-2"><Field label={t("Reason for the revised quote", "見積変更の理由")}><textarea required className={textareaClass()} value={offer.notes} onChange={e => setOffer({ ...offer, notes: e.target.value })} /></Field></div>
+          <div className="flex gap-2 sm:col-span-2"><PrimaryButton type="button" disabled={busyId === request.id || offer.total === "" || !offer.vehicleId || !offer.notes.trim()} onClick={() => void action(request, "offer")}>{t("Send revised quote", "変更見積を送信")}</PrimaryButton><SecondaryButton onClick={() => setSelected(null)}>{t("Cancel", "キャンセル")}</SecondaryButton></div>
+        </div>}
+      </article>)}</div>}
+  </Section>;
+}
 
 export function PartnerInventoryPage() {
   const t = usePartnerText();
@@ -410,6 +530,7 @@ export function PartnerInventoryPage() {
       </div>
       {!isApproved && <div className="mb-5"><StatusMessage><strong>{t("Partner application status", "パートナー申請状況")}: {String(operator.verificationStatus ?? operator.status ?? t("Pending review", "審査待ち"))}</strong><p className="mt-1">{t("You can prepare inventory now; vehicles are not publicly listed until the operator is approved.", "車両情報は準備できますが、事業者が承認されるまで公開掲載されません。")}</p>{operatorMissing.length > 0 && <><p className="mt-2 font-medium">{t("Outstanding application requirements", "未対応の申請要件")}:</p><ul className="list-inside list-disc">{operatorMissing.map((item) => <li key={item}>{requirementLabels[item] ? t(...requirementLabels[item]) : item}</li>)}</ul></>}</StatusMessage></div>}
       {!canManageInventory && <div className="mb-5"><StatusMessage>{t(`Your ${staffRole || "staff"} role has read-only inventory access. Contact the account owner for changes.`, `${staffRole || "スタッフ"}権限は在庫の閲覧のみです。変更はオーナーに依頼してください。`)}</StatusMessage></div>}
+      <div className="mb-6"><PartnerRequestQueue role={staffRole} vehicles={vehicles} /></div>
       <div className="grid gap-6 lg:grid-cols-[270px_minmax(0,1fr)]">
         <aside className="h-fit rounded-xl border bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between"><h2 className="font-semibold">{t("Vehicles", "車両")}</h2>{canManageInventory && <SecondaryButton onClick={() => { setSelectedId(null); setForm(blankVehicle); setEditing(true); }}>+ {t("Add", "追加")}</SecondaryButton>}</div>

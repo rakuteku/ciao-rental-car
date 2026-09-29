@@ -1,3 +1,5 @@
+import { isMarketplaceEnabled } from "./rental-request-policy.mjs";
+
 const allowedContentTypes = new Set([
   "application/pdf",
   "image/jpeg",
@@ -5,7 +7,7 @@ const allowedContentTypes = new Set([
 ]);
 
 export function rentalMarketplaceEnabled() {
-  return process.env.RENTAL_MARKETPLACE_ENABLED?.trim().toLowerCase() === "true";
+  return isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED);
 }
 
 export function isAllowedRentalDocumentContentType(value) {

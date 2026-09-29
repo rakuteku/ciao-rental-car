@@ -760,6 +760,7 @@ export const GetCarAvailabilityResponse = zod.array(
 );
 
 /**
+ * When the marketplace flag is enabled, legacy booking creation is rejected for vehicles mapped to the marketplace; use the timed rental request flow instead.
  * @summary Create a booking
  */
 export const CreateBookingBody = zod.object({
@@ -962,202 +963,294 @@ export const SearchRentalVehiclesQueryParams = zod.object({
 
 export const SearchRentalVehiclesResponse = zod.object({
   available: zod.array(
-    zod.object({
-      id: zod.number(),
-      internalName: zod.string(),
-      publicTitle: zod.string(),
-      publicTitleJa: zod.string().nullish(),
-      publicTitleZhTw: zod.string().nullish(),
-      slug: zod.string(),
-      brand: zod.string(),
-      model: zod.string(),
-      trim: zod.string().nullish(),
-      year: zod.number(),
-      color: zod.string().nullish(),
-      vehicleClass: zod.string(),
-      description: zod.string(),
-      descriptionJa: zod.string().nullish(),
-      descriptionZhTw: zod.string().nullish(),
-      seats: zod.number(),
-      recommendedPassengers: zod.number(),
-      maxPassengers: zod.number(),
-      smallLuggageCapacity: zod.number(),
-      largeLuggageCapacity: zod.number(),
-      doors: zod.number(),
-      transmission: zod.string(),
-      fuelType: zod.string(),
-      driveType: zod.string(),
-      engineSize: zod.string().nullish(),
-      fuelPolicy: zod.string(),
-      smokingPolicy: zod.string(),
-      petPolicy: zod.string(),
-      status: zod.string(),
-      featured: zod.boolean(),
-      sortOrder: zod.number(),
-      has4wd: zod.boolean(),
-      hasWinterTires: zod.boolean(),
-      hasSnowBrush: zod.boolean(),
-      hasIceScraper: zod.boolean(),
-      isSkiFriendly: zod.boolean(),
-      hasSkiRack: zod.boolean(),
-      hasHeatedSeats: zod.boolean(),
-      hasHeatedSteering: zod.boolean(),
-      hasEtc: zod.boolean(),
-      hasNavigation: zod.boolean(),
-      hasBackupCamera: zod.boolean(),
-      hasBluetooth: zod.boolean(),
-      hasUsbPort: zod.boolean(),
-      hasLargeLuggageSpace: zod.boolean(),
-      hasEtcCard: zod.boolean(),
-      hasCarplay: zod.boolean(),
-      hasAndroidAuto: zod.boolean(),
-      hasChildSeatCompatible: zod.boolean(),
-      plate: zod.string().nullish(),
-      vin: zod.string().nullish(),
-      internalNotes: zod.string().nullish(),
-      mileage: zod.number().nullish(),
-      canonicalUrl: zod.string().nullish(),
-      useGlobalPickupSettings: zod.boolean(),
-      pickupLocations: zod.array(zod.string()).nullish(),
-      returnLocations: zod.array(zod.string()).nullish(),
-      afterHoursPickup: zod.boolean(),
-      afterHoursReturn: zod.boolean(),
-      requiredDocuments: zod.array(zod.string()).nullish(),
-      operationalStatus: zod
-        .string()
-        .optional()
-        .describe(
-          "Manual operational state: available | cleaning | maintenance",
+    zod
+      .object({
+        id: zod.number(),
+        internalName: zod.string(),
+        publicTitle: zod.string(),
+        publicTitleJa: zod.string().nullish(),
+        publicTitleZhTw: zod.string().nullish(),
+        slug: zod.string(),
+        brand: zod.string(),
+        model: zod.string(),
+        trim: zod.string().nullish(),
+        year: zod.number(),
+        color: zod.string().nullish(),
+        vehicleClass: zod.string(),
+        description: zod.string(),
+        descriptionJa: zod.string().nullish(),
+        descriptionZhTw: zod.string().nullish(),
+        seats: zod.number(),
+        recommendedPassengers: zod.number(),
+        maxPassengers: zod.number(),
+        smallLuggageCapacity: zod.number(),
+        largeLuggageCapacity: zod.number(),
+        doors: zod.number(),
+        transmission: zod.string(),
+        fuelType: zod.string(),
+        driveType: zod.string(),
+        engineSize: zod.string().nullish(),
+        fuelPolicy: zod.string(),
+        smokingPolicy: zod.string(),
+        petPolicy: zod.string(),
+        disclosures: zod.record(zod.string(), zod.unknown()).optional(),
+        hours: zod.record(zod.string(), zod.unknown()).optional(),
+        status: zod.string(),
+        featured: zod.boolean(),
+        sortOrder: zod.number(),
+        has4wd: zod.boolean(),
+        hasWinterTires: zod.boolean(),
+        hasSnowBrush: zod.boolean(),
+        hasIceScraper: zod.boolean(),
+        isSkiFriendly: zod.boolean(),
+        hasSkiRack: zod.boolean(),
+        hasHeatedSeats: zod.boolean(),
+        hasHeatedSteering: zod.boolean(),
+        hasEtc: zod.boolean(),
+        hasNavigation: zod.boolean(),
+        hasBackupCamera: zod.boolean(),
+        hasBluetooth: zod.boolean(),
+        hasUsbPort: zod.boolean(),
+        hasLargeLuggageSpace: zod.boolean(),
+        hasEtcCard: zod.boolean(),
+        hasCarplay: zod.boolean(),
+        hasAndroidAuto: zod.boolean(),
+        hasChildSeatCompatible: zod.boolean(),
+        plate: zod.string().nullish(),
+        vin: zod.string().nullish(),
+        internalNotes: zod.string().nullish(),
+        mileage: zod.number().nullish(),
+        canonicalUrl: zod.string().nullish(),
+        useGlobalPickupSettings: zod.boolean(),
+        pickupLocations: zod.array(zod.string()).nullish(),
+        returnLocations: zod.array(zod.string()).nullish(),
+        afterHoursPickup: zod.boolean(),
+        afterHoursReturn: zod.boolean(),
+        requiredDocuments: zod.array(zod.string()).nullish(),
+        operationalStatus: zod
+          .string()
+          .optional()
+          .describe(
+            "Manual operational state: available | cleaning | maintenance",
+          ),
+        basePrice: zod
+          .number()
+          .nullish()
+          .describe("Base price per day from the vehicle pricing table"),
+        deliveryLeadTimeHours: zod.number().nullish(),
+        deliveryFeeOverride: zod.number().nullish(),
+        metaTitle: zod.string(),
+        metaDescription: zod.string(),
+        metaTitleJa: zod.string().nullish(),
+        metaDescriptionJa: zod.string().nullish(),
+        metaTitleZhTw: zod.string().nullish(),
+        metaDescriptionZhTw: zod.string().nullish(),
+        ogTitle: zod.string(),
+        ogDescription: zod.string(),
+        ogImage: zod.string(),
+        createdAt: zod.string(),
+        updatedAt: zod.string(),
+        deletedAt: zod.string().nullish(),
+        images: zod.array(
+          zod.object({
+            id: zod.number(),
+            vehicleId: zod.number(),
+            url: zod.string(),
+            caption: zod.string().nullish(),
+            sortOrder: zod.number(),
+            isCover: zod.boolean(),
+            createdAt: zod.string(),
+          }),
         ),
-      basePrice: zod
-        .number()
-        .nullish()
-        .describe("Base price per day from the vehicle pricing table"),
-      deliveryLeadTimeHours: zod.number().nullish(),
-      deliveryFeeOverride: zod.number().nullish(),
-      metaTitle: zod.string(),
-      metaDescription: zod.string(),
-      metaTitleJa: zod.string().nullish(),
-      metaDescriptionJa: zod.string().nullish(),
-      metaTitleZhTw: zod.string().nullish(),
-      metaDescriptionZhTw: zod.string().nullish(),
-      ogTitle: zod.string(),
-      ogDescription: zod.string(),
-      ogImage: zod.string(),
-      createdAt: zod.string(),
-      updatedAt: zod.string(),
-      deletedAt: zod.string().nullish(),
-      images: zod.array(
+      })
+      .and(
         zod.object({
-          id: zod.number(),
-          vehicleId: zod.number(),
-          url: zod.string(),
-          caption: zod.string().nullish(),
-          sortOrder: zod.number(),
-          isCover: zod.boolean(),
-          createdAt: zod.string(),
+          priceBreakdown: zod
+            .union([
+              zod.object({
+                days: zod.number(),
+                dayRates: zod.array(
+                  zod.object({
+                    date: zod.string(),
+                    baseRate: zod.number(),
+                    appliedRate: zod.number(),
+                    ruleApplied: zod.string().nullish(),
+                  }),
+                ),
+                subtotal: zod.number(),
+                deliveryFee: zod.number(),
+                airportPickupFee: zod.number(),
+                airportDropoffFee: zod.number(),
+                addons: zod.array(
+                  zod.object({
+                    addonId: zod.number(),
+                    name: zod.string(),
+                    qty: zod.number(),
+                    unitPrice: zod.number(),
+                    totalPrice: zod.number(),
+                    pricingType: zod.string(),
+                  }),
+                ),
+                addonsTotal: zod.number(),
+                discount: zod.number(),
+                tax: zod.number(),
+                securityDeposit: zod.number(),
+                finalTotal: zod.number(),
+                taxIncluded: zod.boolean(),
+                currency: zod.string(),
+              }),
+              zod.null(),
+            ])
+            .optional(),
+          operatorName: zod.string().optional(),
+          basePrice: zod.number().nullish(),
         }),
       ),
-    }),
   ),
   unavailable: zod.array(
-    zod.object({
-      id: zod.number(),
-      internalName: zod.string(),
-      publicTitle: zod.string(),
-      publicTitleJa: zod.string().nullish(),
-      publicTitleZhTw: zod.string().nullish(),
-      slug: zod.string(),
-      brand: zod.string(),
-      model: zod.string(),
-      trim: zod.string().nullish(),
-      year: zod.number(),
-      color: zod.string().nullish(),
-      vehicleClass: zod.string(),
-      description: zod.string(),
-      descriptionJa: zod.string().nullish(),
-      descriptionZhTw: zod.string().nullish(),
-      seats: zod.number(),
-      recommendedPassengers: zod.number(),
-      maxPassengers: zod.number(),
-      smallLuggageCapacity: zod.number(),
-      largeLuggageCapacity: zod.number(),
-      doors: zod.number(),
-      transmission: zod.string(),
-      fuelType: zod.string(),
-      driveType: zod.string(),
-      engineSize: zod.string().nullish(),
-      fuelPolicy: zod.string(),
-      smokingPolicy: zod.string(),
-      petPolicy: zod.string(),
-      status: zod.string(),
-      featured: zod.boolean(),
-      sortOrder: zod.number(),
-      has4wd: zod.boolean(),
-      hasWinterTires: zod.boolean(),
-      hasSnowBrush: zod.boolean(),
-      hasIceScraper: zod.boolean(),
-      isSkiFriendly: zod.boolean(),
-      hasSkiRack: zod.boolean(),
-      hasHeatedSeats: zod.boolean(),
-      hasHeatedSteering: zod.boolean(),
-      hasEtc: zod.boolean(),
-      hasNavigation: zod.boolean(),
-      hasBackupCamera: zod.boolean(),
-      hasBluetooth: zod.boolean(),
-      hasUsbPort: zod.boolean(),
-      hasLargeLuggageSpace: zod.boolean(),
-      hasEtcCard: zod.boolean(),
-      hasCarplay: zod.boolean(),
-      hasAndroidAuto: zod.boolean(),
-      hasChildSeatCompatible: zod.boolean(),
-      plate: zod.string().nullish(),
-      vin: zod.string().nullish(),
-      internalNotes: zod.string().nullish(),
-      mileage: zod.number().nullish(),
-      canonicalUrl: zod.string().nullish(),
-      useGlobalPickupSettings: zod.boolean(),
-      pickupLocations: zod.array(zod.string()).nullish(),
-      returnLocations: zod.array(zod.string()).nullish(),
-      afterHoursPickup: zod.boolean(),
-      afterHoursReturn: zod.boolean(),
-      requiredDocuments: zod.array(zod.string()).nullish(),
-      operationalStatus: zod
-        .string()
-        .optional()
-        .describe(
-          "Manual operational state: available | cleaning | maintenance",
+    zod
+      .object({
+        id: zod.number(),
+        internalName: zod.string(),
+        publicTitle: zod.string(),
+        publicTitleJa: zod.string().nullish(),
+        publicTitleZhTw: zod.string().nullish(),
+        slug: zod.string(),
+        brand: zod.string(),
+        model: zod.string(),
+        trim: zod.string().nullish(),
+        year: zod.number(),
+        color: zod.string().nullish(),
+        vehicleClass: zod.string(),
+        description: zod.string(),
+        descriptionJa: zod.string().nullish(),
+        descriptionZhTw: zod.string().nullish(),
+        seats: zod.number(),
+        recommendedPassengers: zod.number(),
+        maxPassengers: zod.number(),
+        smallLuggageCapacity: zod.number(),
+        largeLuggageCapacity: zod.number(),
+        doors: zod.number(),
+        transmission: zod.string(),
+        fuelType: zod.string(),
+        driveType: zod.string(),
+        engineSize: zod.string().nullish(),
+        fuelPolicy: zod.string(),
+        smokingPolicy: zod.string(),
+        petPolicy: zod.string(),
+        disclosures: zod.record(zod.string(), zod.unknown()).optional(),
+        hours: zod.record(zod.string(), zod.unknown()).optional(),
+        status: zod.string(),
+        featured: zod.boolean(),
+        sortOrder: zod.number(),
+        has4wd: zod.boolean(),
+        hasWinterTires: zod.boolean(),
+        hasSnowBrush: zod.boolean(),
+        hasIceScraper: zod.boolean(),
+        isSkiFriendly: zod.boolean(),
+        hasSkiRack: zod.boolean(),
+        hasHeatedSeats: zod.boolean(),
+        hasHeatedSteering: zod.boolean(),
+        hasEtc: zod.boolean(),
+        hasNavigation: zod.boolean(),
+        hasBackupCamera: zod.boolean(),
+        hasBluetooth: zod.boolean(),
+        hasUsbPort: zod.boolean(),
+        hasLargeLuggageSpace: zod.boolean(),
+        hasEtcCard: zod.boolean(),
+        hasCarplay: zod.boolean(),
+        hasAndroidAuto: zod.boolean(),
+        hasChildSeatCompatible: zod.boolean(),
+        plate: zod.string().nullish(),
+        vin: zod.string().nullish(),
+        internalNotes: zod.string().nullish(),
+        mileage: zod.number().nullish(),
+        canonicalUrl: zod.string().nullish(),
+        useGlobalPickupSettings: zod.boolean(),
+        pickupLocations: zod.array(zod.string()).nullish(),
+        returnLocations: zod.array(zod.string()).nullish(),
+        afterHoursPickup: zod.boolean(),
+        afterHoursReturn: zod.boolean(),
+        requiredDocuments: zod.array(zod.string()).nullish(),
+        operationalStatus: zod
+          .string()
+          .optional()
+          .describe(
+            "Manual operational state: available | cleaning | maintenance",
+          ),
+        basePrice: zod
+          .number()
+          .nullish()
+          .describe("Base price per day from the vehicle pricing table"),
+        deliveryLeadTimeHours: zod.number().nullish(),
+        deliveryFeeOverride: zod.number().nullish(),
+        metaTitle: zod.string(),
+        metaDescription: zod.string(),
+        metaTitleJa: zod.string().nullish(),
+        metaDescriptionJa: zod.string().nullish(),
+        metaTitleZhTw: zod.string().nullish(),
+        metaDescriptionZhTw: zod.string().nullish(),
+        ogTitle: zod.string(),
+        ogDescription: zod.string(),
+        ogImage: zod.string(),
+        createdAt: zod.string(),
+        updatedAt: zod.string(),
+        deletedAt: zod.string().nullish(),
+        images: zod.array(
+          zod.object({
+            id: zod.number(),
+            vehicleId: zod.number(),
+            url: zod.string(),
+            caption: zod.string().nullish(),
+            sortOrder: zod.number(),
+            isCover: zod.boolean(),
+            createdAt: zod.string(),
+          }),
         ),
-      basePrice: zod
-        .number()
-        .nullish()
-        .describe("Base price per day from the vehicle pricing table"),
-      deliveryLeadTimeHours: zod.number().nullish(),
-      deliveryFeeOverride: zod.number().nullish(),
-      metaTitle: zod.string(),
-      metaDescription: zod.string(),
-      metaTitleJa: zod.string().nullish(),
-      metaDescriptionJa: zod.string().nullish(),
-      metaTitleZhTw: zod.string().nullish(),
-      metaDescriptionZhTw: zod.string().nullish(),
-      ogTitle: zod.string(),
-      ogDescription: zod.string(),
-      ogImage: zod.string(),
-      createdAt: zod.string(),
-      updatedAt: zod.string(),
-      deletedAt: zod.string().nullish(),
-      images: zod.array(
+      })
+      .and(
         zod.object({
-          id: zod.number(),
-          vehicleId: zod.number(),
-          url: zod.string(),
-          caption: zod.string().nullish(),
-          sortOrder: zod.number(),
-          isCover: zod.boolean(),
-          createdAt: zod.string(),
+          priceBreakdown: zod
+            .union([
+              zod.object({
+                days: zod.number(),
+                dayRates: zod.array(
+                  zod.object({
+                    date: zod.string(),
+                    baseRate: zod.number(),
+                    appliedRate: zod.number(),
+                    ruleApplied: zod.string().nullish(),
+                  }),
+                ),
+                subtotal: zod.number(),
+                deliveryFee: zod.number(),
+                airportPickupFee: zod.number(),
+                airportDropoffFee: zod.number(),
+                addons: zod.array(
+                  zod.object({
+                    addonId: zod.number(),
+                    name: zod.string(),
+                    qty: zod.number(),
+                    unitPrice: zod.number(),
+                    totalPrice: zod.number(),
+                    pricingType: zod.string(),
+                  }),
+                ),
+                addonsTotal: zod.number(),
+                discount: zod.number(),
+                tax: zod.number(),
+                securityDeposit: zod.number(),
+                finalTotal: zod.number(),
+                taxIncluded: zod.boolean(),
+                currency: zod.string(),
+              }),
+              zod.null(),
+            ])
+            .optional(),
+          operatorName: zod.string().optional(),
+          basePrice: zod.number().nullish(),
         }),
       ),
-    }),
   ),
 });
 
@@ -1193,6 +1286,8 @@ export const GetRentalVehiclesResponseItem = zod.object({
   fuelPolicy: zod.string(),
   smokingPolicy: zod.string(),
   petPolicy: zod.string(),
+  disclosures: zod.record(zod.string(), zod.unknown()).optional(),
+  hours: zod.record(zod.string(), zod.unknown()).optional(),
   status: zod.string(),
   featured: zod.boolean(),
   sortOrder: zod.number(),
@@ -1300,6 +1395,8 @@ export const GetRentalVehicleResponse = zod
     fuelPolicy: zod.string(),
     smokingPolicy: zod.string(),
     petPolicy: zod.string(),
+    disclosures: zod.record(zod.string(), zod.unknown()).optional(),
+    hours: zod.record(zod.string(), zod.unknown()).optional(),
     status: zod.string(),
     featured: zod.boolean(),
     sortOrder: zod.number(),
@@ -1382,6 +1479,7 @@ export const GetRentalVehicleResponse = zod
             monthlyDiscountPct: zod.number(),
             minDays: zod.number(),
             maxDays: zod.number().nullish(),
+            billablePeriodHours: zod.number().optional(),
             cleaningFee: zod.number(),
             deliveryFee: zod.number(),
             lateReturnFee: zod.number(),
@@ -1465,6 +1563,7 @@ export const GetRentalHoldResponse = zod.object({
 });
 
 /**
+ * Legacy reservation creation remains available with the marketplace flag off. When enabled, returns 409 and customers must use POST /rental/requests; a hold alone never confirms a marketplace booking.
  * @summary Create a reservation from a hold
  */
 export const CreateRentalReservationBody = zod.object({
@@ -1606,6 +1705,8 @@ export const GetAdminRentalVehiclesResponseItem = zod.object({
   fuelPolicy: zod.string(),
   smokingPolicy: zod.string(),
   petPolicy: zod.string(),
+  disclosures: zod.record(zod.string(), zod.unknown()).optional(),
+  hours: zod.record(zod.string(), zod.unknown()).optional(),
   status: zod.string(),
   featured: zod.boolean(),
   sortOrder: zod.number(),
@@ -1789,6 +1890,8 @@ export const GetAdminRentalVehicleResponse = zod
     fuelPolicy: zod.string(),
     smokingPolicy: zod.string(),
     petPolicy: zod.string(),
+    disclosures: zod.record(zod.string(), zod.unknown()).optional(),
+    hours: zod.record(zod.string(), zod.unknown()).optional(),
     status: zod.string(),
     featured: zod.boolean(),
     sortOrder: zod.number(),
@@ -1871,6 +1974,7 @@ export const GetAdminRentalVehicleResponse = zod
             monthlyDiscountPct: zod.number(),
             minDays: zod.number(),
             maxDays: zod.number().nullish(),
+            billablePeriodHours: zod.number().optional(),
             cleaningFee: zod.number(),
             deliveryFee: zod.number(),
             lateReturnFee: zod.number(),
@@ -1998,6 +2102,8 @@ export const UpdateAdminRentalVehicleResponse = zod.object({
   fuelPolicy: zod.string(),
   smokingPolicy: zod.string(),
   petPolicy: zod.string(),
+  disclosures: zod.record(zod.string(), zod.unknown()).optional(),
+  hours: zod.record(zod.string(), zod.unknown()).optional(),
   status: zod.string(),
   featured: zod.boolean(),
   sortOrder: zod.number(),
@@ -2095,6 +2201,7 @@ export const GetAdminRentalVehiclePricingResponse = zod.object({
   monthlyDiscountPct: zod.number(),
   minDays: zod.number(),
   maxDays: zod.number().nullish(),
+  billablePeriodHours: zod.number().optional(),
   cleaningFee: zod.number(),
   deliveryFee: zod.number(),
   lateReturnFee: zod.number(),
@@ -2125,6 +2232,7 @@ export const UpdateAdminRentalVehiclePricingBody = zod.object({
   monthlyDiscountPct: zod.number().optional(),
   minDays: zod.number().optional(),
   maxDays: zod.number().optional(),
+  billablePeriodHours: zod.number().optional(),
   cleaningFee: zod.number().optional(),
   deliveryFee: zod.number().optional(),
   lateReturnFee: zod.number().optional(),
@@ -2150,6 +2258,7 @@ export const UpdateAdminRentalVehiclePricingResponse = zod.object({
   monthlyDiscountPct: zod.number(),
   minDays: zod.number(),
   maxDays: zod.number().nullish(),
+  billablePeriodHours: zod.number().optional(),
   cleaningFee: zod.number(),
   deliveryFee: zod.number(),
   lateReturnFee: zod.number(),
@@ -2828,4 +2937,940 @@ export const DeleteAdminRentalAddonParams = zod.object({
 
 export const DeleteAdminRentalAddonResponse = zod.object({
   message: zod.string(),
+});
+
+/**
+ * Requires a live hold created in the same session. The response is a request, not a confirmed booking. Times on the hold must include UTC offsets.
+ * @summary Create a timed marketplace booking request
+ */
+export const CreateRentalRequestBody = zod.object({
+  holdId: zod.number(),
+  vehicleId: zod.number(),
+  pickupLocation: zod.string(),
+  returnLocation: zod.string(),
+  driver: zod.object({
+    fullName: zod.string(),
+    email: zod.string().email(),
+    phone: zod.string(),
+    romanizedName: zod.string().optional(),
+    dateOfBirth: zod.coerce.date().optional(),
+    nationality: zod.string().optional(),
+    residenceCountry: zod.string().optional(),
+    address: zod.string().optional(),
+    emergencyContact: zod.string().optional(),
+    flightNumber: zod.string().optional(),
+    accommodation: zod.string().optional(),
+  }),
+  additionalDrivers: zod
+    .array(
+      zod.object({
+        fullName: zod.string(),
+        email: zod.string().email(),
+        phone: zod.string(),
+      }),
+    )
+    .optional(),
+  travelNotes: zod.string().optional(),
+  marketingConsent: zod.boolean(),
+  attribution: zod
+    .object({
+      firstTouch: zod.record(zod.string(), zod.unknown()).optional(),
+      lastTouch: zod.record(zod.string(), zod.unknown()).optional(),
+      utmSource: zod.string().optional(),
+      utmMedium: zod.string().optional(),
+      utmCampaign: zod.string().optional(),
+      landingUrl: zod.string().optional(),
+      referralCode: zod.string().optional(),
+      hotelCode: zod.string().optional(),
+    })
+    .optional(),
+  addons: zod
+    .array(
+      zod.object({
+        addonId: zod.number(),
+        qty: zod.number(),
+      }),
+    )
+    .optional(),
+});
+
+/**
+ * @summary Get the marketplace feature flag state
+ */
+export const GetRentalMarketplaceConfigResponse = zod.object({
+  enabled: zod.boolean(),
+});
+
+/**
+ * @summary Get a marketplace request and its current offer
+ */
+export const GetRentalRequestParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetRentalRequestQueryParams = zod.object({
+  accessCode: zod.coerce.string(),
+});
+
+export const GetRentalRequestResponse = zod.object({
+  id: zod.number(),
+  vehicleId: zod.number(),
+  status: zod.enum([
+    "requested",
+    "offer_pending",
+    "awaiting_payment",
+    "declined",
+    "expired",
+  ]),
+  offer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  originalOffer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  acceptedOffer: zod
+    .union([
+      zod.object({
+        vehicleId: zod.number(),
+        operatorId: zod.number(),
+        pricing: zod.record(zod.string(), zod.unknown()),
+        totalPrice: zod.number(),
+        currency: zod.string(),
+        policy: zod.object({
+          marketplace: zod.record(zod.string(), zod.unknown()),
+          vehicle: zod.record(zod.string(), zod.unknown()),
+          missingMarketplaceTerms: zod.array(zod.string()),
+          version: zod.object({
+            policyVersion: zod.string(),
+            commissionVersion: zod.string(),
+            capturedAt: zod.coerce.date(),
+          }),
+        }),
+        pickupAt: zod.coerce.date(),
+        returnAt: zod.coerce.date(),
+        pickupLocation: zod.string(),
+        returnLocation: zod.string(),
+        partnerReason: zod.string().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  respondBy: zod.coerce.date(),
+  paymentDeadline: zod.coerce.date().nullable(),
+  declinedReason: zod.string().nullable(),
+  customerAccessToken: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * Only an offer_pending request can be accepted. Acceptance creates an awaiting_payment reservation; it does not charge or confirm payment.
+ * @summary Explicitly accept an alternate offer
+ */
+export const AcceptRentalAlternateOfferParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AcceptRentalAlternateOfferQueryParams = zod.object({
+  accessCode: zod.coerce.string(),
+});
+
+export const AcceptRentalAlternateOfferResponse = zod.object({
+  id: zod.number(),
+  status: zod.enum(["awaiting_payment"]),
+  reservationId: zod.number(),
+  paymentDeadline: zod.coerce.date(),
+  price: zod.number(),
+});
+
+/**
+ * @summary Decline an alternate offer and release its inventory
+ */
+export const DeclineRentalAlternateOfferParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeclineRentalAlternateOfferQueryParams = zod.object({
+  accessCode: zod.coerce.string(),
+});
+
+export const DeclineRentalAlternateOfferResponse = zod.object({
+  id: zod.number(),
+  vehicleId: zod.number(),
+  status: zod.enum([
+    "requested",
+    "offer_pending",
+    "awaiting_payment",
+    "declined",
+    "expired",
+  ]),
+  offer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  originalOffer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  acceptedOffer: zod
+    .union([
+      zod.object({
+        vehicleId: zod.number(),
+        operatorId: zod.number(),
+        pricing: zod.record(zod.string(), zod.unknown()),
+        totalPrice: zod.number(),
+        currency: zod.string(),
+        policy: zod.object({
+          marketplace: zod.record(zod.string(), zod.unknown()),
+          vehicle: zod.record(zod.string(), zod.unknown()),
+          missingMarketplaceTerms: zod.array(zod.string()),
+          version: zod.object({
+            policyVersion: zod.string(),
+            commissionVersion: zod.string(),
+            capturedAt: zod.coerce.date(),
+          }),
+        }),
+        pickupAt: zod.coerce.date(),
+        returnAt: zod.coerce.date(),
+        pickupLocation: zod.string(),
+        returnLocation: zod.string(),
+        partnerReason: zod.string().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  respondBy: zod.coerce.date(),
+  paymentDeadline: zod.coerce.date().nullable(),
+  declinedReason: zod.string().nullable(),
+  customerAccessToken: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * Uses the existing /partner/login partner session and operator scope.
+ * @summary List requests for the authenticated partner operator
+ */
+export const GetPartnerRentalRequestsResponseItem = zod
+  .object({
+    id: zod.number(),
+    vehicleId: zod.number(),
+    status: zod.enum([
+      "requested",
+      "offer_pending",
+      "awaiting_payment",
+      "declined",
+      "expired",
+    ]),
+    offer: zod.object({
+      vehicleId: zod.number(),
+      operatorId: zod.number(),
+      pricing: zod.record(zod.string(), zod.unknown()),
+      totalPrice: zod.number(),
+      currency: zod.string(),
+      policy: zod.object({
+        marketplace: zod.record(zod.string(), zod.unknown()),
+        vehicle: zod.record(zod.string(), zod.unknown()),
+        missingMarketplaceTerms: zod.array(zod.string()),
+        version: zod.object({
+          policyVersion: zod.string(),
+          commissionVersion: zod.string(),
+          capturedAt: zod.coerce.date(),
+        }),
+      }),
+      pickupAt: zod.coerce.date(),
+      returnAt: zod.coerce.date(),
+      pickupLocation: zod.string(),
+      returnLocation: zod.string(),
+      partnerReason: zod.string().optional(),
+    }),
+    originalOffer: zod.object({
+      vehicleId: zod.number(),
+      operatorId: zod.number(),
+      pricing: zod.record(zod.string(), zod.unknown()),
+      totalPrice: zod.number(),
+      currency: zod.string(),
+      policy: zod.object({
+        marketplace: zod.record(zod.string(), zod.unknown()),
+        vehicle: zod.record(zod.string(), zod.unknown()),
+        missingMarketplaceTerms: zod.array(zod.string()),
+        version: zod.object({
+          policyVersion: zod.string(),
+          commissionVersion: zod.string(),
+          capturedAt: zod.coerce.date(),
+        }),
+      }),
+      pickupAt: zod.coerce.date(),
+      returnAt: zod.coerce.date(),
+      pickupLocation: zod.string(),
+      returnLocation: zod.string(),
+      partnerReason: zod.string().optional(),
+    }),
+    acceptedOffer: zod
+      .union([
+        zod.object({
+          vehicleId: zod.number(),
+          operatorId: zod.number(),
+          pricing: zod.record(zod.string(), zod.unknown()),
+          totalPrice: zod.number(),
+          currency: zod.string(),
+          policy: zod.object({
+            marketplace: zod.record(zod.string(), zod.unknown()),
+            vehicle: zod.record(zod.string(), zod.unknown()),
+            missingMarketplaceTerms: zod.array(zod.string()),
+            version: zod.object({
+              policyVersion: zod.string(),
+              commissionVersion: zod.string(),
+              capturedAt: zod.coerce.date(),
+            }),
+          }),
+          pickupAt: zod.coerce.date(),
+          returnAt: zod.coerce.date(),
+          pickupLocation: zod.string(),
+          returnLocation: zod.string(),
+          partnerReason: zod.string().optional(),
+        }),
+        zod.null(),
+      ])
+      .optional(),
+    respondBy: zod.coerce.date(),
+    paymentDeadline: zod.coerce.date().nullable(),
+    declinedReason: zod.string().nullable(),
+    customerAccessToken: zod.string().optional(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  })
+  .and(
+    zod.object({
+      driver: zod
+        .object({
+          fullName: zod.string(),
+          email: zod.string().email(),
+          phone: zod.string(),
+          romanizedName: zod.string().optional(),
+          dateOfBirth: zod.coerce.date().optional(),
+          nationality: zod.string().optional(),
+          residenceCountry: zod.string().optional(),
+          address: zod.string().optional(),
+          emergencyContact: zod.string().optional(),
+          flightNumber: zod.string().optional(),
+          accommodation: zod.string().optional(),
+        })
+        .optional(),
+      additionalDrivers: zod
+        .array(
+          zod.object({
+            fullName: zod.string(),
+            email: zod.string().email(),
+            phone: zod.string(),
+          }),
+        )
+        .optional(),
+      travelNotes: zod.string().nullish(),
+      attribution: zod
+        .union([
+          zod.object({
+            firstTouch: zod.record(zod.string(), zod.unknown()).optional(),
+            lastTouch: zod.record(zod.string(), zod.unknown()).optional(),
+            utmSource: zod.string().optional(),
+            utmMedium: zod.string().optional(),
+            utmCampaign: zod.string().optional(),
+            landingUrl: zod.string().optional(),
+            referralCode: zod.string().optional(),
+            hotelCode: zod.string().optional(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+      marketingConsent: zod.boolean().optional(),
+      vehicle: zod.record(zod.string(), zod.unknown()).optional(),
+    }),
+  );
+export const GetPartnerRentalRequestsResponse = zod.array(
+  GetPartnerRentalRequestsResponseItem,
+);
+
+/**
+ * Uses the partner session and operator scope. Captures driver contact, attribution and explicit marketing consent separately. Creates a bounded inventory hold and an offer_pending request; customer acceptance is required before payment becomes available.
+ * @summary Create a customer-accessible quote/lead for this operator
+ */
+
+export const createPartnerRentalRequestQuoteBodyTotalPriceMin = 0;
+
+export const CreatePartnerRentalRequestQuoteBody = zod.object({
+  vehicleId: zod.number().min(1),
+  pickupAt: zod.coerce.date(),
+  returnAt: zod.coerce.date(),
+  pickupLocation: zod.string(),
+  returnLocation: zod.string(),
+  driver: zod.object({
+    fullName: zod.string(),
+    email: zod.string().email(),
+    phone: zod.string(),
+    romanizedName: zod.string().optional(),
+    dateOfBirth: zod.coerce.date().optional(),
+    nationality: zod.string().optional(),
+    residenceCountry: zod.string().optional(),
+    address: zod.string().optional(),
+    emergencyContact: zod.string().optional(),
+    flightNumber: zod.string().optional(),
+    accommodation: zod.string().optional(),
+  }),
+  additionalDrivers: zod
+    .array(
+      zod.object({
+        fullName: zod.string(),
+        email: zod.string().email(),
+        phone: zod.string(),
+      }),
+    )
+    .optional(),
+  travelNotes: zod.string().optional(),
+  marketingConsent: zod.boolean(),
+  attribution: zod
+    .object({
+      firstTouch: zod.record(zod.string(), zod.unknown()).optional(),
+      lastTouch: zod.record(zod.string(), zod.unknown()).optional(),
+      utmSource: zod.string().optional(),
+      utmMedium: zod.string().optional(),
+      utmCampaign: zod.string().optional(),
+      landingUrl: zod.string().optional(),
+      referralCode: zod.string().optional(),
+      hotelCode: zod.string().optional(),
+    })
+    .optional(),
+  addons: zod
+    .array(
+      zod.object({
+        addonId: zod.number(),
+        qty: zod.number(),
+      }),
+    )
+    .optional(),
+  totalPrice: zod
+    .number()
+    .min(createPartnerRentalRequestQuoteBodyTotalPriceMin)
+    .optional(),
+  reason: zod.string(),
+});
+
+/**
+ * Uses partner session authentication. Creates an awaiting_payment reservation; it never confirms or charges payment.
+ * @summary Accept the customer's requested offer
+ */
+export const AcceptPartnerRentalRequestParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AcceptPartnerRentalRequestResponse = zod.object({
+  id: zod.number(),
+  status: zod.enum(["awaiting_payment"]),
+  reservationId: zod.number(),
+  paymentDeadline: zod.coerce.date(),
+  price: zod.number(),
+});
+
+/**
+ * @summary Decline a customer request
+ */
+export const DeclinePartnerRentalRequestParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeclinePartnerRentalRequestBody = zod.object({
+  reason: zod.string(),
+});
+
+export const DeclinePartnerRentalRequestResponse = zod.object({
+  id: zod.number(),
+  vehicleId: zod.number(),
+  status: zod.enum([
+    "requested",
+    "offer_pending",
+    "awaiting_payment",
+    "declined",
+    "expired",
+  ]),
+  offer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  originalOffer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  acceptedOffer: zod
+    .union([
+      zod.object({
+        vehicleId: zod.number(),
+        operatorId: zod.number(),
+        pricing: zod.record(zod.string(), zod.unknown()),
+        totalPrice: zod.number(),
+        currency: zod.string(),
+        policy: zod.object({
+          marketplace: zod.record(zod.string(), zod.unknown()),
+          vehicle: zod.record(zod.string(), zod.unknown()),
+          missingMarketplaceTerms: zod.array(zod.string()),
+          version: zod.object({
+            policyVersion: zod.string(),
+            commissionVersion: zod.string(),
+            capturedAt: zod.coerce.date(),
+          }),
+        }),
+        pickupAt: zod.coerce.date(),
+        returnAt: zod.coerce.date(),
+        pickupLocation: zod.string(),
+        returnLocation: zod.string(),
+        partnerReason: zod.string().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  respondBy: zod.coerce.date(),
+  paymentDeadline: zod.coerce.date().nullable(),
+  declinedReason: zod.string().nullable(),
+  customerAccessToken: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * vehicleId may select another eligible physical car from the same operator. The exact pickup/return instants and locations are retained; the offered vehicle is held through the bounded response deadline. Customer acceptance is explicit.
+ * @summary Make an alternate price or same-operator vehicle offer
+ */
+export const OfferPartnerRentalAlternatePriceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const offerPartnerRentalAlternatePriceBodyTotalPriceMin = 0;
+
+export const OfferPartnerRentalAlternatePriceBody = zod.object({
+  totalPrice: zod
+    .number()
+    .min(offerPartnerRentalAlternatePriceBodyTotalPriceMin),
+  reason: zod.string(),
+  vehicleId: zod.number().min(1).optional(),
+});
+
+export const OfferPartnerRentalAlternatePriceResponse = zod.object({
+  id: zod.number(),
+  vehicleId: zod.number(),
+  status: zod.enum([
+    "requested",
+    "offer_pending",
+    "awaiting_payment",
+    "declined",
+    "expired",
+  ]),
+  offer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  originalOffer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  acceptedOffer: zod
+    .union([
+      zod.object({
+        vehicleId: zod.number(),
+        operatorId: zod.number(),
+        pricing: zod.record(zod.string(), zod.unknown()),
+        totalPrice: zod.number(),
+        currency: zod.string(),
+        policy: zod.object({
+          marketplace: zod.record(zod.string(), zod.unknown()),
+          vehicle: zod.record(zod.string(), zod.unknown()),
+          missingMarketplaceTerms: zod.array(zod.string()),
+          version: zod.object({
+            policyVersion: zod.string(),
+            commissionVersion: zod.string(),
+            capturedAt: zod.coerce.date(),
+          }),
+        }),
+        pickupAt: zod.coerce.date(),
+        returnAt: zod.coerce.date(),
+        pickupLocation: zod.string(),
+        returnLocation: zod.string(),
+        partnerReason: zod.string().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  respondBy: zod.coerce.date(),
+  paymentDeadline: zod.coerce.date().nullable(),
+  declinedReason: zod.string().nullable(),
+  customerAccessToken: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * Admin-authenticated offer for an existing request; vehicleId may select another eligible physical car owned by the same operator. Customer acceptance is required.
+ * @summary Create an alternate price or same-operator vehicle offer for a request
+ */
+export const CreateAdminRentalRequestAlternateOfferParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const createAdminRentalRequestAlternateOfferBodyTotalPriceMin = 0;
+
+export const CreateAdminRentalRequestAlternateOfferBody = zod.object({
+  totalPrice: zod
+    .number()
+    .min(createAdminRentalRequestAlternateOfferBodyTotalPriceMin),
+  reason: zod.string(),
+  vehicleId: zod.number().min(1).optional(),
+});
+
+export const CreateAdminRentalRequestAlternateOfferResponse = zod.object({
+  id: zod.number(),
+  vehicleId: zod.number(),
+  status: zod.enum([
+    "requested",
+    "offer_pending",
+    "awaiting_payment",
+    "declined",
+    "expired",
+  ]),
+  offer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  originalOffer: zod.object({
+    vehicleId: zod.number(),
+    operatorId: zod.number(),
+    pricing: zod.record(zod.string(), zod.unknown()),
+    totalPrice: zod.number(),
+    currency: zod.string(),
+    policy: zod.object({
+      marketplace: zod.record(zod.string(), zod.unknown()),
+      vehicle: zod.record(zod.string(), zod.unknown()),
+      missingMarketplaceTerms: zod.array(zod.string()),
+      version: zod.object({
+        policyVersion: zod.string(),
+        commissionVersion: zod.string(),
+        capturedAt: zod.coerce.date(),
+      }),
+    }),
+    pickupAt: zod.coerce.date(),
+    returnAt: zod.coerce.date(),
+    pickupLocation: zod.string(),
+    returnLocation: zod.string(),
+    partnerReason: zod.string().optional(),
+  }),
+  acceptedOffer: zod
+    .union([
+      zod.object({
+        vehicleId: zod.number(),
+        operatorId: zod.number(),
+        pricing: zod.record(zod.string(), zod.unknown()),
+        totalPrice: zod.number(),
+        currency: zod.string(),
+        policy: zod.object({
+          marketplace: zod.record(zod.string(), zod.unknown()),
+          vehicle: zod.record(zod.string(), zod.unknown()),
+          missingMarketplaceTerms: zod.array(zod.string()),
+          version: zod.object({
+            policyVersion: zod.string(),
+            commissionVersion: zod.string(),
+            capturedAt: zod.coerce.date(),
+          }),
+        }),
+        pickupAt: zod.coerce.date(),
+        returnAt: zod.coerce.date(),
+        pickupLocation: zod.string(),
+        returnLocation: zod.string(),
+        partnerReason: zod.string().optional(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  respondBy: zod.coerce.date(),
+  paymentDeadline: zod.coerce.date().nullable(),
+  declinedReason: zod.string().nullable(),
+  customerAccessToken: zod.string().optional(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
+ * Admin-authenticated staff quote. Captures driver contact, attribution and explicit marketing consent separately and reserves inventory until the bounded customer response deadline. The result is offer_pending, never confirmed.
+ * @summary Create a customer-accessible quote/lead
+ */
+
+export const createAdminRentalRequestQuoteBodyTotalPriceMin = 0;
+
+export const CreateAdminRentalRequestQuoteBody = zod.object({
+  vehicleId: zod.number().min(1),
+  pickupAt: zod.coerce.date(),
+  returnAt: zod.coerce.date(),
+  pickupLocation: zod.string(),
+  returnLocation: zod.string(),
+  driver: zod.object({
+    fullName: zod.string(),
+    email: zod.string().email(),
+    phone: zod.string(),
+    romanizedName: zod.string().optional(),
+    dateOfBirth: zod.coerce.date().optional(),
+    nationality: zod.string().optional(),
+    residenceCountry: zod.string().optional(),
+    address: zod.string().optional(),
+    emergencyContact: zod.string().optional(),
+    flightNumber: zod.string().optional(),
+    accommodation: zod.string().optional(),
+  }),
+  additionalDrivers: zod
+    .array(
+      zod.object({
+        fullName: zod.string(),
+        email: zod.string().email(),
+        phone: zod.string(),
+      }),
+    )
+    .optional(),
+  travelNotes: zod.string().optional(),
+  marketingConsent: zod.boolean(),
+  attribution: zod
+    .object({
+      firstTouch: zod.record(zod.string(), zod.unknown()).optional(),
+      lastTouch: zod.record(zod.string(), zod.unknown()).optional(),
+      utmSource: zod.string().optional(),
+      utmMedium: zod.string().optional(),
+      utmCampaign: zod.string().optional(),
+      landingUrl: zod.string().optional(),
+      referralCode: zod.string().optional(),
+      hotelCode: zod.string().optional(),
+    })
+    .optional(),
+  addons: zod
+    .array(
+      zod.object({
+        addonId: zod.number(),
+        qty: zod.number(),
+      }),
+    )
+    .optional(),
+  totalPrice: zod
+    .number()
+    .min(createAdminRentalRequestQuoteBodyTotalPriceMin)
+    .optional(),
+  reason: zod.string(),
+});
+
+/**
+ * @summary Get marketplace commercial and response-window configuration
+ */
+export const GetAdminRentalMarketplacePolicyResponse = zod.object({
+  values: zod.record(zod.string(), zod.unknown()),
+  missing: zod.array(zod.string()),
+});
+
+/**
+ * @summary Update marketplace commercial and request/payment window configuration
+ */
+export const updateAdminRentalMarketplacePolicyBodyMarketplaceCommissionPercentMin = 0;
+export const updateAdminRentalMarketplacePolicyBodyMarketplaceCommissionPercentMax = 100;
+
+export const updateAdminRentalMarketplacePolicyBodyMarketplaceResponsePeriodHoursExclusiveMin = 0;
+export const updateAdminRentalMarketplacePolicyBodyMarketplaceResponsePeriodHoursMax = 720;
+
+export const updateAdminRentalMarketplacePolicyBodyMarketplacePaymentWindowHoursExclusiveMin = 0;
+export const updateAdminRentalMarketplacePolicyBodyMarketplacePaymentWindowHoursMax = 720;
+
+export const UpdateAdminRentalMarketplacePolicyBody = zod.object({
+  marketplaceCommissionPercent: zod
+    .number()
+    .min(updateAdminRentalMarketplacePolicyBodyMarketplaceCommissionPercentMin)
+    .max(updateAdminRentalMarketplacePolicyBodyMarketplaceCommissionPercentMax)
+    .nullish(),
+  marketplacePayoutTerms: zod.string().nullish(),
+  marketplaceCancellationPolicy: zod.string().nullish(),
+  marketplaceDepositPolicy: zod.string().nullish(),
+  marketplaceResponsePeriodHours: zod
+    .number()
+    .gt(
+      updateAdminRentalMarketplacePolicyBodyMarketplaceResponsePeriodHoursExclusiveMin,
+    )
+    .max(
+      updateAdminRentalMarketplacePolicyBodyMarketplaceResponsePeriodHoursMax,
+    )
+    .nullish(),
+  marketplaceCoverageTerms: zod.string().nullish(),
+  marketplacePaymentWindowHours: zod
+    .number()
+    .gt(
+      updateAdminRentalMarketplacePolicyBodyMarketplacePaymentWindowHoursExclusiveMin,
+    )
+    .max(updateAdminRentalMarketplacePolicyBodyMarketplacePaymentWindowHoursMax)
+    .nullish(),
+});
+
+export const UpdateAdminRentalMarketplacePolicyResponse = zod.object({
+  values: zod.record(zod.string(), zod.unknown()),
+  missing: zod.array(zod.string()),
 });

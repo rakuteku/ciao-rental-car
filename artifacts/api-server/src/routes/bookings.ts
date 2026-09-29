@@ -1,12 +1,12 @@
 import { Router, type IRouter } from "express";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db, bookingsTable, carsTable, rentalVehiclesTable } from "@workspace/db";
 import {
   CreateBookingBody,
   GetAdminBookingsResponse,
 } from "@workspace/api-zod";
 import { requireAdminAuth } from "../middlewares/admin-auth";
-import { isVehicleAvailable } from "./rental-vehicles";
+import { isMarketplaceEnabled } from "../lib/rental-request-policy.mjs";
 
 const AIRPORT_LOCATION = "New Chitose Airport";
 
@@ -53,7 +53,7 @@ router.post("/bookings", async (req, res): Promise<void> => {
     totalPrice,
   };
   let booking: typeof bookingsTable.$inferSelect;
-  if (process.env.RENTAL_MARKETPLACE_ENABLED === "true") {
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
     if (Number.isNaN(pickup.getTime()) || Number.isNaN(returnD.getTime()) || returnD <= pickup) {
       res.status(400).json({ error: "Valid pickup and return dates are required" });
       return;
@@ -63,20 +63,14 @@ router.post("/bookings", async (req, res): Promise<void> => {
         const [mapped] = await tx.select({ id: rentalVehiclesTable.id })
           .from(rentalVehiclesTable).where(eq(rentalVehiclesTable.legacyCarId, car.id));
         if (mapped) {
-          // Both checkout paths take the same per-vehicle lock before checking availability.
-          await tx.execute(sql`SELECT pg_advisory_xact_lock(${mapped.id})`);
-          // Legacy return dates are calendar days, inclusive.
-          const endExclusive = new Date(returnD.getTime() + 24 * 60 * 60 * 1000);
-          if (!await isVehicleAvailable(mapped.id, pickup, endExclusive, undefined, undefined, tx)) {
-            throw Object.assign(new Error("Car is not available for selected dates"), { status: 409 });
-          }
+          throw Object.assign(new Error("This vehicle uses the marketplace request and offer approval flow"), { status: 409 });
         }
         const [created] = await tx.insert(bookingsTable).values(values).returning();
         return created;
       });
     } catch (error) {
       if ((error as { status?: number }).status === 409) {
-        res.status(409).json({ error: "Car is not available for selected dates" });
+        res.status(409).json({ error: (error as { message?: string }).message ?? "Car is not available for selected dates" });
         return;
       }
       throw error;

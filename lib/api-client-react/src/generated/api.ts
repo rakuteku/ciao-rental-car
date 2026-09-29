@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AcceptRentalAlternateOfferParams,
   AddVehicleImageBody,
   AdminLoginBody,
   AdminLoginResponse,
@@ -36,6 +37,7 @@ import type {
   CreateRentalVehicleBody,
   CreateReservationBody,
   CreateRoomBody,
+  DeclineRentalAlternateOfferParams,
   DeleteAdminCar200,
   DeleteAdminRentalAddon200,
   DeleteAdminRentalAvailabilityBlock200,
@@ -47,6 +49,7 @@ import type {
   GetAdminRentalReservationsParams,
   GetAdminRentalTurnaroundBuffer200,
   GetCarAvailabilityParams,
+  GetRentalRequestParams,
   GetRoomsParams,
   HealthStatus,
   LocalizedPage,
@@ -54,14 +57,25 @@ import type {
   PageContentUpdate,
   PageSeo,
   PageSeoUpdate,
+  PartnerRentalRequest,
   PriceCalculateBody,
   RentalAddon,
   RentalAvailabilityBlock,
   RentalHold,
+  RentalMarketplaceConfig,
+  RentalMarketplacePolicy,
+  RentalMarketplacePolicyUpdate,
   RentalPriceBreakdown,
+  RentalRequest,
+  RentalRequestAcceptance,
+  RentalRequestCreated,
+  RentalRequestDecline,
+  RentalRequestInput,
+  RentalRequestOfferInput,
   RentalReservation,
   RentalReservationDetail,
   RentalReservationWithPricing,
+  RentalStaffQuoteInput,
   RentalVehicle,
   RentalVehicleDetail,
   RentalVehicleImage,
@@ -1794,6 +1808,7 @@ export function useGetCarAvailability<
 }
 
 /**
+ * When the marketplace flag is enabled, legacy booking creation is rejected for vehicles mapped to the marketplace; use the timed rental request flow instead.
  * @summary Create a booking
  */
 export const getCreateBookingUrl = () => {
@@ -3194,6 +3209,7 @@ export function useGetRentalHold<
 }
 
 /**
+ * Legacy reservation creation remains available with the marketplace flag off. When enabled, returns 409 and customers must use POST /rental/requests; a hold alone never confirms a marketplace booking.
  * @summary Create a reservation from a hold
  */
 export const getCreateRentalReservationUrl = () => {
@@ -6252,4 +6268,1289 @@ export const useDeleteAdminRentalAddon = <
   TContext
 > => {
   return useMutation(getDeleteAdminRentalAddonMutationOptions(options));
+};
+
+/**
+ * Requires a live hold created in the same session. The response is a request, not a confirmed booking. Times on the hold must include UTC offsets.
+ * @summary Create a timed marketplace booking request
+ */
+export const getCreateRentalRequestUrl = () => {
+  return `/api/rental/requests`;
+};
+
+export const createRentalRequest = async (
+  rentalRequestInput: RentalRequestInput,
+  options?: RequestInit,
+): Promise<RentalRequestCreated> => {
+  return customFetch<RentalRequestCreated>(getCreateRentalRequestUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(rentalRequestInput),
+  });
+};
+
+export const getCreateRentalRequestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRentalRequest>>,
+    TError,
+    { data: BodyType<RentalRequestInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRentalRequest>>,
+  TError,
+  { data: BodyType<RentalRequestInput> },
+  TContext
+> => {
+  const mutationKey = ["createRentalRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRentalRequest>>,
+    { data: BodyType<RentalRequestInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createRentalRequest(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRentalRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRentalRequest>>
+>;
+export type CreateRentalRequestMutationBody = BodyType<RentalRequestInput>;
+export type CreateRentalRequestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a timed marketplace booking request
+ */
+export const useCreateRentalRequest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRentalRequest>>,
+    TError,
+    { data: BodyType<RentalRequestInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createRentalRequest>>,
+  TError,
+  { data: BodyType<RentalRequestInput> },
+  TContext
+> => {
+  return useMutation(getCreateRentalRequestMutationOptions(options));
+};
+
+/**
+ * @summary Get the marketplace feature flag state
+ */
+export const getGetRentalMarketplaceConfigUrl = () => {
+  return `/api/rental/marketplace/config`;
+};
+
+export const getRentalMarketplaceConfig = async (
+  options?: RequestInit,
+): Promise<RentalMarketplaceConfig> => {
+  return customFetch<RentalMarketplaceConfig>(
+    getGetRentalMarketplaceConfigUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetRentalMarketplaceConfigQueryKey = () => {
+  return [`/api/rental/marketplace/config`] as const;
+};
+
+export const getGetRentalMarketplaceConfigQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRentalMarketplaceConfig>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getRentalMarketplaceConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetRentalMarketplaceConfigQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRentalMarketplaceConfig>>
+  > = ({ signal }) => getRentalMarketplaceConfig({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRentalMarketplaceConfig>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRentalMarketplaceConfigQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRentalMarketplaceConfig>>
+>;
+export type GetRentalMarketplaceConfigQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the marketplace feature flag state
+ */
+
+export function useGetRentalMarketplaceConfig<
+  TData = Awaited<ReturnType<typeof getRentalMarketplaceConfig>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getRentalMarketplaceConfig>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRentalMarketplaceConfigQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get a marketplace request and its current offer
+ */
+export const getGetRentalRequestUrl = (
+  id: number,
+  params: GetRentalRequestParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rental/requests/${id}?${stringifiedParams}`
+    : `/api/rental/requests/${id}`;
+};
+
+export const getRentalRequest = async (
+  id: number,
+  params: GetRentalRequestParams,
+  options?: RequestInit,
+): Promise<RentalRequest> => {
+  return customFetch<RentalRequest>(getGetRentalRequestUrl(id, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetRentalRequestQueryKey = (
+  id: number,
+  params?: GetRentalRequestParams,
+) => {
+  return [`/api/rental/requests/${id}`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetRentalRequestQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRentalRequest>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  params: GetRentalRequestParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRentalRequest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetRentalRequestQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRentalRequest>>
+  > = ({ signal }) =>
+    getRentalRequest(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRentalRequest>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRentalRequestQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRentalRequest>>
+>;
+export type GetRentalRequestQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get a marketplace request and its current offer
+ */
+
+export function useGetRentalRequest<
+  TData = Awaited<ReturnType<typeof getRentalRequest>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  params: GetRentalRequestParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRentalRequest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRentalRequestQueryOptions(id, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Only an offer_pending request can be accepted. Acceptance creates an awaiting_payment reservation; it does not charge or confirm payment.
+ * @summary Explicitly accept an alternate offer
+ */
+export const getAcceptRentalAlternateOfferUrl = (
+  id: number,
+  params: AcceptRentalAlternateOfferParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rental/requests/${id}/accept-offer?${stringifiedParams}`
+    : `/api/rental/requests/${id}/accept-offer`;
+};
+
+export const acceptRentalAlternateOffer = async (
+  id: number,
+  params: AcceptRentalAlternateOfferParams,
+  options?: RequestInit,
+): Promise<RentalRequestAcceptance> => {
+  return customFetch<RentalRequestAcceptance>(
+    getAcceptRentalAlternateOfferUrl(id, params),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getAcceptRentalAlternateOfferMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acceptRentalAlternateOffer>>,
+    TError,
+    { id: number; params: AcceptRentalAlternateOfferParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acceptRentalAlternateOffer>>,
+  TError,
+  { id: number; params: AcceptRentalAlternateOfferParams },
+  TContext
+> => {
+  const mutationKey = ["acceptRentalAlternateOffer"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acceptRentalAlternateOffer>>,
+    { id: number; params: AcceptRentalAlternateOfferParams }
+  > = (props) => {
+    const { id, params } = props ?? {};
+
+    return acceptRentalAlternateOffer(id, params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcceptRentalAlternateOfferMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acceptRentalAlternateOffer>>
+>;
+
+export type AcceptRentalAlternateOfferMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Explicitly accept an alternate offer
+ */
+export const useAcceptRentalAlternateOffer = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acceptRentalAlternateOffer>>,
+    TError,
+    { id: number; params: AcceptRentalAlternateOfferParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof acceptRentalAlternateOffer>>,
+  TError,
+  { id: number; params: AcceptRentalAlternateOfferParams },
+  TContext
+> => {
+  return useMutation(getAcceptRentalAlternateOfferMutationOptions(options));
+};
+
+/**
+ * @summary Decline an alternate offer and release its inventory
+ */
+export const getDeclineRentalAlternateOfferUrl = (
+  id: number,
+  params: DeclineRentalAlternateOfferParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rental/requests/${id}/decline-offer?${stringifiedParams}`
+    : `/api/rental/requests/${id}/decline-offer`;
+};
+
+export const declineRentalAlternateOffer = async (
+  id: number,
+  params: DeclineRentalAlternateOfferParams,
+  options?: RequestInit,
+): Promise<RentalRequest> => {
+  return customFetch<RentalRequest>(
+    getDeclineRentalAlternateOfferUrl(id, params),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getDeclineRentalAlternateOfferMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof declineRentalAlternateOffer>>,
+    TError,
+    { id: number; params: DeclineRentalAlternateOfferParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof declineRentalAlternateOffer>>,
+  TError,
+  { id: number; params: DeclineRentalAlternateOfferParams },
+  TContext
+> => {
+  const mutationKey = ["declineRentalAlternateOffer"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof declineRentalAlternateOffer>>,
+    { id: number; params: DeclineRentalAlternateOfferParams }
+  > = (props) => {
+    const { id, params } = props ?? {};
+
+    return declineRentalAlternateOffer(id, params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeclineRentalAlternateOfferMutationResult = NonNullable<
+  Awaited<ReturnType<typeof declineRentalAlternateOffer>>
+>;
+
+export type DeclineRentalAlternateOfferMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Decline an alternate offer and release its inventory
+ */
+export const useDeclineRentalAlternateOffer = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof declineRentalAlternateOffer>>,
+    TError,
+    { id: number; params: DeclineRentalAlternateOfferParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof declineRentalAlternateOffer>>,
+  TError,
+  { id: number; params: DeclineRentalAlternateOfferParams },
+  TContext
+> => {
+  return useMutation(getDeclineRentalAlternateOfferMutationOptions(options));
+};
+
+/**
+ * Uses the existing /partner/login partner session and operator scope.
+ * @summary List requests for the authenticated partner operator
+ */
+export const getGetPartnerRentalRequestsUrl = () => {
+  return `/api/partner/rental/requests`;
+};
+
+export const getPartnerRentalRequests = async (
+  options?: RequestInit,
+): Promise<PartnerRentalRequest[]> => {
+  return customFetch<PartnerRentalRequest[]>(getGetPartnerRentalRequestsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPartnerRentalRequestsQueryKey = () => {
+  return [`/api/partner/rental/requests`] as const;
+};
+
+export const getGetPartnerRentalRequestsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPartnerRentalRequests>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPartnerRentalRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPartnerRentalRequestsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPartnerRentalRequests>>
+  > = ({ signal }) => getPartnerRentalRequests({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPartnerRentalRequests>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPartnerRentalRequestsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPartnerRentalRequests>>
+>;
+export type GetPartnerRentalRequestsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List requests for the authenticated partner operator
+ */
+
+export function useGetPartnerRentalRequests<
+  TData = Awaited<ReturnType<typeof getPartnerRentalRequests>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPartnerRentalRequests>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPartnerRentalRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Uses the partner session and operator scope. Captures driver contact, attribution and explicit marketing consent separately. Creates a bounded inventory hold and an offer_pending request; customer acceptance is required before payment becomes available.
+ * @summary Create a customer-accessible quote/lead for this operator
+ */
+export const getCreatePartnerRentalRequestQuoteUrl = () => {
+  return `/api/partner/rental/requests/quote`;
+};
+
+export const createPartnerRentalRequestQuote = async (
+  rentalStaffQuoteInput: RentalStaffQuoteInput,
+  options?: RequestInit,
+): Promise<RentalRequestCreated> => {
+  return customFetch<RentalRequestCreated>(
+    getCreatePartnerRentalRequestQuoteUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(rentalStaffQuoteInput),
+    },
+  );
+};
+
+export const getCreatePartnerRentalRequestQuoteMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPartnerRentalRequestQuote>>,
+    TError,
+    { data: BodyType<RentalStaffQuoteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPartnerRentalRequestQuote>>,
+  TError,
+  { data: BodyType<RentalStaffQuoteInput> },
+  TContext
+> => {
+  const mutationKey = ["createPartnerRentalRequestQuote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPartnerRentalRequestQuote>>,
+    { data: BodyType<RentalStaffQuoteInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createPartnerRentalRequestQuote(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreatePartnerRentalRequestQuoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPartnerRentalRequestQuote>>
+>;
+export type CreatePartnerRentalRequestQuoteMutationBody =
+  BodyType<RentalStaffQuoteInput>;
+export type CreatePartnerRentalRequestQuoteMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a customer-accessible quote/lead for this operator
+ */
+export const useCreatePartnerRentalRequestQuote = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPartnerRentalRequestQuote>>,
+    TError,
+    { data: BodyType<RentalStaffQuoteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPartnerRentalRequestQuote>>,
+  TError,
+  { data: BodyType<RentalStaffQuoteInput> },
+  TContext
+> => {
+  return useMutation(
+    getCreatePartnerRentalRequestQuoteMutationOptions(options),
+  );
+};
+
+/**
+ * Uses partner session authentication. Creates an awaiting_payment reservation; it never confirms or charges payment.
+ * @summary Accept the customer's requested offer
+ */
+export const getAcceptPartnerRentalRequestUrl = (id: number) => {
+  return `/api/partner/rental/requests/${id}/accept`;
+};
+
+export const acceptPartnerRentalRequest = async (
+  id: number,
+  options?: RequestInit,
+): Promise<RentalRequestAcceptance> => {
+  return customFetch<RentalRequestAcceptance>(
+    getAcceptPartnerRentalRequestUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getAcceptPartnerRentalRequestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acceptPartnerRentalRequest>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acceptPartnerRentalRequest>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["acceptPartnerRentalRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acceptPartnerRentalRequest>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return acceptPartnerRentalRequest(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcceptPartnerRentalRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acceptPartnerRentalRequest>>
+>;
+
+export type AcceptPartnerRentalRequestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Accept the customer's requested offer
+ */
+export const useAcceptPartnerRentalRequest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acceptPartnerRentalRequest>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof acceptPartnerRentalRequest>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getAcceptPartnerRentalRequestMutationOptions(options));
+};
+
+/**
+ * @summary Decline a customer request
+ */
+export const getDeclinePartnerRentalRequestUrl = (id: number) => {
+  return `/api/partner/rental/requests/${id}/decline`;
+};
+
+export const declinePartnerRentalRequest = async (
+  id: number,
+  rentalRequestDecline: RentalRequestDecline,
+  options?: RequestInit,
+): Promise<RentalRequest> => {
+  return customFetch<RentalRequest>(getDeclinePartnerRentalRequestUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(rentalRequestDecline),
+  });
+};
+
+export const getDeclinePartnerRentalRequestMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof declinePartnerRentalRequest>>,
+    TError,
+    { id: number; data: BodyType<RentalRequestDecline> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof declinePartnerRentalRequest>>,
+  TError,
+  { id: number; data: BodyType<RentalRequestDecline> },
+  TContext
+> => {
+  const mutationKey = ["declinePartnerRentalRequest"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof declinePartnerRentalRequest>>,
+    { id: number; data: BodyType<RentalRequestDecline> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return declinePartnerRentalRequest(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeclinePartnerRentalRequestMutationResult = NonNullable<
+  Awaited<ReturnType<typeof declinePartnerRentalRequest>>
+>;
+export type DeclinePartnerRentalRequestMutationBody =
+  BodyType<RentalRequestDecline>;
+export type DeclinePartnerRentalRequestMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Decline a customer request
+ */
+export const useDeclinePartnerRentalRequest = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof declinePartnerRentalRequest>>,
+    TError,
+    { id: number; data: BodyType<RentalRequestDecline> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof declinePartnerRentalRequest>>,
+  TError,
+  { id: number; data: BodyType<RentalRequestDecline> },
+  TContext
+> => {
+  return useMutation(getDeclinePartnerRentalRequestMutationOptions(options));
+};
+
+/**
+ * vehicleId may select another eligible physical car from the same operator. The exact pickup/return instants and locations are retained; the offered vehicle is held through the bounded response deadline. Customer acceptance is explicit.
+ * @summary Make an alternate price or same-operator vehicle offer
+ */
+export const getOfferPartnerRentalAlternatePriceUrl = (id: number) => {
+  return `/api/partner/rental/requests/${id}/offer`;
+};
+
+export const offerPartnerRentalAlternatePrice = async (
+  id: number,
+  rentalRequestOfferInput: RentalRequestOfferInput,
+  options?: RequestInit,
+): Promise<RentalRequest> => {
+  return customFetch<RentalRequest>(
+    getOfferPartnerRentalAlternatePriceUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(rentalRequestOfferInput),
+    },
+  );
+};
+
+export const getOfferPartnerRentalAlternatePriceMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof offerPartnerRentalAlternatePrice>>,
+    TError,
+    { id: number; data: BodyType<RentalRequestOfferInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof offerPartnerRentalAlternatePrice>>,
+  TError,
+  { id: number; data: BodyType<RentalRequestOfferInput> },
+  TContext
+> => {
+  const mutationKey = ["offerPartnerRentalAlternatePrice"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof offerPartnerRentalAlternatePrice>>,
+    { id: number; data: BodyType<RentalRequestOfferInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return offerPartnerRentalAlternatePrice(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type OfferPartnerRentalAlternatePriceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof offerPartnerRentalAlternatePrice>>
+>;
+export type OfferPartnerRentalAlternatePriceMutationBody =
+  BodyType<RentalRequestOfferInput>;
+export type OfferPartnerRentalAlternatePriceMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Make an alternate price or same-operator vehicle offer
+ */
+export const useOfferPartnerRentalAlternatePrice = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof offerPartnerRentalAlternatePrice>>,
+    TError,
+    { id: number; data: BodyType<RentalRequestOfferInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof offerPartnerRentalAlternatePrice>>,
+  TError,
+  { id: number; data: BodyType<RentalRequestOfferInput> },
+  TContext
+> => {
+  return useMutation(
+    getOfferPartnerRentalAlternatePriceMutationOptions(options),
+  );
+};
+
+/**
+ * Admin-authenticated offer for an existing request; vehicleId may select another eligible physical car owned by the same operator. Customer acceptance is required.
+ * @summary Create an alternate price or same-operator vehicle offer for a request
+ */
+export const getCreateAdminRentalRequestAlternateOfferUrl = (id: number) => {
+  return `/api/admin/rental/requests/${id}/offer`;
+};
+
+export const createAdminRentalRequestAlternateOffer = async (
+  id: number,
+  rentalRequestOfferInput: RentalRequestOfferInput,
+  options?: RequestInit,
+): Promise<RentalRequest> => {
+  return customFetch<RentalRequest>(
+    getCreateAdminRentalRequestAlternateOfferUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(rentalRequestOfferInput),
+    },
+  );
+};
+
+export const getCreateAdminRentalRequestAlternateOfferMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminRentalRequestAlternateOffer>>,
+    TError,
+    { id: number; data: BodyType<RentalRequestOfferInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdminRentalRequestAlternateOffer>>,
+  TError,
+  { id: number; data: BodyType<RentalRequestOfferInput> },
+  TContext
+> => {
+  const mutationKey = ["createAdminRentalRequestAlternateOffer"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdminRentalRequestAlternateOffer>>,
+    { id: number; data: BodyType<RentalRequestOfferInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createAdminRentalRequestAlternateOffer(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdminRentalRequestAlternateOfferMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdminRentalRequestAlternateOffer>>
+>;
+export type CreateAdminRentalRequestAlternateOfferMutationBody =
+  BodyType<RentalRequestOfferInput>;
+export type CreateAdminRentalRequestAlternateOfferMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create an alternate price or same-operator vehicle offer for a request
+ */
+export const useCreateAdminRentalRequestAlternateOffer = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminRentalRequestAlternateOffer>>,
+    TError,
+    { id: number; data: BodyType<RentalRequestOfferInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdminRentalRequestAlternateOffer>>,
+  TError,
+  { id: number; data: BodyType<RentalRequestOfferInput> },
+  TContext
+> => {
+  return useMutation(
+    getCreateAdminRentalRequestAlternateOfferMutationOptions(options),
+  );
+};
+
+/**
+ * Admin-authenticated staff quote. Captures driver contact, attribution and explicit marketing consent separately and reserves inventory until the bounded customer response deadline. The result is offer_pending, never confirmed.
+ * @summary Create a customer-accessible quote/lead
+ */
+export const getCreateAdminRentalRequestQuoteUrl = () => {
+  return `/api/admin/rental/requests/quote`;
+};
+
+export const createAdminRentalRequestQuote = async (
+  rentalStaffQuoteInput: RentalStaffQuoteInput,
+  options?: RequestInit,
+): Promise<RentalRequestCreated> => {
+  return customFetch<RentalRequestCreated>(
+    getCreateAdminRentalRequestQuoteUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(rentalStaffQuoteInput),
+    },
+  );
+};
+
+export const getCreateAdminRentalRequestQuoteMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminRentalRequestQuote>>,
+    TError,
+    { data: BodyType<RentalStaffQuoteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAdminRentalRequestQuote>>,
+  TError,
+  { data: BodyType<RentalStaffQuoteInput> },
+  TContext
+> => {
+  const mutationKey = ["createAdminRentalRequestQuote"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAdminRentalRequestQuote>>,
+    { data: BodyType<RentalStaffQuoteInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAdminRentalRequestQuote(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAdminRentalRequestQuoteMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAdminRentalRequestQuote>>
+>;
+export type CreateAdminRentalRequestQuoteMutationBody =
+  BodyType<RentalStaffQuoteInput>;
+export type CreateAdminRentalRequestQuoteMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create a customer-accessible quote/lead
+ */
+export const useCreateAdminRentalRequestQuote = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAdminRentalRequestQuote>>,
+    TError,
+    { data: BodyType<RentalStaffQuoteInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createAdminRentalRequestQuote>>,
+  TError,
+  { data: BodyType<RentalStaffQuoteInput> },
+  TContext
+> => {
+  return useMutation(getCreateAdminRentalRequestQuoteMutationOptions(options));
+};
+
+/**
+ * @summary Get marketplace commercial and response-window configuration
+ */
+export const getGetAdminRentalMarketplacePolicyUrl = () => {
+  return `/api/admin/rental/marketplace-policy`;
+};
+
+export const getAdminRentalMarketplacePolicy = async (
+  options?: RequestInit,
+): Promise<RentalMarketplacePolicy> => {
+  return customFetch<RentalMarketplacePolicy>(
+    getGetAdminRentalMarketplacePolicyUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAdminRentalMarketplacePolicyQueryKey = () => {
+  return [`/api/admin/rental/marketplace-policy`] as const;
+};
+
+export const getGetAdminRentalMarketplacePolicyQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminRentalMarketplacePolicy>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalMarketplacePolicy>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAdminRentalMarketplacePolicyQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminRentalMarketplacePolicy>>
+  > = ({ signal }) =>
+    getAdminRentalMarketplacePolicy({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalMarketplacePolicy>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminRentalMarketplacePolicyQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminRentalMarketplacePolicy>>
+>;
+export type GetAdminRentalMarketplacePolicyQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get marketplace commercial and response-window configuration
+ */
+
+export function useGetAdminRentalMarketplacePolicy<
+  TData = Awaited<ReturnType<typeof getAdminRentalMarketplacePolicy>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalMarketplacePolicy>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminRentalMarketplacePolicyQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update marketplace commercial and request/payment window configuration
+ */
+export const getUpdateAdminRentalMarketplacePolicyUrl = () => {
+  return `/api/admin/rental/marketplace-policy`;
+};
+
+export const updateAdminRentalMarketplacePolicy = async (
+  rentalMarketplacePolicyUpdate: RentalMarketplacePolicyUpdate,
+  options?: RequestInit,
+): Promise<RentalMarketplacePolicy> => {
+  return customFetch<RentalMarketplacePolicy>(
+    getUpdateAdminRentalMarketplacePolicyUrl(),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(rentalMarketplacePolicyUpdate),
+    },
+  );
+};
+
+export const getUpdateAdminRentalMarketplacePolicyMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRentalMarketplacePolicy>>,
+    TError,
+    { data: BodyType<RentalMarketplacePolicyUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAdminRentalMarketplacePolicy>>,
+  TError,
+  { data: BodyType<RentalMarketplacePolicyUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateAdminRentalMarketplacePolicy"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAdminRentalMarketplacePolicy>>,
+    { data: BodyType<RentalMarketplacePolicyUpdate> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateAdminRentalMarketplacePolicy(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAdminRentalMarketplacePolicyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAdminRentalMarketplacePolicy>>
+>;
+export type UpdateAdminRentalMarketplacePolicyMutationBody =
+  BodyType<RentalMarketplacePolicyUpdate>;
+export type UpdateAdminRentalMarketplacePolicyMutationError =
+  ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update marketplace commercial and request/payment window configuration
+ */
+export const useUpdateAdminRentalMarketplacePolicy = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAdminRentalMarketplacePolicy>>,
+    TError,
+    { data: BodyType<RentalMarketplacePolicyUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAdminRentalMarketplacePolicy>>,
+  TError,
+  { data: BodyType<RentalMarketplacePolicyUpdate> },
+  TContext
+> => {
+  return useMutation(
+    getUpdateAdminRentalMarketplacePolicyMutationOptions(options),
+  );
 };

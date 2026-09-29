@@ -8,6 +8,7 @@ import {
   rentalAvailabilityBlocksTable,
   rentalReservationsTable,
   rentalReservationHoldsTable,
+  rentalMarketplaceRequestsTable,
   rentalSettingsTable,
   bookingsTable,
   rentalOperatorsTable,
@@ -19,6 +20,8 @@ import { z } from "zod/v4";
 import { logRentalAudit } from "../lib/rental-events";
 import { platformOperatorId } from "../lib/platform-operator";
 import { eligibleMarketplaceVehicles } from "../lib/marketplace-policy";
+import { hasExplicitUtcOffset, isMarketplaceEnabled } from "../lib/rental-request-policy.mjs";
+import { calculatePrice } from "../lib/rental-pricing";
 
 export async function getTurnaroundBufferHours(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,7 +79,7 @@ export function serializePublicVehicle(v: RentalVehicle & { images?: RentalVehic
 }
 
 export async function visibleOperatorIds(): Promise<number[] | null> {
-  if (process.env.RENTAL_MARKETPLACE_ENABLED !== "true") return null;
+  if (!isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) return null;
   const rows = await db.select({ id: rentalOperatorsTable.id }).from(rentalOperatorsTable)
     .where(and(eq(rentalOperatorsTable.status, "active"), eq(rentalOperatorsTable.verificationStatus, "approved")));
   return rows.map((row) => row.id);
@@ -112,7 +115,7 @@ export async function isVehicleAvailable(
   const bufferedStart = new Date(pickupAt.getTime() - bufferMs);
   const bufferedEnd = new Date(returnAt.getTime() + bufferMs);
 
-  if (process.env.RENTAL_MARKETPLACE_ENABLED === "true") {
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
     const [mapped] = await client.select({ legacyCarId: rentalVehiclesTable.legacyCarId })
       .from(rentalVehiclesTable).where(eq(rentalVehiclesTable.id, vehicleId));
     if (mapped?.legacyCarId) {
@@ -135,6 +138,36 @@ export async function isVehicleAvailable(
   for (const block of blocks) {
     if (block.startAt < bufferedEnd && block.endAt > bufferedStart) {
       return false;
+    }
+  }
+
+  const now = new Date();
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
+    // Expiry is enforced at the inventory boundary, not by a background task.
+    // This promptly releases request holds when a customer or operator misses a
+    // response/payment cutoff.
+    await client.update(rentalReservationHoldsTable).set({ releasedAt: now }).where(and(
+      eq(rentalReservationHoldsTable.vehicleId, vehicleId),
+      isNull(rentalReservationHoldsTable.releasedAt),
+      sql`${rentalReservationHoldsTable.heldUntil} <= ${now}`,
+    ));
+    const requests = await client.select().from(rentalMarketplaceRequestsTable).where(and(
+      eq(rentalMarketplaceRequestsTable.vehicleId, vehicleId),
+      sql`${rentalMarketplaceRequestsTable.status} IN ('requested', 'offer_pending', 'awaiting_payment')`,
+    ));
+    for (const request of requests) {
+      const deadline = request.status === "awaiting_payment" ? request.paymentDeadline : request.respondBy;
+      if (!deadline || deadline > now) continue;
+      await client.update(rentalMarketplaceRequestsTable).set({ status: "expired", updatedAt: now }).where(and(
+        eq(rentalMarketplaceRequestsTable.id, request.id),
+        sql`${rentalMarketplaceRequestsTable.status} IN ('requested', 'offer_pending', 'awaiting_payment')`,
+      ));
+      if (request.reservationId) {
+        await client.update(rentalReservationsTable).set({ status: "cancelled", updatedAt: now }).where(and(
+          eq(rentalReservationsTable.id, request.reservationId),
+          eq(rentalReservationsTable.status, "pending_payment"),
+        ));
+      }
     }
   }
 
@@ -169,7 +202,6 @@ export async function isVehicleAvailable(
     }
   }
 
-  const now = new Date();
   const holds = await client
     .select()
     .from(rentalReservationHoldsTable)
@@ -255,6 +287,21 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
     airportDelivery,
   } = query.data;
 
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
+    const hasPickup = pickupAt !== undefined;
+    const hasReturn = returnAt !== undefined;
+    if (hasPickup !== hasReturn || (hasPickup && (!hasExplicitUtcOffset(pickupAt!) || !hasExplicitUtcOffset(returnAt!)))) {
+      res.status(400).json({ error: "Marketplace pickup and return times must be supplied together with UTC offsets" });
+      return;
+    }
+    if (hasPickup && (Number.isNaN(new Date(pickupAt!).getTime()) ||
+        Number.isNaN(new Date(returnAt!).getTime()) ||
+        new Date(returnAt!) <= new Date(pickupAt!))) {
+      res.status(400).json({ error: "Valid pickup and return instants are required" });
+      return;
+    }
+  }
+
   const totalPassengers = (adults ?? 0) + (children ?? 0) + (babies ?? 0);
 
   let vehicleQuery = db
@@ -308,6 +355,27 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
     }
   }
 
+  const searchQuotes = new Map<number, Awaited<ReturnType<typeof calculatePrice>>>();
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && pickup && returnD) {
+    for (const vehicle of [...available]) {
+      try {
+        searchQuotes.set(vehicle.id, await calculatePrice({
+          vehicleId: vehicle.id,
+          pickupAt: pickup,
+          returnAt: returnD,
+          pickupLocation,
+          returnLocation,
+        }));
+      } catch (error) {
+        if ((error as { status?: number }).status !== 400) throw error;
+        // A vehicle whose configured billable-period limits reject this trip
+        // cannot be represented as a bookable marketplace search result.
+        const index = available.findIndex((candidate) => candidate.id === vehicle.id);
+        if (index >= 0) available.splice(index, 1);
+      }
+    }
+  }
+
   const imagesByVehicle = new Map<number, RentalVehicleImage[]>();
   if (vehicles.length > 0) {
     const vehicleIds = vehicles.map((v) => v.id);
@@ -328,7 +396,8 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
   const serialize = (v: RentalVehicle) =>
     ({
        ...serializePublicVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
-       ...(process.env.RENTAL_MARKETPLACE_ENABLED === "true" && eligible.get(v.id) ? { operatorName: eligible.get(v.id)!.name } : {}),
+       ...(isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && eligible.get(v.id) ? { operatorName: eligible.get(v.id)!.name } : {}),
+       ...(searchQuotes.has(v.id) ? { priceBreakdown: searchQuotes.get(v.id) } : {}),
       basePrice: pricingByVehicle.get(v.id) ?? null,
     });
 
@@ -370,7 +439,7 @@ router.get("/rental/vehicles", async (_req, res): Promise<void> => {
   const pricingByVehicle = await getBasePrices(ids);
   res.json(vehicles.filter((v) => eligible.has(v.id)).map((v) => ({
     ...serializePublicVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
-    ...(process.env.RENTAL_MARKETPLACE_ENABLED === "true" && eligible.get(v.id) ? { operatorName: eligible.get(v.id)!.name } : {}),
+    ...(isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && eligible.get(v.id) ? { operatorName: eligible.get(v.id)!.name } : {}),
     basePrice: pricingByVehicle.get(v.id) ?? null,
   })));
 });
@@ -410,7 +479,7 @@ router.get("/rental/vehicles/:slug", async (req, res): Promise<void> => {
     .from(rentalVehiclePricingTable)
     .where(eq(rentalVehiclePricingTable.vehicleId, vehicle.id));
 
-  res.json({ ...serializePublicVehicle({ ...vehicle, images }), ...(process.env.RENTAL_MARKETPLACE_ENABLED === "true" && eligible.get(vehicle.id) ? { operatorName: eligible.get(vehicle.id)!.name } : {}), pricing: pricing[0] ?? null });
+  res.json({ ...serializePublicVehicle({ ...vehicle, images }), ...(isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && eligible.get(vehicle.id) ? { operatorName: eligible.get(vehicle.id)!.name } : {}), pricing: pricing[0] ?? null });
 });
 
 router.get("/admin/rental/vehicles", requireAdminAuth, async (_req, res): Promise<void> => {
@@ -657,6 +726,7 @@ const UpdatePricingSchema = z.object({
   monthlyDiscountPct: z.coerce.number().optional(),
   minDays: z.coerce.number().int().optional(),
   maxDays: z.coerce.number().int().nullable().optional(),
+  billablePeriodHours: z.coerce.number().int().min(1).max(168).optional(),
   cleaningFee: z.coerce.number().optional(),
   deliveryFee: z.coerce.number().optional(),
   lateReturnFee: z.coerce.number().optional(),

@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
 import { useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
+import { MarketplaceCheckout } from "./marketplace";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeAddon, localizeVehicle, rentalCopy } from "@/lib/rental-localization";
@@ -44,6 +45,13 @@ const driverSchema = z.object({
 });
 
 export function CheckoutPage() {
+  const config = useRentalMarketplaceConfig();
+  if (config.isLoading) return <div className="container min-h-[60dvh] space-y-4 py-20"><div className="h-10 w-56 animate-pulse bg-muted" /><div className="h-48 max-w-3xl animate-pulse bg-muted" /></div>;
+  if (config.isError || !config.data) return <div className="container min-h-[60dvh] py-20"><h1 className="font-serif text-2xl">Checkout temporarily unavailable</h1><p className="my-4 text-muted-foreground">We could not verify the booking mode. No booking was submitted.</p><Button onClick={() => config.refetch()}>Try again</Button></div>;
+  return config.data.enabled ? <MarketplaceCheckout /> : <LegacyCheckout />;
+}
+
+function LegacyCheckout() {
   const [, setLocation] = useLocation();
   const { draft, updateDraft, clearDraft } = useCheckoutDraft();
   const { toast } = useToast();

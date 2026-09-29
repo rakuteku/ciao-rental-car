@@ -360,6 +360,10 @@ export interface RentalVehicleImage {
   createdAt: string;
 }
 
+export type RentalVehicleDisclosures = { [key: string]: unknown };
+
+export type RentalVehicleHours = { [key: string]: unknown };
+
 export interface RentalVehicle {
   id: number;
   internalName: string;
@@ -396,6 +400,8 @@ export interface RentalVehicle {
   fuelPolicy: string;
   smokingPolicy: string;
   petPolicy: string;
+  disclosures?: RentalVehicleDisclosures;
+  hours?: RentalVehicleHours;
   status: string;
   featured: boolean;
   sortOrder: number;
@@ -484,6 +490,7 @@ export interface RentalVehiclePricing {
   minDays: number;
   /** @nullable */
   maxDays?: number | null;
+  billablePeriodHours?: number;
   cleaningFee: number;
   deliveryFee: number;
   lateReturnFee: number;
@@ -502,10 +509,59 @@ export type RentalVehicleDetail = RentalVehicle & {
   pricing?: RentalVehiclePricing | null;
 };
 
-export interface RentalVehicleSearchResult {
-  available: RentalVehicle[];
-  unavailable: RentalVehicle[];
+export interface DayRate {
+  date: string;
+  baseRate: number;
+  appliedRate: number;
+  /** @nullable */
+  ruleApplied?: string | null;
 }
+
+export interface RentalAddonLineItem {
+  addonId: number;
+  name: string;
+  qty: number;
+  unitPrice: number;
+  totalPrice: number;
+  pricingType: string;
+}
+
+export interface RentalPriceBreakdown {
+  days: number;
+  dayRates: DayRate[];
+  subtotal: number;
+  deliveryFee: number;
+  airportPickupFee: number;
+  airportDropoffFee: number;
+  addons: RentalAddonLineItem[];
+  addonsTotal: number;
+  discount: number;
+  tax: number;
+  securityDeposit: number;
+  finalTotal: number;
+  taxIncluded: boolean;
+  currency: string;
+}
+
+export type RentalVehicleSearchItem = RentalVehicle & {
+  priceBreakdown?: RentalPriceBreakdown | null;
+  operatorName?: string;
+  /** @nullable */
+  basePrice?: number | null;
+};
+
+export interface RentalVehicleSearchResult {
+  available: RentalVehicleSearchItem[];
+  unavailable: RentalVehicleSearchItem[];
+}
+
+export type RentalAddonPricingType =
+  (typeof RentalAddonPricingType)[keyof typeof RentalAddonPricingType];
+
+export const RentalAddonPricingType = {
+  flat: "flat",
+  per_day: "per_day",
+} as const;
 
 export interface RentalAddon {
   id: number;
@@ -521,7 +577,7 @@ export interface RentalAddon {
   descriptionZhTw?: string | null;
   /** @nullable */
   image?: string | null;
-  pricingType: string;
+  pricingType: RentalAddonPricingType;
   flatFee: number;
   perDayFee: number;
   maxQty: number;
@@ -621,40 +677,6 @@ export interface RentalHold {
   releasedAt?: string | null;
   createdAt: string;
   expired: boolean;
-}
-
-export interface DayRate {
-  date: string;
-  baseRate: number;
-  appliedRate: number;
-  /** @nullable */
-  ruleApplied?: string | null;
-}
-
-export interface RentalAddonLineItem {
-  addonId: number;
-  name: string;
-  qty: number;
-  unitPrice: number;
-  totalPrice: number;
-  pricingType: string;
-}
-
-export interface RentalPriceBreakdown {
-  days: number;
-  dayRates: DayRate[];
-  subtotal: number;
-  deliveryFee: number;
-  airportPickupFee: number;
-  airportDropoffFee: number;
-  addons: RentalAddonLineItem[];
-  addonsTotal: number;
-  discount: number;
-  tax: number;
-  securityDeposit: number;
-  finalTotal: number;
-  taxIncluded: boolean;
-  currency: string;
 }
 
 export type RentalReservationWithPricing = RentalReservation & {
@@ -892,6 +914,7 @@ export interface UpdateVehiclePricingBody {
   monthlyDiscountPct?: number;
   minDays?: number;
   maxDays?: number;
+  billablePeriodHours?: number;
   cleaningFee?: number;
   deliveryFee?: number;
   lateReturnFee?: number;
@@ -956,6 +979,216 @@ export interface CreateAddonBody {
   required?: boolean;
   published?: boolean;
   sortOrder?: number;
+}
+
+export type RentalRequestAttributionFirstTouch = { [key: string]: unknown };
+
+export type RentalRequestAttributionLastTouch = { [key: string]: unknown };
+
+export interface RentalRequestAttribution {
+  firstTouch?: RentalRequestAttributionFirstTouch;
+  lastTouch?: RentalRequestAttributionLastTouch;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  landingUrl?: string;
+  referralCode?: string;
+  hotelCode?: string;
+}
+
+export interface RentalRequestDriver {
+  fullName: string;
+  email: string;
+  phone: string;
+  romanizedName?: string;
+  dateOfBirth?: string;
+  nationality?: string;
+  residenceCountry?: string;
+  address?: string;
+  emergencyContact?: string;
+  flightNumber?: string;
+  accommodation?: string;
+}
+
+export interface RentalRequestAdditionalDriver {
+  fullName: string;
+  email: string;
+  phone: string;
+}
+
+export interface RentalRequestInput {
+  holdId: number;
+  vehicleId: number;
+  pickupLocation: string;
+  returnLocation: string;
+  driver: RentalRequestDriver;
+  additionalDrivers?: RentalRequestAdditionalDriver[];
+  travelNotes?: string;
+  marketingConsent: boolean;
+  attribution?: RentalRequestAttribution;
+  addons?: CreateReservationAddonBody[];
+}
+
+export interface RentalRequestOfferInput {
+  /** @minimum 0 */
+  totalPrice: number;
+  reason: string;
+  /** @minimum 1 */
+  vehicleId?: number;
+}
+
+export interface RentalStaffQuoteInput {
+  /** @minimum 1 */
+  vehicleId: number;
+  pickupAt: string;
+  returnAt: string;
+  pickupLocation: string;
+  returnLocation: string;
+  driver: RentalRequestDriver;
+  additionalDrivers?: RentalRequestAdditionalDriver[];
+  travelNotes?: string;
+  marketingConsent: boolean;
+  attribution?: RentalRequestAttribution;
+  addons?: CreateReservationAddonBody[];
+  /** @minimum 0 */
+  totalPrice?: number;
+  reason: string;
+}
+
+export interface RentalRequestDecline {
+  reason: string;
+}
+
+export type RentalRequestStatus =
+  (typeof RentalRequestStatus)[keyof typeof RentalRequestStatus];
+
+export const RentalRequestStatus = {
+  requested: "requested",
+  offer_pending: "offer_pending",
+  awaiting_payment: "awaiting_payment",
+  declined: "declined",
+  expired: "expired",
+} as const;
+
+export type RentalOfferPolicySnapshotMarketplace = { [key: string]: unknown };
+
+export type RentalOfferPolicySnapshotVehicle = { [key: string]: unknown };
+
+export type RentalOfferPolicySnapshotVersion = {
+  policyVersion: string;
+  commissionVersion: string;
+  capturedAt: string;
+};
+
+export interface RentalOfferPolicySnapshot {
+  marketplace: RentalOfferPolicySnapshotMarketplace;
+  vehicle: RentalOfferPolicySnapshotVehicle;
+  missingMarketplaceTerms: string[];
+  version: RentalOfferPolicySnapshotVersion;
+}
+
+export type RentalRequestOfferPricing = { [key: string]: unknown };
+
+export interface RentalRequestOffer {
+  vehicleId: number;
+  operatorId: number;
+  pricing: RentalRequestOfferPricing;
+  totalPrice: number;
+  currency: string;
+  policy: RentalOfferPolicySnapshot;
+  pickupAt: string;
+  returnAt: string;
+  pickupLocation: string;
+  returnLocation: string;
+  partnerReason?: string;
+}
+
+export interface RentalRequest {
+  id: number;
+  vehicleId: number;
+  status: RentalRequestStatus;
+  offer: RentalRequestOffer;
+  originalOffer: RentalRequestOffer;
+  acceptedOffer?: RentalRequestOffer | null;
+  respondBy: string;
+  /** @nullable */
+  paymentDeadline: string | null;
+  /** @nullable */
+  declinedReason: string | null;
+  customerAccessToken?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RentalRequestCreated = RentalRequest & {
+  customerAccessToken: string;
+};
+
+export type PartnerRentalRequestVehicle = { [key: string]: unknown };
+
+export type PartnerRentalRequest = RentalRequest & {
+  driver?: RentalRequestDriver;
+  additionalDrivers?: RentalRequestAdditionalDriver[];
+  /** @nullable */
+  travelNotes?: string | null;
+  attribution?: RentalRequestAttribution | null;
+  marketingConsent?: boolean;
+  vehicle?: PartnerRentalRequestVehicle;
+};
+
+export type RentalRequestAcceptanceStatus =
+  (typeof RentalRequestAcceptanceStatus)[keyof typeof RentalRequestAcceptanceStatus];
+
+export const RentalRequestAcceptanceStatus = {
+  awaiting_payment: "awaiting_payment",
+} as const;
+
+export interface RentalRequestAcceptance {
+  id: number;
+  status: RentalRequestAcceptanceStatus;
+  reservationId: number;
+  paymentDeadline: string;
+  price: number;
+}
+
+export interface RentalMarketplaceConfig {
+  enabled: boolean;
+}
+
+export type RentalMarketplacePolicyValues = { [key: string]: unknown };
+
+export interface RentalMarketplacePolicy {
+  values: RentalMarketplacePolicyValues;
+  missing: string[];
+}
+
+export interface RentalMarketplacePolicyUpdate {
+  /**
+   * @minimum 0
+   * @maximum 100
+   * @nullable
+   */
+  marketplaceCommissionPercent?: number | null;
+  /** @nullable */
+  marketplacePayoutTerms?: string | null;
+  /** @nullable */
+  marketplaceCancellationPolicy?: string | null;
+  /** @nullable */
+  marketplaceDepositPolicy?: string | null;
+  /**
+   * @maximum 720
+   * @exclusiveMinimum 0
+   * @nullable
+   */
+  marketplaceResponsePeriodHours?: number | null;
+  /** @nullable */
+  marketplaceCoverageTerms?: string | null;
+  /**
+   * @maximum 720
+   * @exclusiveMinimum 0
+   * @nullable
+   */
+  marketplacePaymentWindowHours?: number | null;
 }
 
 export type GetRoomsParams = {
@@ -1039,4 +1272,16 @@ export type GetAdminRentalReservationsParams = {
 
 export type DeleteAdminRentalAddon200 = {
   message: string;
+};
+
+export type GetRentalRequestParams = {
+  accessCode: string;
+};
+
+export type AcceptRentalAlternateOfferParams = {
+  accessCode: string;
+};
+
+export type DeclineRentalAlternateOfferParams = {
+  accessCode: string;
 };

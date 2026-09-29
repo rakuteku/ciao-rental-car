@@ -7,3 +7,4 @@
 - [Localized CMS fallback](bilingual-cms-fallback.md) — Japanese and Chinese content remain editor-authored; blank fields resolve individually to English.
 - [Startup catalog backfill](rental-catalog-startup.md) — CLI and API startup share one transactional, marker-only backfill so production cannot drift from manual seed logic.
 - [Marketplace publication boundary](marketplace-publication.md) — partner policy gates must fail closed without taking the existing platform fleet offline.
+- [Development marketplace schema](development-marketplace-schema.md) — versioned request SQL alone may not align an older development database with previously merged catalog columns.

@@ -14,6 +14,7 @@ const policyFields = [
   ["marketplaceCancellationPolicy", "Cancellation policy", "text"],
   ["marketplaceDepositPolicy", "Deposit policy", "text"],
   ["marketplaceResponsePeriodHours", "Response period (hours)", "number"],
+  ["marketplacePaymentWindowHours", "Payment window after offer acceptance (hours)", "number"],
   ["marketplaceCoverageTerms", "Insurance / coverage terms", "text"],
 ] as const;
 
@@ -62,7 +63,9 @@ function MarketplacePolicySettings() {
       {loading ? <p role="status">Loading marketplace decisions…</p> : <>
         {policyFields.map(([key, label, type]) => <div key={key} className="space-y-2">
           <Label htmlFor={key}>{label}{missing.includes(key) ? " — decision required" : ""}</Label>
-          <Input id={key} type={type} min={type === "number" ? 0 : undefined} step={type === "number" ? "any" : undefined}
+          <Input id={key} type={type} min={type === "number" ? (key === "marketplaceCommissionPercent" ? 0 : 0.01) : undefined}
+            max={key === "marketplacePaymentWindowHours" || key === "marketplaceResponsePeriodHours" ? 720 : undefined}
+            step={type === "number" ? "any" : undefined}
             value={values[key] ?? ""} onChange={event => setValues(prev => ({ ...prev, [key]: event.target.value }))} />
         </div>)}
         {error && <p role="alert" className="text-red-700">{error}</p>}

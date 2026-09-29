@@ -3,11 +3,12 @@ import {
   db, rentalOperatorDocumentsTable, rentalOperatorsTable, rentalSettingsTable,
   rentalVehiclesTable, type RentalVehicle,
 } from "@workspace/db";
+import { isMarketplaceEnabled } from "./rental-request-policy.mjs";
 
 export const marketplacePolicyKeys = [
   "marketplaceCommissionPercent", "marketplacePayoutTerms",
   "marketplaceCancellationPolicy", "marketplaceDepositPolicy",
-  "marketplaceResponsePeriodHours", "marketplaceCoverageTerms",
+  "marketplaceResponsePeriodHours", "marketplaceCoverageTerms", "marketplacePaymentWindowHours",
 ] as const;
 
 export type MarketplacePolicyKey = typeof marketplacePolicyKeys[number];
@@ -28,7 +29,7 @@ export async function marketplacePolicy() {
 /** Flag-off retains the existing public fleet without consulting marketplace decisions. */
 export async function eligibleMarketplaceVehicles(): Promise<Map<number, { name: string }>> {
   const result = new Map<number, { name: string }>();
-  if (process.env.RENTAL_MARKETPLACE_ENABLED !== "true") {
+  if (!isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
     // A disabled marketplace withdraws partner listings, even if they were
     // published while the feature was on. Preserve only CIAO's platform fleet.
     const [platform] = await db.select().from(rentalOperatorsTable)

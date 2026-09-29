@@ -22,6 +22,7 @@ import { calculatePrice } from "../lib/rental-pricing";
 import { isVehicleAvailable, isVehicleServiceable, serializePublicVehicle, visibleVehicleIds } from "./rental-vehicles";
 import { z } from "zod/v4";
 import { logRentalAudit, queueRentalNotification } from "../lib/rental-events";
+import { hasExplicitUtcOffset, isMarketplaceEnabled } from "../lib/rental-request-policy.mjs";
 
 const router: IRouter = Router();
 
@@ -82,6 +83,12 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
   const body = HoldSchema.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) &&
+      (!hasExplicitUtcOffset(body.data.pickupAt) || !hasExplicitUtcOffset(body.data.returnAt))) {
+    res.status(400).json({ error: "Marketplace pickup and return times must include a UTC offset" });
     return;
   }
 
@@ -230,6 +237,10 @@ const CreateReservationSchema = z.object({
 });
 
 router.post("/rental/reservations", async (req, res): Promise<void> => {
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
+    res.status(409).json({ error: "Marketplace bookings must use POST /rental/requests and explicit offer approval" });
+    return;
+  }
   const body = CreateReservationSchema.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -237,7 +248,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
   }
 
   const vehicleId = body.data.vehicleId;
-  if (process.env.RENTAL_MARKETPLACE_ENABLED === "true" && body.data.documents?.length) {
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && body.data.documents?.length) {
     res.status(400).json({ error: "Upload documents through the private booking document flow" });
     return;
   }
@@ -321,7 +332,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
         for (const reqAddon of body.data.addons) {
           const addon = addonMap.get(reqAddon.addonId);
           if (!addon || !addon.published ||
-            (process.env.RENTAL_MARKETPLACE_ENABLED === "true" && addon.operatorId !== vehicle.operatorId)) {
+            (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && addon.operatorId !== vehicle.operatorId)) {
             const err = new Error(`Add-on ${reqAddon.addonId} not found or unavailable`) as Error & { status: number };
             err.status = 400;
             throw err;
@@ -608,6 +619,11 @@ router.put("/admin/rental/reservations/:id", requireAdminAuth, async (req, res):
     res.status(400).json({ error: body.error.message });
     return;
   }
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && body.data.status &&
+      body.data.status !== "cancelled") {
+    res.status(409).json({ error: "Marketplace booking status must follow the request, offer, and payment lifecycle" });
+    return;
+  }
 
   const updateData: Partial<typeof rentalReservationsTable.$inferInsert> = {
     ...body.data,
@@ -663,6 +679,11 @@ function createStatusAction(newStatus: typeof rentalReservationsTable.$inferInse
     const [previous] = await db.select().from(rentalReservationsTable).where(and(eq(rentalReservationsTable.id, id), isNull(rentalReservationsTable.deletedAt)));
     if (!previous) {
       res.status(404).json({ error: "Reservation not found" });
+      return;
+    }
+    if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && newStatus === "confirmed" &&
+        previous.source === "marketplace_request") {
+      res.status(409).json({ error: "Marketplace requests cannot be confirmed before payment processing" });
       return;
     }
     const allowedFrom: Record<string, string[]> = {
@@ -729,6 +750,10 @@ const ManualReservationSchema = z.object({
 });
 
 router.post("/admin/rental/reservations", requireAdminAuth, async (req, res): Promise<void> => {
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
+    res.status(409).json({ error: "Use an admin marketplace request quote; direct reservation creation is disabled" });
+    return;
+  }
   const parsed = ManualReservationSchema.safeParse(req.body);
   if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
   const data = parsed.data;
@@ -927,7 +952,7 @@ router.get("/rental/my-bookings/:id", async (req, res): Promise<void> => {
   if (!driver) return void res.status(404).json({ error: "Booking not found" });
   const [vehicle] = await db.select().from(rentalVehiclesTable).where(eq(rentalVehiclesTable.id, reservation.vehicleId));
   const documents = await db.select().from(rentalDriverDocumentsTable).where(eq(rentalDriverDocumentsTable.reservationId, id));
-  res.json({ ...serializeCustomerReservation(reservation), driver, vehicle: vehicle ? serializePublicVehicle(vehicle) : null, documents: documents.map((document) => ({ ...document, fileUrl: process.env.RENTAL_MARKETPLACE_ENABLED === "true" ? null : document.fileUrl, createdAt: document.createdAt.toISOString(), updatedAt: document.updatedAt.toISOString(), reviewedAt: document.reviewedAt?.toISOString() ?? null })) });
+  res.json({ ...serializeCustomerReservation(reservation), driver, vehicle: vehicle ? serializePublicVehicle(vehicle) : null, documents: documents.map((document) => ({ ...document, fileUrl: isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) ? null : document.fileUrl, createdAt: document.createdAt.toISOString(), updatedAt: document.updatedAt.toISOString(), reviewedAt: document.reviewedAt?.toISOString() ?? null })) });
 });
 
 router.post("/rental/my-bookings/:id/documents", async (req, res): Promise<void> => {
@@ -982,6 +1007,12 @@ router.post("/rental/pricing/calculate", async (req, res): Promise<void> => {
 
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) &&
+      (!hasExplicitUtcOffset(body.data.pickupAt) || !hasExplicitUtcOffset(body.data.returnAt))) {
+    res.status(400).json({ error: "Marketplace pickup and return times must include a UTC offset" });
     return;
   }
 

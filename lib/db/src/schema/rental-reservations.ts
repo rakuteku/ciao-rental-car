@@ -5,8 +5,11 @@ import {
   text,
   integer,
   real,
+  jsonb,
+  boolean,
   timestamp,
   index,
+  unique,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -76,6 +79,9 @@ export const rentalReservationsTable = pgTable(
     refundAmount: real("refund_amount").notNull().default(0),
     finalTotal: real("final_total").notNull().default(0),
     source: text("source").notNull().default("website"),
+    attribution: jsonb("attribution").$type<Record<string, unknown> | null>(),
+    marketingConsent: boolean("marketing_consent").notNull().default(false),
+    marketplaceOfferSnapshot: jsonb("marketplace_offer_snapshot").$type<Record<string, unknown> | null>(),
     customerAccessToken: text("customer_access_token"),
     internalNotes: text("internal_notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -128,3 +134,47 @@ export const insertRentalReservationHoldSchema = createInsertSchema(rentalReserv
 });
 export type InsertRentalReservationHold = z.infer<typeof insertRentalReservationHoldSchema>;
 export type RentalReservationHold = typeof rentalReservationHoldsTable.$inferSelect;
+
+export const rentalMarketplaceRequestStatusEnum = pgEnum("rental_marketplace_request_status", [
+  "requested",
+  "offer_pending",
+  "awaiting_payment",
+  "declined",
+  "expired",
+]);
+
+export const rentalMarketplaceRequestsTable = pgTable(
+  "rental_marketplace_requests",
+  {
+    id: serial("id").primaryKey(),
+    operatorId: integer("operator_id").notNull().references(() => rentalOperatorsTable.id),
+    vehicleId: integer("vehicle_id").notNull().references(() => rentalVehiclesTable.id),
+    holdId: integer("hold_id").notNull().references(() => rentalReservationHoldsTable.id),
+    offerHoldId: integer("offer_hold_id").references(() => rentalReservationHoldsTable.id),
+    reservationId: integer("reservation_id").references(() => rentalReservationsTable.id),
+    status: rentalMarketplaceRequestStatusEnum("status").notNull().default("requested"),
+    customerAccessToken: text("customer_access_token").notNull(),
+    driver: jsonb("driver").$type<Record<string, unknown>>().notNull(),
+    additionalDrivers: jsonb("additional_drivers").$type<Record<string, unknown>[]>().notNull().default([]),
+    addons: jsonb("addons").$type<Array<{ addonId: number; qty: number }>>().notNull().default([]),
+    travelNotes: text("travel_notes"),
+    marketingConsent: boolean("marketing_consent").notNull().default(false),
+    attribution: jsonb("attribution").$type<Record<string, unknown> | null>(),
+    initialOffer: jsonb("initial_offer").$type<Record<string, unknown>>().notNull(),
+    currentOffer: jsonb("current_offer").$type<Record<string, unknown>>().notNull(),
+    offerHistory: jsonb("offer_history").$type<Array<Record<string, unknown>>>().notNull().default([]),
+    acceptedOffer: jsonb("accepted_offer").$type<Record<string, unknown> | null>(),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    respondBy: timestamp("respond_by", { withTimezone: true }).notNull(),
+    paymentDeadline: timestamp("payment_deadline", { withTimezone: true }),
+    declinedReason: text("declined_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique("rental_marketplace_requests_hold_unique").on(table.holdId),
+    index("rental_marketplace_requests_operator_idx").on(table.operatorId, table.status),
+    index("rental_marketplace_requests_vehicle_idx").on(table.vehicleId, table.status),
+    index("rental_marketplace_requests_respond_by_idx").on(table.respondBy),
+  ],
+);

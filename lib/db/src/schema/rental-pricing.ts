@@ -40,6 +40,7 @@ export const rentalVehiclePricingTable = pgTable(
     monthlyDiscountPct: real("monthly_discount_pct").notNull().default(0),
     minDays: integer("min_days").notNull().default(1),
     maxDays: integer("max_days"),
+    billablePeriodHours: integer("billable_period_hours").notNull().default(24),
     cleaningFee: real("cleaning_fee").notNull().default(0),
     deliveryFee: real("delivery_fee").notNull().default(0),
     lateReturnFee: real("late_return_fee").notNull().default(0),

@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon, Car as CarIcon, MapPin, Shield, CreditCard, ChevronRight } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeContent, localizedPath, useLanguage } from "@/lib/language";
 import { localizeAddon, rentalCopy } from "@/lib/rental-localization";
+import { captureRentalAttribution, tokyoInstant, tokyoParts } from "@/lib/rental-marketplace";
 
 interface PricingRow {
   label: string;
@@ -64,6 +66,7 @@ const searchSchema = z.object({
 });
 
 export function RentalCarHome() {
+  useEffect(() => { captureRentalAttribution(); }, []);
   const { language } = useLanguage();
   const rentalLabels = rentalCopy(language);
   const [, setLocation] = useLocation();
@@ -91,12 +94,9 @@ export function RentalCarHome() {
   });
 
   function onSubmit(data: z.infer<typeof searchSchema>) {
-    const pickupAt = new Date(data.pickupDate);
-    const returnAt = new Date(data.returnDate);
-    const [pickupHours, pickupMinutes] = data.pickupTime.split(":").map(Number);
-    const [returnHours, returnMinutes] = data.returnTime.split(":").map(Number);
-    pickupAt.setHours(pickupHours, pickupMinutes, 0, 0);
-    returnAt.setHours(returnHours, returnMinutes, 0, 0);
+    captureRentalAttribution();
+    const pickupAt = tokyoInstant(format(data.pickupDate, "yyyy-MM-dd"), data.pickupTime);
+    const returnAt = tokyoInstant(format(data.returnDate, "yyyy-MM-dd"), data.returnTime);
     if (returnAt <= pickupAt) {
       form.setError("returnDate", { message: "Return must be after pickup" });
       return;
@@ -104,10 +104,10 @@ export function RentalCarHome() {
     const params = new URLSearchParams({
       pickupLocation: data.pickupLocation,
       returnLocation: data.returnLocation,
-      pickupAt: pickupAt.toISOString(),
-      returnAt: returnAt.toISOString(),
-      pickupDate: pickupAt.toISOString(),
-      returnDate: returnAt.toISOString(),
+      pickupAt,
+      returnAt,
+      pickupDate: pickupAt,
+      returnDate: returnAt,
       pickupTime: data.pickupTime,
       returnTime: data.returnTime,
       adults: String(data.adults),
@@ -122,7 +122,7 @@ export function RentalCarHome() {
     (["has4wd", "winterTires", "childSeat", "airportDelivery", "skiLuggage"] as const).forEach((filter) => {
       if (data[filter]) params.set(filter, "true");
     });
-    setLocation(`/rentalcar/cars?${params.toString()}`);
+    setLocation(`${localizedPath("/rentalcar/cars", language)}?${params.toString()}`);
   }
 
   return (
@@ -177,7 +177,7 @@ export function RentalCarHome() {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                             disabled={(date) => format(date, "yyyy-MM-dd") < tokyoParts(new Date().toISOString()).date}
                             initialFocus
                           />
                         </PopoverContent>
@@ -234,7 +234,7 @@ export function RentalCarHome() {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) => date < (form.watch("pickupDate") || new Date(new Date().setHours(0, 0, 0, 0)))}
+                             disabled={(date) => format(date, "yyyy-MM-dd") < format(form.watch("pickupDate") || new Date(`${tokyoParts(new Date().toISOString()).date}T12:00:00`), "yyyy-MM-dd")}
                             initialFocus
                           />
                         </PopoverContent>
@@ -348,6 +348,7 @@ export function RentalCarHome() {
                     ))}
                   </div>
                 </div>
+                 <p className="sm:col-span-2 lg:col-span-5 text-xs text-muted-foreground">{language === "ja" ? "日時は日本標準時（Asia/Tokyo）で指定します。空港・ホテルへの配車は事業者の確認が必要です。" : "Dates and times are Japan Standard Time (Asia/Tokyo). Airport and hotel delivery require operator confirmation."}</p>
                  <Button type="submit" data-testid="button-search" className="w-full sm:col-span-2 lg:col-span-5" size="lg">{content?.search.searchVehicles ?? "Search Vehicles"}</Button>
               </form>
             </Form>

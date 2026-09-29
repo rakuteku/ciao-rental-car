@@ -6,6 +6,7 @@ import {
   rentalAddonsTable,
 } from "@workspace/db";
 import { eq, and, isNull, or, inArray } from "drizzle-orm";
+import { isMarketplaceEnabled, marketplaceBillablePeriodCount, matchesMarketplaceSeason, tokyoRentalDate } from "./rental-request-policy.mjs";
 
 export interface PricingInput {
   vehicleId: number;
@@ -66,12 +67,23 @@ function getDaysBetween(start: Date, end: Date): Date[] {
 }
 
 function isWeekend(date: Date): boolean {
-  const day = date.getDay();
+  const day = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
+    ? new Date(`${formatDate(date)}T00:00:00Z`).getUTCDay()
+    : date.getDay();
   return day === 0 || day === 6;
 }
 
 function formatDate(date: Date): string {
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
+    return tokyoRentalDate(date);
+  }
   return date.toISOString().split("T")[0];
+}
+
+function getMarketplaceBillablePeriods(start: Date, end: Date, periodHours: number): Date[] {
+  const periodMs = Math.max(1, periodHours) * 60 * 60 * 1000;
+  const count = marketplaceBillablePeriodCount(start, end, periodHours);
+  return Array.from({ length: count }, (_, index) => new Date(start.getTime() + index * periodMs));
 }
 
 function parseDateStr(dateStr: string): Date {
@@ -90,7 +102,7 @@ export async function calculatePrice(
     .select({ vehicleClass: rentalVehiclesTable.vehicleClass, operatorId: rentalVehiclesTable.operatorId })
     .from(rentalVehiclesTable)
     .where(eq(rentalVehiclesTable.id, input.vehicleId));
-  if (process.env.RENTAL_MARKETPLACE_ENABLED === "true" && (!vehicle || vehicle.operatorId == null)) {
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && (!vehicle || vehicle.operatorId == null)) {
     throw Object.assign(new Error("Vehicle unavailable"), { status: 404 });
   }
 
@@ -115,8 +127,15 @@ export async function calculatePrice(
     );
 
   const basePrice = pricing?.basePrice ?? 0;
-  const days = getDaysBetween(input.pickupAt, input.returnAt);
+  const days = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
+    ? getMarketplaceBillablePeriods(input.pickupAt, input.returnAt, pricing?.billablePeriodHours ?? 24)
+    : getDaysBetween(input.pickupAt, input.returnAt);
   const numDays = Math.max(1, days.length);
+  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) &&
+      (numDays < (pricing?.minDays ?? 1) ||
+       (pricing?.maxDays != null && numDays > pricing.maxDays))) {
+    throw Object.assign(new Error("Rental duration is outside this operator's configured billable period limits"), { status: 400 });
+  }
 
   const dayRates: DayRate[] = days.map((day) => {
     const dateStr = formatDate(day);
@@ -133,16 +152,23 @@ export async function calculatePrice(
       let matches = false;
 
       if (rule.daysOfWeek && rule.daysOfWeek.length > 0) {
-        const dayName = day.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }).toLowerCase();
-        if (rule.daysOfWeek.includes(dayName) || rule.daysOfWeek.includes(String(day.getDay()))) {
+        const weekdayDate = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
+          ? new Date(`${formatDate(day)}T00:00:00Z`)
+          : day;
+        const dayName = weekdayDate.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }).toLowerCase();
+        const weekdayNumber = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
+          ? weekdayDate.getUTCDay()
+          : day.getDay();
+        if (rule.daysOfWeek.includes(dayName) || rule.daysOfWeek.includes(String(weekdayNumber))) {
           matches = true;
         }
       }
 
       if (rule.startDate && rule.endDate) {
-        const ruleStart = parseDateStr(rule.startDate);
-        const ruleEnd = parseDateStr(rule.endDate);
-        if (day >= ruleStart && day <= ruleEnd) {
+        const inRange = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
+          ? matchesMarketplaceSeason(day, rule.startDate, rule.endDate)
+          : day >= parseDateStr(rule.startDate) && day <= parseDateStr(rule.endDate);
+        if (inRange) {
           matches = true;
         }
       }
@@ -187,7 +213,7 @@ export async function calculatePrice(
         and(
           inArray(rentalAddonsTable.id, addonIds),
           eq(rentalAddonsTable.published, true),
-          ...(process.env.RENTAL_MARKETPLACE_ENABLED === "true" && vehicle?.operatorId != null
+          ...(isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && vehicle?.operatorId != null
             ? [eq(rentalAddonsTable.operatorId, vehicle.operatorId)]
             : []),
         ),
@@ -198,7 +224,7 @@ export async function calculatePrice(
     for (const req of input.addons) {
       const addon = addonMap.get(req.addonId);
       if (!addon) {
-        if (process.env.RENTAL_MARKETPLACE_ENABLED === "true") {
+        if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
           throw Object.assign(new Error("Add-on not available for this vehicle"), { status: 400 });
         }
         continue;

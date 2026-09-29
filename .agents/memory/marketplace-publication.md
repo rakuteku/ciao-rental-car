@@ -8,3 +8,9 @@ When the marketplace flag is enabled, apply business, evidence, payout, and conf
 **Why:** New partner commercial decisions must not be invented or bypassed; simultaneously, introducing those undecided terms must not take existing CIAO rental cars offline.
 
 **How to apply:** Keep partner eligibility checked at every public search, detail, hold, and request boundary. Do not let a partner moderation decision alone make a listing bookable. Exempt only the recognized platform operator from the new partner-specific policy requirements.
+
+Use the same normalized marketplace flag predicate for UI-facing config, direct-booking guards, listing eligibility, pricing, inventory, and document paths.
+
+**Why:** A whitespace/case-tolerant config check can activate the request UI while an exact-string direct-booking guard stays off, bypassing operator approval. Differences in flag parsing are security-relevant here.
+
+**How to apply:** When adding a marketplace flag check, import the shared predicate rather than comparing the environment string directly; test a normalized value such as ` TRUE ` against both request acceptance and direct reservation rejection.

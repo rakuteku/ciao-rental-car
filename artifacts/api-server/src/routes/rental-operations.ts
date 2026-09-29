@@ -188,6 +188,7 @@ const PolicySchema = z.object({
   marketplaceDepositPolicy: z.string().trim().min(1).max(5000).nullable().optional(),
   marketplaceResponsePeriodHours: z.number().positive().max(720).nullable().optional(),
   marketplaceCoverageTerms: z.string().trim().min(1).max(5000).nullable().optional(),
+  marketplacePaymentWindowHours: z.number().positive().max(720).nullable().optional(),
 }).strict();
 router.get("/admin/rental/marketplace-policy", requireAdminAuth, async (_req, res): Promise<void> => {
   res.json(await marketplacePolicy());

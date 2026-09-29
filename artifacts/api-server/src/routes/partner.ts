@@ -51,7 +51,7 @@ router.use(featureGate);
 type PartnerIdentity = { operatorId: number; staffId: number; email: string; role: string };
 type PartnerRequest = Request & { partnerIdentity?: PartnerIdentity };
 
-const authenticatePartner: RequestHandler = async (req, res, next) => {
+export const authenticatePartner: RequestHandler = async (req, res, next) => {
   const session = req.session as unknown as Record<string, unknown>;
   const identity = session[PARTNER_SESSION_KEY] as PartnerIdentity | undefined;
   if (!identity || !Number.isSafeInteger(identity.operatorId) || !Number.isSafeInteger(identity.staffId)) {
@@ -80,8 +80,12 @@ const authenticatePartner: RequestHandler = async (req, res, next) => {
   next();
 };
 
-function identity(req: Request): PartnerIdentity {
+export function partnerIdentity(req: Request): PartnerIdentity {
   return (req as PartnerRequest).partnerIdentity!;
+}
+
+function identity(req: Request): PartnerIdentity {
+  return partnerIdentity(req);
 }
 
 function canManageInventory(req: Request): boolean {

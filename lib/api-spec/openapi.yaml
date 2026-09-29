@@ -534,6 +534,7 @@ paths:
       operationId: createBooking
       tags: [bookings]
       summary: Create a booking
+      description: When the marketplace flag is enabled, legacy booking creation is rejected for vehicles mapped to the marketplace; use the timed rental request flow instead.
       requestBody:
         required: true
         content:
@@ -554,7 +555,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Car not available for selected dates
+          description: Car is unavailable or marketplace approval is required
           content:
             application/json:
               schema:
@@ -1004,6 +1005,7 @@ paths:
       operationId: createRentalReservation
       tags: [rental]
       summary: Create a reservation from a hold
+      description: Legacy reservation creation remains available with the marketplace flag off. When enabled, returns 409 and customers must use POST /rental/requests; a hold alone never confirms a marketplace booking.
       requestBody:
         required: true
         content:
@@ -1024,7 +1026,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Vehicle no longer available
+          description: Vehicle unavailable or direct marketplace reservation creation is disabled
           content:
             application/json:
               schema:
@@ -1905,6 +1907,371 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /rental/requests:
+    post:
+      operationId: createRentalRequest
+      tags: [rental]
+      summary: Create a timed marketplace booking request
+      description: Requires a live hold created in the same session. The response is a request, not a confirmed booking. Times on the hold must include UTC offsets.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalRequestInput"
+      responses:
+        "201":
+          description: Request created; status is requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequestCreated"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Hold or vehicle is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rental/marketplace/config:
+    get:
+      operationId: getRentalMarketplaceConfig
+      tags: [rental]
+      summary: Get the marketplace feature flag state
+      responses:
+        "200":
+          description: Marketplace configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalMarketplaceConfig"
+
+  /rental/requests/{id}:
+    get:
+      operationId: getRentalRequest
+      tags: [rental]
+      summary: Get a marketplace request and its current offer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: accessCode
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Request status, current and original offer, policy disclosures, and deadlines
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequest"
+        "404":
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rental/requests/{id}/accept-offer:
+    post:
+      operationId: acceptRentalAlternateOffer
+      tags: [rental]
+      summary: Explicitly accept an alternate offer
+      description: Only an offer_pending request can be accepted. Acceptance creates an awaiting_payment reservation; it does not charge or confirm payment.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: accessCode
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Alternate offer accepted; payment is still required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequestAcceptance"
+        "409":
+          description: Offer expired or no alternate offer is pending
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rental/requests/{id}/decline-offer:
+    post:
+      operationId: declineRentalAlternateOffer
+      tags: [rental]
+      summary: Decline an alternate offer and release its inventory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: accessCode
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Alternate offer declined and offered vehicle released
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequest"
+        "409":
+          description: Offer is no longer available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /partner/rental/requests:
+    get:
+      operationId: getPartnerRentalRequests
+      tags: [rental]
+      summary: List requests for the authenticated partner operator
+      description: Uses the existing /partner/login partner session and operator scope.
+      responses:
+        "200":
+          description: Operator-scoped marketplace requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PartnerRentalRequest"
+        "401":
+          description: Partner authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /partner/rental/requests/quote:
+    post:
+      operationId: createPartnerRentalRequestQuote
+      tags: [rental]
+      summary: Create a customer-accessible quote/lead for this operator
+      description: Uses the partner session and operator scope. Captures driver contact, attribution and explicit marketing consent separately. Creates a bounded inventory hold and an offer_pending request; customer acceptance is required before payment becomes available.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalStaffQuoteInput"
+      responses:
+        "201":
+          description: Quote created with customer access code; no reservation is confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequestCreated"
+        "409":
+          description: Requested vehicle inventory is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /partner/rental/requests/{id}/accept:
+    post:
+      operationId: acceptPartnerRentalRequest
+      tags: [rental]
+      summary: Accept the customer's requested offer
+      description: Uses partner session authentication. Creates an awaiting_payment reservation; it never confirms or charges payment.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Request accepted pending customer payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequestAcceptance"
+        "409":
+          description: Request is no longer actionable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /partner/rental/requests/{id}/decline:
+    post:
+      operationId: declinePartnerRentalRequest
+      tags: [rental]
+      summary: Decline a customer request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalRequestDecline"
+      responses:
+        "200":
+          description: Request declined and inventory released
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequest"
+        "409":
+          description: Request is no longer actionable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /partner/rental/requests/{id}/offer:
+    post:
+      operationId: offerPartnerRentalAlternatePrice
+      tags: [rental]
+      summary: Make an alternate price or same-operator vehicle offer
+      description: vehicleId may select another eligible physical car from the same operator. The exact pickup/return instants and locations are retained; the offered vehicle is held through the bounded response deadline. Customer acceptance is explicit.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalRequestOfferInput"
+      responses:
+        "200":
+          description: Alternate offer awaiting customer consent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequest"
+        "409":
+          description: Request is no longer actionable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/requests/{id}/offer:
+    post:
+      operationId: createAdminRentalRequestAlternateOffer
+      tags: [admin]
+      summary: Create an alternate price or same-operator vehicle offer for a request
+      description: Admin-authenticated offer for an existing request; vehicleId may select another eligible physical car owned by the same operator. Customer acceptance is required.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalRequestOfferInput"
+      responses:
+        "200":
+          description: Quote awaiting explicit customer acceptance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequest"
+        "404":
+          description: Request not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/requests/quote:
+    post:
+      operationId: createAdminRentalRequestQuote
+      tags: [admin]
+      summary: Create a customer-accessible quote/lead
+      description: Admin-authenticated staff quote. Captures driver contact, attribution and explicit marketing consent separately and reserves inventory until the bounded customer response deadline. The result is offer_pending, never confirmed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalStaffQuoteInput"
+      responses:
+        "201":
+          description: Quote created with customer access code; customer acceptance is required before payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRequestCreated"
+        "409":
+          description: Requested vehicle inventory is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/rental/marketplace-policy:
+    get:
+      operationId: getAdminRentalMarketplacePolicy
+      tags: [admin]
+      summary: Get marketplace commercial and response-window configuration
+      responses:
+        "200":
+          description: Currently configured marketplace policy values and missing values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalMarketplacePolicy"
+    put:
+      operationId: updateAdminRentalMarketplacePolicy
+      tags: [admin]
+      summary: Update marketplace commercial and request/payment window configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalMarketplacePolicyUpdate"
+      responses:
+        "200":
+          description: Updated marketplace policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalMarketplacePolicy"
+        "400":
+          description: Invalid policy configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -2725,6 +3092,12 @@ components:
           type: string
         petPolicy:
           type: string
+        disclosures:
+          type: object
+          additionalProperties: true
+        hours:
+          type: object
+          additionalProperties: true
         status:
           type: string
         featured:
@@ -2913,6 +3286,8 @@ components:
           type: integer
         maxDays:
           type: ["integer", "null"]
+        billablePeriodHours:
+          type: integer
         cleaningFee:
           type: number
         deliveryFee:
@@ -2969,14 +3344,28 @@ components:
         available:
           type: array
           items:
-            $ref: "#/components/schemas/RentalVehicle"
+            $ref: "#/components/schemas/RentalVehicleSearchItem"
         unavailable:
           type: array
           items:
-            $ref: "#/components/schemas/RentalVehicle"
+            $ref: "#/components/schemas/RentalVehicleSearchItem"
       required:
         - available
         - unavailable
+
+    RentalVehicleSearchItem:
+      allOf:
+        - $ref: "#/components/schemas/RentalVehicle"
+        - type: object
+          properties:
+            priceBreakdown:
+              oneOf:
+                - $ref: "#/components/schemas/RentalPriceBreakdown"
+                - type: "null"
+            operatorName:
+              type: string
+            basePrice:
+              type: ["number", "null"]
 
     RentalAddon:
       type: object
@@ -3809,6 +4198,8 @@ components:
           type: integer
         maxDays:
           type: integer
+        billablePeriodHours:
+          type: integer
         cleaningFee:
           type: number
         deliveryFee:
@@ -3937,3 +4328,277 @@ components:
           type: integer
       required:
         - name
+
+    RentalRequestAttribution:
+      type: object
+      properties:
+        firstTouch:
+          type: object
+          additionalProperties: true
+        lastTouch:
+          type: object
+          additionalProperties: true
+        utmSource:
+          type: string
+        utmMedium:
+          type: string
+        utmCampaign:
+          type: string
+        landingUrl:
+          type: string
+        referralCode:
+          type: string
+        hotelCode:
+          type: string
+
+    RentalRequestDriver:
+      type: object
+      properties:
+        fullName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        romanizedName: { type: string }
+        dateOfBirth: { type: string, format: date }
+        nationality: { type: string }
+        residenceCountry: { type: string }
+        address: { type: string }
+        emergencyContact: { type: string }
+        flightNumber: { type: string }
+        accommodation: { type: string }
+      required: [fullName, email, phone]
+
+    RentalRequestAdditionalDriver:
+      type: object
+      properties:
+        fullName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+      required: [fullName, email, phone]
+
+    RentalRequestInput:
+      type: object
+      properties:
+        holdId: { type: integer }
+        vehicleId: { type: integer }
+        pickupLocation: { type: string }
+        returnLocation: { type: string }
+        driver:
+          $ref: "#/components/schemas/RentalRequestDriver"
+        additionalDrivers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RentalRequestAdditionalDriver"
+        travelNotes:
+          type: string
+        marketingConsent:
+          type: boolean
+        attribution:
+          $ref: "#/components/schemas/RentalRequestAttribution"
+        addons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateReservationAddonBody"
+      required: [holdId, vehicleId, pickupLocation, returnLocation, driver, marketingConsent]
+
+    RentalRequestOfferInput:
+      type: object
+      properties:
+        totalPrice:
+          type: number
+          minimum: 0
+        reason:
+          type: string
+        vehicleId:
+          type: integer
+          minimum: 1
+      required: [totalPrice, reason]
+
+    RentalStaffQuoteInput:
+      type: object
+      properties:
+        vehicleId: { type: integer, minimum: 1 }
+        pickupAt: { type: string, format: date-time }
+        returnAt: { type: string, format: date-time }
+        pickupLocation: { type: string }
+        returnLocation: { type: string }
+        driver:
+          $ref: "#/components/schemas/RentalRequestDriver"
+        additionalDrivers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RentalRequestAdditionalDriver"
+        travelNotes: { type: string }
+        marketingConsent: { type: boolean }
+        attribution:
+          $ref: "#/components/schemas/RentalRequestAttribution"
+        addons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateReservationAddonBody"
+        totalPrice: { type: number, minimum: 0 }
+        reason: { type: string }
+      required: [vehicleId, pickupAt, returnAt, pickupLocation, returnLocation, driver, marketingConsent, reason]
+
+    RentalRequestDecline:
+      type: object
+      properties:
+        reason:
+          type: string
+      required: [reason]
+
+    RentalRequest:
+      type: object
+      properties:
+        id: { type: integer }
+        vehicleId: { type: integer }
+        status:
+          type: string
+          enum: [requested, offer_pending, awaiting_payment, declined, expired]
+        offer:
+          $ref: "#/components/schemas/RentalRequestOffer"
+        originalOffer:
+          $ref: "#/components/schemas/RentalRequestOffer"
+        acceptedOffer:
+          oneOf:
+            - $ref: "#/components/schemas/RentalRequestOffer"
+            - type: "null"
+        respondBy:
+          type: string
+          format: date-time
+        paymentDeadline:
+          type: ["string", "null"]
+          format: date-time
+        declinedReason:
+          type: ["string", "null"]
+        customerAccessToken:
+          type: string
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, vehicleId, status, offer, originalOffer, respondBy, paymentDeadline, declinedReason, createdAt, updatedAt]
+
+    RentalRequestCreated:
+      allOf:
+        - $ref: "#/components/schemas/RentalRequest"
+        - type: object
+          properties:
+            customerAccessToken: { type: string }
+          required: [customerAccessToken]
+
+    RentalRequestOffer:
+      type: object
+      properties:
+        vehicleId: { type: integer }
+        operatorId: { type: integer }
+        pricing:
+          type: object
+          additionalProperties: true
+        totalPrice: { type: number }
+        currency: { type: string }
+        policy:
+          $ref: "#/components/schemas/RentalOfferPolicySnapshot"
+        pickupAt: { type: string, format: date-time }
+        returnAt: { type: string, format: date-time }
+        pickupLocation: { type: string }
+        returnLocation: { type: string }
+        partnerReason: { type: string }
+      required: [vehicleId, operatorId, pricing, totalPrice, currency, policy, pickupAt, returnAt, pickupLocation, returnLocation]
+
+    RentalOfferPolicySnapshot:
+      type: object
+      properties:
+        marketplace:
+          type: object
+          additionalProperties: true
+        vehicle:
+          type: object
+          additionalProperties: true
+        missingMarketplaceTerms:
+          type: array
+          items: { type: string }
+        version:
+          type: object
+          properties:
+            policyVersion: { type: string }
+            commissionVersion: { type: string }
+            capturedAt: { type: string, format: date-time }
+          required: [policyVersion, commissionVersion, capturedAt]
+      required: [marketplace, vehicle, missingMarketplaceTerms, version]
+
+    PartnerRentalRequest:
+      allOf:
+        - $ref: "#/components/schemas/RentalRequest"
+        - type: object
+          properties:
+            driver:
+              $ref: "#/components/schemas/RentalRequestDriver"
+            additionalDrivers:
+              type: array
+              items:
+                $ref: "#/components/schemas/RentalRequestAdditionalDriver"
+            travelNotes:
+              type: ["string", "null"]
+            attribution:
+              oneOf:
+                - $ref: "#/components/schemas/RentalRequestAttribution"
+                - type: "null"
+            marketingConsent:
+              type: boolean
+            vehicle:
+              type: object
+              additionalProperties: true
+
+    RentalRequestAcceptance:
+      type: object
+      properties:
+        id: { type: integer }
+        status:
+          type: string
+          enum: [awaiting_payment]
+        reservationId: { type: integer }
+        paymentDeadline:
+          type: string
+          format: date-time
+        price: { type: number }
+      required: [id, status, reservationId, paymentDeadline, price]
+
+    RentalMarketplaceConfig:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+      required: [enabled]
+
+    RentalMarketplacePolicy:
+      type: object
+      properties:
+        values:
+          type: object
+          additionalProperties: true
+        missing:
+          type: array
+          items: { type: string }
+      required: [values, missing]
+
+    RentalMarketplacePolicyUpdate:
+      type: object
+      properties:
+        marketplaceCommissionPercent:
+          type: ["number", "null"]
+          minimum: 0
+          maximum: 100
+        marketplacePayoutTerms:
+          type: ["string", "null"]
+        marketplaceCancellationPolicy:
+          type: ["string", "null"]
+        marketplaceDepositPolicy:
+          type: ["string", "null"]
+        marketplaceResponsePeriodHours:
+          type: ["number", "null"]
+          exclusiveMinimum: 0
+          maximum: 720
+        marketplaceCoverageTerms:
+          type: ["string", "null"]
+        marketplacePaymentWindowHours:
+          type: ["number", "null"]
+          exclusiveMinimum: 0
+          maximum: 720

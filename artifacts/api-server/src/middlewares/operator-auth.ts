@@ -1,6 +1,7 @@
 import type { RequestHandler } from "express";
 import { and, eq } from "drizzle-orm";
 import { db, rentalOperatorsTable, rentalOperatorStaffTable } from "@workspace/db";
+import { isMarketplaceEnabled } from "../lib/rental-request-policy.mjs";
 
 export type OperatorStaffRole = "owner" | "manager" | "counter" | "operations";
 
@@ -14,11 +15,19 @@ export interface OperatorIdentity {
 type OperatorRequest = Express.Request & { operatorIdentity?: OperatorIdentity };
 
 export function isRentalMarketplaceEnabled(): boolean {
-  return process.env.RENTAL_MARKETPLACE_ENABLED?.trim().toLowerCase() === "true";
+  return isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED);
 }
 
 export function getOperatorIdentity(req: Express.Request): OperatorIdentity | undefined {
   return (req as OperatorRequest).operatorIdentity;
+}
+
+/** Marketplace request actions share the established partner session namespace. */
+export function getPartnerSessionIdentity(req: Express.Request): OperatorIdentity | undefined {
+  const session = req.session as unknown as Record<string, unknown>;
+  const identity = session.partner as OperatorIdentity | undefined;
+  if (!identity || !Number.isInteger(identity.operatorId) || !Number.isInteger(identity.staffId)) return undefined;
+  return identity;
 }
 
 function isApprovedOperator(operator: unknown): boolean {
