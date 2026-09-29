@@ -3,6 +3,7 @@ import { eq, and, isNull, desc, sql, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
   rentalReservationsTable,
+  rentalReservationDriversTable,
   rentalReservationHoldsTable,
   rentalVehiclesTable,
   rentalDriversTable,
@@ -23,6 +24,7 @@ import { isVehicleAvailable, isVehicleServiceable, serializePublicVehicle, visib
 import { z } from "zod/v4";
 import { logRentalAudit, queueRentalNotification } from "../lib/rental-events";
 import { hasExplicitUtcOffset, isMarketplaceEnabled } from "../lib/rental-request-policy.mjs";
+import { getCustomerTripData } from "./rental-trip";
 
 const router: IRouter = Router();
 
@@ -619,9 +621,10 @@ router.put("/admin/rental/reservations/:id", requireAdminAuth, async (req, res):
     res.status(400).json({ error: body.error.message });
     return;
   }
-  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && body.data.status &&
-      body.data.status !== "cancelled") {
-    res.status(409).json({ error: "Marketplace booking status must follow the request, offer, and payment lifecycle" });
+  const [reservationToUpdate] = await db.select().from(rentalReservationsTable)
+    .where(and(eq(rentalReservationsTable.id, id), isNull(rentalReservationsTable.deletedAt)));
+  if (reservationToUpdate?.source === "marketplace_request" && body.data.status) {
+    res.status(409).json({ error: "Marketplace trip status must be changed through the gated trip workflow" });
     return;
   }
 
@@ -681,9 +684,8 @@ function createStatusAction(newStatus: typeof rentalReservationsTable.$inferInse
       res.status(404).json({ error: "Reservation not found" });
       return;
     }
-    if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && newStatus === "confirmed" &&
-        previous.source === "marketplace_request") {
-      res.status(409).json({ error: "Marketplace requests cannot be confirmed before payment processing" });
+    if (previous.source === "marketplace_request") {
+      res.status(409).json({ error: "Marketplace trip status must be changed through the gated trip workflow" });
       return;
     }
     const allowedFrom: Record<string, string[]> = {
@@ -854,6 +856,7 @@ const InspectionSchema = z.object({
 async function saveInspection(id: number, type: "pickup" | "return", data: z.infer<typeof InspectionSchema>, admin: string) {
   const [reservation] = await db.select().from(rentalReservationsTable).where(and(eq(rentalReservationsTable.id, id), isNull(rentalReservationsTable.deletedAt)));
   if (!reservation) return null;
+  if (reservation.source === "marketplace_request") return null;
   const permittedStatuses = type === "pickup" ? ["confirmed", "awaiting_pickup", "vehicle_dispatched"] : ["in_rental", "overdue", "return_initiated"];
   if (!permittedStatuses.includes(reservation.status)) return null;
   const existing = await db.select().from(rentalInspectionsTable).where(and(eq(rentalInspectionsTable.reservationId, id), eq(rentalInspectionsTable.type, type)));
@@ -952,7 +955,24 @@ router.get("/rental/my-bookings/:id", async (req, res): Promise<void> => {
   if (!driver) return void res.status(404).json({ error: "Booking not found" });
   const [vehicle] = await db.select().from(rentalVehiclesTable).where(eq(rentalVehiclesTable.id, reservation.vehicleId));
   const documents = await db.select().from(rentalDriverDocumentsTable).where(eq(rentalDriverDocumentsTable.reservationId, id));
-  res.json({ ...serializeCustomerReservation(reservation), driver, vehicle: vehicle ? serializePublicVehicle(vehicle) : null, documents: documents.map((document) => ({ ...document, fileUrl: isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) ? null : document.fileUrl, createdAt: document.createdAt.toISOString(), updatedAt: document.updatedAt.toISOString(), reviewedAt: document.reviewedAt?.toISOString() ?? null })) });
+  const trip = reservation.source === "marketplace_request"
+    ? await getCustomerTripData(reservation, email)
+    : null;
+  const reservationDrivers = reservation.source === "marketplace_request"
+    ? await db.select({ id: rentalDriversTable.id, fullName: rentalDriversTable.fullName })
+      .from(rentalDriversTable)
+      .innerJoin(rentalReservationDriversTable,
+        eq(rentalReservationDriversTable.driverId, rentalDriversTable.id))
+      .where(eq(rentalReservationDriversTable.reservationId, id))
+    : [];
+  res.json({
+    ...serializeCustomerReservation(reservation),
+    driver,
+    drivers: reservationDrivers,
+    vehicle: vehicle ? serializePublicVehicle(vehicle) : null,
+    documents: documents.map((document) => ({ ...document, fileUrl: isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) ? null : document.fileUrl, createdAt: document.createdAt.toISOString(), updatedAt: document.updatedAt.toISOString(), reviewedAt: document.reviewedAt?.toISOString() ?? null })),
+    ...(trip ? { trip } : {}),
+  });
 });
 
 router.post("/rental/my-bookings/:id/documents", async (req, res): Promise<void> => {

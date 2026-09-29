@@ -8,3 +8,4 @@
 - [Startup catalog backfill](rental-catalog-startup.md) — CLI and API startup share one transactional, marker-only backfill so production cannot drift from manual seed logic.
 - [Marketplace publication boundary](marketplace-publication.md) — partner policy gates must fail closed without taking the existing platform fleet offline.
 - [Development marketplace schema](development-marketplace-schema.md) — versioned request SQL alone may not align an older development database with previously merged catalog columns.
+- [Irreversible trip settlement](trip-settlement-review.md) — close-time UI must carry every approved adjustment through confirmation into the immutable ledger.

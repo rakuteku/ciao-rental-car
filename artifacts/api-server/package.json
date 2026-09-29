@@ -10,6 +10,8 @@
     "test:admin-session": "pnpm run build && node --test ./test/admin-session.test.mjs",
     "test:rental-catalog": "pnpm run build && node --test ./test/rental-catalog.test.mjs",
     "test:rental-requests": "node --test ./test/rental-requests.test.mjs ./test/marketplace-api-flow.test.mjs ./test/payment-boundaries.test.mjs",
+    "test:rental-trip": "node --test ./test/rental-trip-contract.test.mjs ./test/rental-trip-settlement.test.mjs ./test/rental-trip-close.integration.test.mjs",
+    "test:rental-trip-integration": "node --test ./test/rental-trip-close.integration.test.mjs",
     "test:rental-startup": "pnpm run build && node --test ./test/rental-startup-backfill.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

@@ -45,6 +45,56 @@ function storageLocation(): { bucketName: string; privateRoot: string } {
   };
 }
 
+export function rentalInspectionObjectName(reservationId: number, token: string): string {
+  if (!Number.isSafeInteger(reservationId) || reservationId <= 0 || !parseRentalPrivateReference(rentalPrivateReference(token))) {
+    throw new Error("Invalid rental inspection evidence reference");
+  }
+  const { privateRoot } = storageLocation();
+  return `${privateRoot}/rental-inspection-evidence/${reservationId}/${token}`;
+}
+
+export async function receiveRentalInspectionUpload(
+  objectName: string,
+  input: NodeJS.ReadableStream,
+  contentType: string,
+): Promise<void> {
+  if (!["image/jpeg", "image/png"].includes(contentType)) {
+    throw new Error("Only JPEG and PNG inspection photos are accepted");
+  }
+  const file = rentalDocumentStorage.bucket(storageLocation().bucketName).file(objectName);
+  let totalBytes = 0;
+  const limiter = new Transform({
+    transform(chunk: Buffer, _encoding, callback) {
+      totalBytes += chunk.length;
+      if (totalBytes > 12 * 1024 * 1024) return callback(new Error("Inspection photo exceeds the 12 MB limit"));
+      callback(null, chunk);
+    },
+  });
+  try {
+    await pipeline(input, limiter, file.createWriteStream({
+      resumable: false,
+      validation: "crc32c",
+      metadata: { contentType, cacheControl: "private, no-store" },
+    }));
+    if (!totalBytes) throw new Error("Inspection photo upload is empty");
+  } catch (error) {
+    await file.delete({ ignoreNotFound: true }).catch(() => undefined);
+    throw error;
+  }
+}
+
+export async function streamRentalInspectionEvidence(objectName: string, response: NodeJS.WritableStream): Promise<void> {
+  const file = rentalDocumentStorage.bucket(storageLocation().bucketName).file(objectName);
+  const [metadata] = await file.getMetadata();
+  const headers = response as NodeJS.WritableStream & { setHeader?: (name: string, value: string) => void };
+  headers.setHeader?.("Content-Type", ["image/jpeg", "image/png"].includes(metadata.contentType ?? "") ? metadata.contentType! : "application/octet-stream");
+  headers.setHeader?.("Content-Disposition", 'inline; filename="rental-inspection-evidence"');
+  headers.setHeader?.("Cache-Control", "private, no-store, max-age=0");
+  headers.setHeader?.("X-Content-Type-Options", "nosniff");
+  if (metadata.size) headers.setHeader?.("Content-Length", String(metadata.size));
+  await pipeline(file.createReadStream(), response);
+}
+
 export function rentalDocumentObjectName(reservationId: number, token: string): string {
   if (!Number.isSafeInteger(reservationId) || reservationId <= 0 || !parseRentalPrivateReference(rentalPrivateReference(token))) {
     throw new Error("Invalid rental private document reference");
@@ -56,13 +106,16 @@ export function rentalDocumentObjectName(reservationId: number, token: string): 
 export async function sweepExpiredRentalDocuments(): Promise<void> {
   const now = Date.now();
   if (now - lastRetentionSweep < 60 * 60 * 1000) return;
-  const rawDays = Number.parseInt(process.env.RENTAL_DRIVER_DOCUMENT_RETENTION_DAYS ?? "365", 10);
-  const retentionDays = Number.isFinite(rawDays) && rawDays >= 1 && rawDays <= 3650 ? rawDays : 365;
+  const rawDriverDays = Number.parseInt(process.env.RENTAL_DRIVER_DOCUMENT_RETENTION_DAYS ?? "365", 10);
+  const driverRetentionDays = Number.isFinite(rawDriverDays) && rawDriverDays >= 1 && rawDriverDays <= 3650 ? rawDriverDays : 365;
+  const rawInspectionDays = Number.parseInt(process.env.RENTAL_INSPECTION_EVIDENCE_RETENTION_DAYS ?? "365", 10);
+  const inspectionRetentionDays = Number.isFinite(rawInspectionDays) && rawInspectionDays >= 1 && rawInspectionDays <= 3650 ? rawInspectionDays : 365;
   const { bucketName, privateRoot } = storageLocation();
   const bucket = rentalDocumentStorage.bucket(bucketName);
   const [files] = await bucket.getFiles({ prefix: `${privateRoot}/` });
-  const expiresBefore = now - retentionDays * 24 * 60 * 60 * 1000;
   await Promise.all(files.map(async (file) => {
+    const isInspectionEvidence = file.name.includes("/rental-inspection-evidence/");
+    const expiresBefore = now - (isInspectionEvidence ? inspectionRetentionDays : driverRetentionDays) * 24 * 60 * 60 * 1000;
     const [metadata] = await file.getMetadata();
     const createdAt = metadata.timeCreated ? Date.parse(metadata.timeCreated) : NaN;
     if (Number.isFinite(createdAt) && createdAt < expiresBefore) {

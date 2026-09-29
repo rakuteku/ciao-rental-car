@@ -14,3 +14,9 @@ Use the same normalized marketplace flag predicate for UI-facing config, direct-
 **Why:** A whitespace/case-tolerant config check can activate the request UI while an exact-string direct-booking guard stays off, bypassing operator approval. Differences in flag parsing are security-relevant here.
 
 **How to apply:** When adding a marketplace flag check, import the shared predicate rather than comparing the environment string directly; test a normalized value such as ` TRUE ` against both request acceptance and direct reservation rejection.
+
+When a marketplace-only router is mounted ahead of legacy routes, disabling it must pass control to the next router rather than return an error for every request.
+
+**Why:** A catch-all flag guard on an early router blocked existing admin reservation endpoints even though none of its marketplace trip paths matched.
+
+**How to apply:** Check routing both with the flag on and off. Under the off state, verify a legacy route still reaches its own authentication or handler, not a marketplace 404.

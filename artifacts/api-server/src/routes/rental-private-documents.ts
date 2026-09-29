@@ -5,6 +5,7 @@ import {
   db,
   rentalDriverDocumentsTable,
   rentalDriversTable,
+  rentalReservationDriversTable,
   rentalReservationsTable,
   rentalVehiclesTable,
 } from "@workspace/db";
@@ -41,6 +42,7 @@ if (rentalMarketplaceEnabled()) {
 const uploadBodySchema = z.object({
   docType: z.enum(["drivers_license", "passport", "international_license", "insurance", "credit_card", "other"]),
   contentType: z.enum(["application/pdf", "image/jpeg", "image/png"]),
+  driverId: z.number().int().positive().optional(),
 });
 
 function featureEnabled(res: Response): boolean {
@@ -77,6 +79,22 @@ async function authorizedCustomerReservation(req: Request, reservationId: number
   return driver ? { reservation, driver } : null;
 }
 
+async function driverAuthorizedForReservation(reservationId: number, driverId: number): Promise<boolean> {
+  const [reservation] = await db.select().from(rentalReservationsTable).where(and(
+    eq(rentalReservationsTable.id, reservationId),
+    isNull(rentalReservationsTable.deletedAt),
+  ));
+  if (!reservation) return false;
+  if (reservation.primaryDriverId === driverId) return true;
+  const [link] = await db.select({ id: rentalReservationDriversTable.id })
+    .from(rentalReservationDriversTable)
+    .where(and(
+      eq(rentalReservationDriversTable.reservationId, reservationId),
+      eq(rentalReservationDriversTable.driverId, driverId),
+    ));
+  return !!link;
+}
+
 async function documentForReservation(reservationId: number, documentId: number) {
   const [document] = await db.select().from(rentalDriverDocumentsTable).where(and(
     eq(rentalDriverDocumentsTable.id, documentId),
@@ -98,7 +116,7 @@ async function streamDocument(
     isNull(rentalReservationsTable.deletedAt),
   ));
   const document = await documentForReservation(reservationId, documentId);
-  if (!reservation || !document || document.driverId !== reservation.primaryDriverId) {
+  if (!reservation || !document || !await driverAuthorizedForReservation(reservationId, document.driverId)) {
     logger.warn({ action: "rental_driver_document_access_denied", reservationId, documentId, actor });
     res.status(404).json({ error: "Document not found" });
     return;
@@ -135,12 +153,17 @@ router.post("/rental/my-bookings/:id/documents/upload-request", async (req, res)
     return;
   }
 
+  const targetDriverId = parsed.data.driverId ?? authorized.driver.id;
+  if (!await driverAuthorizedForReservation(id, targetDriverId)) {
+    res.status(404).json({ error: "Authorized driver not found for this booking" });
+    return;
+  }
   const token = createRentalDocumentToken();
   try {
     await sweepExpiredRentalDocuments();
     const [document] = await db.insert(rentalDriverDocumentsTable).values({
       operatorId: authorized.reservation.operatorId,
-      driverId: authorized.driver.id,
+      driverId: targetDriverId,
       reservationId: id,
       docType: parsed.data.docType,
       fileUrl: rentalPrivateReference(token),
@@ -148,7 +171,7 @@ router.post("/rental/my-bookings/:id/documents/upload-request", async (req, res)
     }).returning();
     res.status(201).json({
       documentId: document.id,
-      uploadPath: `/api/rental/my-bookings/${id}/documents/${document.id}/content`,
+      uploadPath: `/api/rental/my-bookings/${id}/documents/${document.id}/content?driverId=${targetDriverId}`,
       method: "PUT",
       contentType: parsed.data.contentType,
       maxBytes: 10 * 1024 * 1024,
@@ -180,7 +203,9 @@ router.put("/rental/my-bookings/:id/documents/:documentId/content", async (req, 
     return;
   }
   const document = await documentForReservation(reservationId, documentId);
-  if (!document || document.driverId !== authorized.driver.id) {
+  const commitDriverId = req.query.driverId === undefined ? document?.driverId : Number(req.query.driverId);
+  if (!document || !Number.isSafeInteger(commitDriverId) || commitDriverId !== document.driverId ||
+      !await driverAuthorizedForReservation(reservationId, commitDriverId)) {
     res.status(404).json({ error: "Document not found" });
     return;
   }
@@ -239,7 +264,7 @@ router.get("/rental/my-bookings/:id/documents/:documentId/content", async (req, 
     return;
   }
   const document = await documentForReservation(reservationId, documentId);
-  if (!document || document.driverId !== authorized.driver.id) {
+  if (!document || !await driverAuthorizedForReservation(reservationId, document.driverId)) {
     res.status(404).json({ error: "Document not found" });
     return;
   }

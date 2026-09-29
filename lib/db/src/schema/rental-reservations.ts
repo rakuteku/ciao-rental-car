@@ -32,6 +32,7 @@ export const rentalReservationStatusEnum = pgEnum("rental_reservation_status", [
   "overdue",
   "return_initiated",
   "return_completed",
+  "closed",
   "inspection_pending",
   "damage_assessed",
   "deposit_refunded",

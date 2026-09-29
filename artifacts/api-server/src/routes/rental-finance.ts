@@ -14,6 +14,7 @@ import {
   rentalNotificationsTable,
   rentalOperatorsTable,
   rentalStripeEventsTable,
+  rentalTripLedgerTable,
 } from "@workspace/db";
 import { z } from "zod/v4";
 import { marketplacePolicy } from "../lib/marketplace-policy";
@@ -1448,24 +1449,72 @@ router.get("/partner/rental/earnings", authenticatePartner, async (req, res): Pr
     inArray(rentalPaymentsTable.status, ["paid", "partially_refunded", "refunded", "disputed", "chargeback"]),
   )).orderBy(desc(rentalPaymentsTable.paidAt));
   const paymentIds = payments.map((payment) => payment.id);
-  const [refunds, payouts, disputes] = paymentIds.length
+  const reservationIds = [...new Set(payments.map((payment) => payment.reservationId))];
+  const [refunds, payouts, disputes, tripLedger] = paymentIds.length
     ? await Promise.all([
       db.select().from(rentalRefundsTable).where(inArray(rentalRefundsTable.paymentId, paymentIds)),
       db.select().from(rentalPayoutsTable).where(inArray(rentalPayoutsTable.paymentId, paymentIds)),
       db.select().from(rentalDisputesTable).where(inArray(rentalDisputesTable.paymentId, paymentIds)),
+      db.select().from(rentalTripLedgerTable).where(and(
+        eq(rentalTripLedgerTable.operatorId, operatorId),
+        inArray(rentalTripLedgerTable.reservationId, reservationIds),
+      )),
     ])
-    : [[], [], []];
+    : [[], [], [], []];
+  const tripLedgerByReservation = new Map<number, typeof tripLedger>();
+  for (const entry of tripLedger) {
+    const current = tripLedgerByReservation.get(entry.reservationId) ?? [];
+    current.push(entry);
+    tripLedgerByReservation.set(entry.reservationId, current);
+  }
   res.set("Cache-Control", "no-store");
   res.json({
     payments: payments.map((payment) => ({
+      ...(() => {
+        const entries = tripLedgerByReservation.get(payment.reservationId) ?? [];
+        if (!entries.length) return {
+          commissionAmount: payment.commissionAmount,
+          operatorShareAmount: payment.operatorShareAmount,
+          tripSettlement: null,
+        };
+        const sumAmount = (types: string[]) => entries
+          .filter((entry) => types.includes(entry.entryType))
+          .reduce((total, entry) => total + entry.amount, 0);
+        const platformCommissionAmount = entries
+          .filter((entry) => entry.entryType.endsWith("platform_commission"))
+          .reduce((total, entry) => total + entry.amount, 0);
+        const operatorShareAmount = entries
+          .filter((entry) => entry.entryType.endsWith("operator_share"))
+          .reduce((total, entry) => total + entry.amount, 0);
+        const finalTotal = sumAmount(["booking_total", "approved_extra", "approved_refund", "processed_refund"]);
+        return {
+          commissionAmount: platformCommissionAmount,
+          operatorShareAmount,
+          tripSettlement: {
+            finalTotal,
+            platformCommissionAmount,
+            operatorShareAmount,
+            pendingCollectionAmount: entries
+              .filter((entry) => entry.entryType === "approved_extra" && entry.status === "pending_collection")
+              .reduce((total, entry) => total + entry.amount, 0),
+            pendingPaymentAmount: Math.abs(entries
+              .filter((entry) => entry.entryType === "approved_refund" && entry.status === "pending_payment")
+              .reduce((total, entry) => total + entry.amount, 0)),
+            sharesReconcile: platformCommissionAmount + operatorShareAmount === finalTotal,
+            ledger: entries.map(({ entryType, amount, status, description, currency, createdAt }) => ({
+              entryType, amount, status, description, currency, createdAt,
+            })),
+          },
+        };
+      })(),
       id: payment.id,
       reservationId: payment.reservationId,
       status: payment.status,
       currency: payment.currency,
       amount: payment.amount,
-      commissionAmount: payment.commissionAmount,
+      baseCommissionAmount: payment.commissionAmount,
       commissionPercent: payment.commissionBasisPoints / 100,
-      operatorShareAmount: payment.operatorShareAmount,
+      baseOperatorShareAmount: payment.operatorShareAmount,
       refundedAmount: payment.refundedAmount,
       paidAt: payment.paidAt,
       refunds: refunds.filter((item) => item.paymentId === payment.id),

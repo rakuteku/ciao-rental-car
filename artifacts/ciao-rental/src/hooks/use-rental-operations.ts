@@ -60,6 +60,61 @@ export const useAdminReservation = (id: number) => {
   });
 };
 
+export const useAdminReservationTrip = (id: number, enabled = true) => {
+  return useQuery({
+    queryKey: ["admin", "reservations", id, "trip"],
+    queryFn: () => fetchWithAuth(`/admin/rental/reservations/${id}/trip`),
+    enabled: enabled && Number.isInteger(id) && id > 0,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchInterval: 30_000,
+  });
+};
+
+export const usePartnerReservations = (enabled = true) => {
+  return useQuery({
+    queryKey: ["partner", "rental", "reservations"],
+    queryFn: () => fetchWithAuth("/partner/rental/reservations"),
+    enabled,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchInterval: 60_000,
+  });
+};
+
+export const usePartnerReservationTrip = (id: number, enabled = true) => {
+  return useQuery({
+    queryKey: ["partner", "rental", "reservations", id, "trip"],
+    queryFn: () => fetchWithAuth(`/partner/rental/reservations/${id}/trip`),
+    enabled: enabled && Number.isInteger(id) && id > 0,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchInterval: 30_000,
+  });
+};
+
+export const useRentalTripAction = (scope: "admin" | "partner") => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action, data }: { id: number; action: "pickup" | "return" | "close"; data: Record<string, unknown> }) =>
+      fetchWithAuth(`/${scope}/rental/reservations/${id}/${action}`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (_, { id }) => {
+      if (scope === "partner") {
+        queryClient.invalidateQueries({ queryKey: ["partner", "rental", "reservations"] });
+        queryClient.invalidateQueries({ queryKey: ["partner", "rental", "reservations", id, "trip"] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["admin", "reservations"] });
+        queryClient.invalidateQueries({ queryKey: ["admin", "reservations", id] });
+        queryClient.invalidateQueries({ queryKey: ["admin", "reservations", id, "trip"] });
+        queryClient.invalidateQueries({ queryKey: ["my-bookings", id] });
+      }
+    },
+  });
+};
+
 export const useAdminRentalFinance = (reservationId: number) => {
   return useQuery({
     queryKey: ["admin", "rental", "finance", reservationId],
@@ -382,14 +437,15 @@ export const useSubmitBookingDocuments = () => {
 export const useUploadPrivateBookingDocument = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, docType, file }: {
+    mutationFn: async ({ id, driverId, docType, file }: {
       id: number;
+      driverId?: number;
       docType: "drivers_license" | "passport" | "international_license";
       file: File;
     }) => {
       const uploadRequest = await fetchWithAuth(`/rental/my-bookings/${id}/documents/upload-request`, {
         method: "POST",
-        body: JSON.stringify({ docType, contentType: file.type }),
+        body: JSON.stringify({ docType, contentType: file.type, ...(driverId ? { driverId } : {}) }),
       }) as { uploadPath: string; method: "PUT"; contentType: string };
 
       const response = await fetch(uploadRequest.uploadPath, {
@@ -423,6 +479,20 @@ export const useCancelBookingRequest = () => {
       fetchWithAuth(`/rental/reservations/${id}/cancel-request`, {
         method: "POST",
         body: JSON.stringify(data),
+      }),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["my-bookings", id] });
+    },
+  });
+};
+
+export const useAcknowledgeTripCharges = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, charges }: { id: number; charges: Array<{ code: string; amount: number }> }) =>
+      fetchWithAuth(`/rental/my-bookings/${id}/charges/acknowledge`, {
+        method: "POST",
+        body: JSON.stringify({ charges }),
       }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["my-bookings", id] });

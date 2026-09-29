@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRoute, Link, useLocation } from "wouter";
-import { useAdminReservation, useAdminReservationAction } from "@/hooks/use-rental-operations";
+import { useAdminReservation, useAdminReservationAction, useAdminReservationTrip } from "@/hooks/use-rental-operations";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { TripPageFrame, TripWorkflow } from "@/components/rental/TripWorkflow";
 
 export function AdminReservationReturn() {
   const [, params] = useRoute("/admin/rental-cars/reservations/:id/return");
@@ -17,6 +18,7 @@ export function AdminReservationReturn() {
   const { toast } = useToast();
   
   const { data: res, isLoading } = useAdminReservation(id);
+  const tripQuery = useAdminReservationTrip(id, res?.source === "marketplace_request");
   const actionMut = useAdminReservationAction();
 
   const [checklist, setChecklist] = useState({
@@ -35,6 +37,13 @@ export function AdminReservationReturn() {
 
   if (isLoading) return <div className="p-8">Loading...</div>;
   if (!res) return <div className="p-8">Reservation not found</div>;
+  if (res.source === "marketplace_request") {
+    if (tripQuery.isLoading) return <div className="p-8">Loading trip inspection…</div>;
+    if (tripQuery.isError || !tripQuery.data) return <div role="alert" className="p-8 text-destructive">{tripQuery.error instanceof Error ? tripQuery.error.message : "Could not load trip inspection."}</div>;
+    return <TripPageFrame id={id} href={`/admin/rental-cars/reservations/${id}`}>
+      <TripWorkflow id={id} scope="admin" trip={tripQuery.data as any} mode="return" onDone={() => setLocation(`/admin/rental-cars/reservations/${id}`)} />
+    </TripPageFrame>;
+  }
 
   const allChecked = Object.values(checklist).every(Boolean);
 

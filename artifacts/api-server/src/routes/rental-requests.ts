@@ -9,6 +9,7 @@ import {
   rentalNotificationsTable,
   rentalOperatorsTable,
   rentalReservationAddonsTable,
+  rentalReservationDriversTable,
   rentalReservationHoldsTable,
   rentalReservationsTable,
   rentalVehiclesTable,
@@ -394,6 +395,23 @@ async function createPaymentReservation(
     marketingConsent: request.marketingConsent,
     marketplaceOfferSnapshot: offer,
   }).returning();
+  const extraDrivers = request.additionalDrivers ?? [];
+  const linkedDrivers = [{ id: createdDriver.id, isPrimary: true }];
+  for (const additional of extraDrivers) {
+    const [driver] = await tx.insert(rentalDriversTable).values({
+      fullName: String(additional.fullName),
+      email: String(additional.email),
+      phone: String(additional.phone),
+    }).returning({ id: rentalDriversTable.id });
+    linkedDrivers.push({ id: driver.id, isPrimary: false });
+  }
+  if (linkedDrivers.length) {
+    await tx.insert(rentalReservationDriversTable).values(linkedDrivers.map((driver) => ({
+      reservationId: reservation.id,
+      driverId: driver.id,
+      isPrimary: driver.isPrimary,
+    })));
+  }
   if (addonRows.length) await tx.insert(rentalReservationAddonsTable).values(addonRows.map((addon) => ({
     reservationId: reservation.id,
     addonId: Number(addon.addonId),

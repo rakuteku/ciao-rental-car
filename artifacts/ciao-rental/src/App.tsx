@@ -45,6 +45,8 @@ import { AdminAudit } from "@/pages/admin/rental-cars/audit";
 import { AdminRentalPartners } from "@/pages/admin/rental-cars/partners";
 import { PartnerApplyPage } from "@/pages/partner/apply";
 import { PartnerInventoryPage } from "@/pages/partner/inventory";
+import { PartnerReservationsPage } from "@/pages/partner/reservations";
+import { PartnerReservationTripPage } from "@/pages/partner/reservation-trip";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +81,8 @@ function Router() {
       <Route path="/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
       <Route path="/partner/apply" component={PartnerApplyPage} />
       <Route path="/partner/inventory" component={PartnerInventoryPage} />
+      <Route path="/partner/reservations" component={PartnerReservationsPage} />
+      <Route path="/partner/reservations/:id" component={PartnerReservationTripPage} />
       {/* Admin Auth Route */}
       <Route path="/admin/login" component={AdminLogin} />
 
@@ -124,6 +128,8 @@ function Router() {
       <Route path="/:language/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
       <Route path="/:language/partner/apply" component={PartnerApplyPage} />
       <Route path="/:language/partner/inventory" component={PartnerInventoryPage} />
+      <Route path="/:language/partner/reservations/:id" component={PartnerReservationTripPage} />
+      <Route path="/:language/partner/reservations" component={PartnerReservationsPage} />
       <Route path="/:language/admin/rental-cars/partners" component={() => <AdminLayout><AdminRentalPartners /></AdminLayout>} />
       <Route path="/:language/rentalcar" component={() => <MainLayout><RentalCarHome /></MainLayout>} />
       <Route path="/:language/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
