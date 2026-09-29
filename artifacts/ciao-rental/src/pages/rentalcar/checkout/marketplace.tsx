@@ -74,7 +74,7 @@ export function MarketplaceCheckout() {
         additionalDrivers: showExtra ? [extra] : undefined,
         travelNotes: notes.trim() || undefined, marketingConsent: consent,
         attribution: captureRentalAttribution(), addons: draft.addons,
-      });
+      }, ja ? "ja" : "en");
       const request = "request" in result && result.request ? result.request as typeof result : result;
       const code = result.customerAccessToken || result.accessCode || request.customerAccessToken || request.accessCode;
       if (!request.id || !code) throw new Error(ja ? "受付番号を確認できません。サポートにお問い合わせください。" : "The request was received, but its access code is missing. Please contact support.");

@@ -70,22 +70,44 @@ export interface RentalRequest {
   originalOffer?: RentalRequest["offer"];
   respondBy?: string;
   paymentDeadline?: string;
+  paymentAvailable?: boolean;
+  paymentEmailStatus?: string;
+  paymentEmailDeliveryStatus?: string;
+  paymentEmail?: { status?: string };
+  emailDeliveryStatus?: string;
   pricing?: { finalTotal?: number };
   operatorName?: string;
+}
+
+export interface RentalPaymentState {
+  verified?: boolean;
+  configured?: boolean;
+  paymentStatus?: string;
+  status?: string;
+  reservationStatus?: string;
+  requestStatus?: string;
+  paymentAvailable?: boolean;
+  checkoutAvailable?: boolean;
+  terminal?: boolean;
+  emailDeliveryStatus?: string;
+  paymentEmailStatus?: string;
 }
 
 export interface CreateRentalRequest {
   holdId: number; vehicleId: number; pickupLocation: string; returnLocation: string;
   driver: { fullName: string; email: string; phone: string; romanizedName?: string; nationality?: string; flightNumber?: string; accommodation?: string };
   additionalDrivers?: Array<{ fullName: string; email: string; phone: string }>;
-  travelNotes?: string; marketingConsent: boolean; attribution?: Attribution;
+  travelNotes?: string; marketingConsent: boolean; locale?: "en" | "ja"; attribution?: Attribution;
   addons?: Array<{ addonId: number; qty: number }>;
 }
 
-async function rentalRequest<T>(path: string, body?: unknown): Promise<T> {
+async function rentalRequest<T>(path: string, body?: unknown, locale?: "en" | "ja"): Promise<T> {
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST", credentials: "include",
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: {
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      ...(locale ? { "Accept-Language": locale } : {}),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   if (!response.ok) {
@@ -95,6 +117,26 @@ async function rentalRequest<T>(path: string, body?: unknown): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export const createRentalRequest = (body: CreateRentalRequest) => rentalRequest<RentalRequest>("/api/rental/requests", body);
+export const createRentalRequest = (body: CreateRentalRequest, locale: "en" | "ja") => rentalRequest<RentalRequest>("/api/rental/requests", body, locale);
 export const getRentalRequest = (id: number, code: string) => rentalRequest<RentalRequest>(`/api/rental/requests/${encodeURIComponent(id)}?accessCode=${encodeURIComponent(code)}`);
+export const getRentalPaymentState = (id: number, code: string) => rentalRequest<RentalPaymentState>(`/api/rental/requests/${encodeURIComponent(id)}/payment?accessCode=${encodeURIComponent(code)}`);
 export const acceptRentalOffer = (id: number, code: string) => rentalRequest<RentalRequest>(`/api/rental/requests/${encodeURIComponent(id)}/accept-offer?accessCode=${encodeURIComponent(code)}`, {});
+export async function createRentalCheckout(id: number, code: string): Promise<{ url: string }> {
+  const response = await fetch(`/api/rental/requests/${encodeURIComponent(id)}/checkout?accessCode=${encodeURIComponent(code)}`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || error.message || `Request failed (${response.status}).`);
+  }
+  const result = await response.json() as { checkoutUrl?: unknown };
+  const returnedUrl = result.checkoutUrl;
+  if (typeof returnedUrl !== "string") throw new Error("The checkout service did not return a Stripe URL.");
+  let parsed: URL;
+  try { parsed = new URL(returnedUrl); } catch { throw new Error("The checkout service returned an invalid Stripe URL."); }
+  if (parsed.protocol !== "https:" || parsed.hostname !== "checkout.stripe.com") {
+    throw new Error("The checkout service returned an untrusted payment URL.");
+  }
+  return { url: returnedUrl };
+}

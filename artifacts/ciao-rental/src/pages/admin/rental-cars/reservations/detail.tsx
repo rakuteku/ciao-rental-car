@@ -1,12 +1,71 @@
 import { useRoute, Link } from "wouter";
-import { useAdminReservation, useUpdateAdminReservation, useReviewAdminDocument } from "@/hooks/use-rental-operations";
+import { useAdminReservation, useUpdateAdminReservation, useReviewAdminDocument, useAdminRentalFinance, useRefundAdminRentalPayment, usePayoutAdminRentalPayment } from "@/hooks/use-rental-operations";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Car, Calendar, User, CreditCard } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+
+function financeRows(value: any): any[] {
+  if (Array.isArray(value)) return value;
+  if (!value || typeof value !== "object") return [];
+  for (const key of ["payments", "ledger", "items", "records", "transactions"]) {
+    if (Array.isArray(value[key])) return value[key];
+  }
+  if (value.finance && value.finance !== value) return financeRows(value.finance);
+  if (value.data && value.data !== value) return financeRows(value.data);
+  return [];
+}
+
+function FinanceLedgerRow({ payment }: { payment: any }) {
+  const [amount, setAmount] = useState(String(payment.refundableAmount ?? payment.amount ?? ""));
+  const [reason, setReason] = useState("");
+  const [reference, setReference] = useState("");
+  const [notes, setNotes] = useState("");
+  const refund = useRefundAdminRentalPayment();
+  const payout = usePayoutAdminRentalPayment();
+  const { toast } = useToast();
+  const paymentId = Number(payment.id ?? payment.paymentId);
+  const submitRefund = (event: FormEvent) => {
+    event.preventDefault();
+    if (!Number.isInteger(paymentId) || paymentId <= 0 || !Number.isFinite(Number(amount)) || Number(amount) <= 0 || !reason.trim()) return;
+    refund.mutate({ paymentId, amount: Number(amount), reason: reason.trim() }, {
+      onSuccess: () => { setReason(""); toast({ title: "Stripe refund requested", description: "The request was submitted. Check the ledger for Stripe's current refund status." }); },
+      onError: (error: Error) => toast({ title: "Refund failed", description: error.message, variant: "destructive" }),
+    });
+  };
+  const submitPayout = (event: FormEvent) => {
+    event.preventDefault();
+    if (!Number.isInteger(paymentId) || paymentId <= 0 || !reference.trim()) return;
+    payout.mutate({ paymentId, reference: reference.trim(), notes: notes.trim() }, {
+      onSuccess: () => { setReference(""); setNotes(""); toast({ title: "Manual payout reported" }); },
+      onError: (error: Error) => toast({ title: "Payout failed", description: error.message, variant: "destructive" }),
+    });
+  };
+  return <div className="space-y-3 rounded-md border p-4">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div><p className="font-semibold">Payment #{paymentId || "—"}</p><p className="text-sm text-muted-foreground">{payment.type || payment.kind || "Payment"} · {payment.status || "Status unavailable"}</p></div>
+      <div className="text-right"><p className="font-semibold">{payment.currency || "JPY"} {payment.amount == null ? "—" : Number(payment.amount).toLocaleString()}</p>{payment.createdAt && <p className="text-xs text-muted-foreground">{new Date(payment.createdAt).toLocaleString()}</p>}</div>
+    </div>
+    {(payment.stripePaymentIntentId || payment.stripeCheckoutSessionId || payment.reference) && <p className="break-all text-xs text-muted-foreground">{payment.stripePaymentIntentId || payment.stripeCheckoutSessionId || payment.reference}</p>}
+    {paymentId > 0 && <div className="grid gap-4 border-t pt-3 lg:grid-cols-2">
+      <form onSubmit={submitRefund} className="space-y-2">
+        <p className="text-sm font-medium">Manual refund</p>
+        <input aria-label="Refund amount" type="number" min="1" step="1" required value={amount} onChange={event => setAmount(event.target.value)} placeholder="Amount (JPY)" className="h-10 w-full rounded-md border bg-background px-3 text-sm" />
+        <Textarea required value={reason} onChange={event => setReason(event.target.value)} placeholder="Refund reason" className="min-h-16" />
+        <Button type="submit" size="sm" variant="destructive" disabled={refund.isPending || !reason.trim() || Number(amount) <= 0}>{refund.isPending ? "Requesting…" : "Request Stripe refund"}</Button>
+      </form>
+      <form onSubmit={submitPayout} className="space-y-2">
+        <p className="text-sm font-medium">Manual operator payout</p>
+        <input required value={reference} onChange={event => setReference(event.target.value)} placeholder="Transfer reference" className="h-10 w-full rounded-md border bg-background px-3 text-sm" />
+        <Textarea value={notes} onChange={event => setNotes(event.target.value)} placeholder="Payout notes (optional)" className="min-h-16" />
+        <Button type="submit" size="sm" disabled={payout.isPending || !reference.trim()}>{payout.isPending ? "Reporting…" : "Report manual payout"}</Button>
+      </form>
+    </div>}
+  </div>;
+}
 
 export function AdminReservationDetail() {
   const [, params] = useRoute("/admin/rental-cars/reservations/:id");
@@ -14,6 +73,7 @@ export function AdminReservationDetail() {
   const { data: res, isLoading } = useAdminReservation(id);
   const updateMut = useUpdateAdminReservation();
   const reviewDocument = useReviewAdminDocument();
+  const financeQuery = useAdminRentalFinance(id);
   const { toast } = useToast();
 
   const [notes, setNotes] = useState("");
@@ -156,6 +216,16 @@ export function AdminReservationDetail() {
               <span>Total</span>
               <span>¥{Number(res.finalTotal).toLocaleString()}</span>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader><CardTitle className="text-lg">Payment ledger & reconciliation</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {financeQuery.isLoading ? <p className="text-sm text-muted-foreground">Loading payment ledger…</p>
+              : financeQuery.isError ? <div role="alert" className="space-y-2 text-sm"><p className="text-destructive">{financeQuery.error.message}</p><Button size="sm" variant="outline" onClick={() => void financeQuery.refetch()}>Retry</Button></div>
+                : financeRows(financeQuery.data).length ? financeRows(financeQuery.data).map((payment: any, index: number) => <FinanceLedgerRow key={payment.id ?? payment.paymentId ?? index} payment={payment} />)
+                  : <p className="text-sm text-muted-foreground">No payment ledger entries are available for this reservation.</p>}
           </CardContent>
         </Card>
 

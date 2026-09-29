@@ -65,7 +65,8 @@ test("request implementation serializes inventory decisions and preserves tagged
   assert.ok(route.includes("marketingConsent: data.marketingConsent"));
   assert.ok(schema.includes('unique("rental_marketplace_requests_hold_unique")'));
   assert.ok(schema.includes('attribution: jsonb("attribution")'));
-  assert.ok(!route.includes("queueRentalNotification"));
+  assert.ok(route.includes("import { queueRentalNotification"));
+  assert.match(route, /queueRentalNotification\(\{\s*\.\.\.input/);
 });
 
 test("alternate vehicle offers lock cars in stable order and move the active hold", async () => {

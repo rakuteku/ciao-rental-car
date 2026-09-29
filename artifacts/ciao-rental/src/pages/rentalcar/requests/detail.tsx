@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useParams, useSearch, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useGetRentalVehicles } from "@workspace/api-client-react";
-import { ArrowRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowRight, RefreshCw, ShieldCheck, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage, localizedPath } from "@/lib/language";
-import { getRentalRequest, acceptRentalOffer, formatTokyo } from "@/lib/rental-marketplace";
+import { getRentalRequest, getRentalPaymentState, acceptRentalOffer, createRentalCheckout, formatTokyo } from "@/lib/rental-marketplace";
 import { MarketplaceTerms } from "@/components/rental/MarketplaceTerms";
 
 export function RentalRequestDetail() {
@@ -24,6 +24,12 @@ export function RentalRequestDetail() {
     enabled: Number.isInteger(requestId) && requestId > 0 && !!code,
     refetchInterval: 30_000,
   });
+  const paymentQuery = useQuery({
+    queryKey: ["rental-payment-state", requestId, code],
+    queryFn: () => getRentalPaymentState(requestId, code),
+    enabled: Number.isInteger(requestId) && requestId > 0 && !!code,
+    refetchInterval: 15_000,
+  });
   const accept = useMutation({
     mutationFn: () => acceptRentalOffer(requestId, code),
     onSuccess: (updated) => {
@@ -31,8 +37,24 @@ export function RentalRequestDetail() {
       void query.refetch();
     },
   });
+  const checkout = useMutation({
+    mutationFn: () => createRentalCheckout(requestId, code),
+    onSuccess: ({ url }) => window.location.assign(url),
+  });
   const data = query.data && "request" in query.data && query.data.request ? query.data.request as typeof query.data : query.data;
   const status = data?.status || "";
+  const rawPaymentState = paymentQuery.data as any;
+  const paymentState = rawPaymentState?.payment || rawPaymentState?.paymentState || rawPaymentState;
+  const paymentStatus = paymentState?.paymentStatus || paymentState?.status;
+  const normalizedPaymentStatus = String(paymentStatus || "").toLowerCase();
+  const paymentTerminal = ["paid", "succeeded", "payment_succeeded", "confirmed", "failed", "expired", "canceled", "cancelled", "refunded"].includes(normalizedPaymentStatus)
+    || ["payment_failed", "expired", "confirmed", "driver_documents_pending", "driver_documents_under_review", "driver_documents_rejected", "awaiting_pickup", "vehicle_dispatched", "in_rental", "overdue", "return_initiated", "return_completed", "inspection_pending", "damage_assessed", "deposit_refunded", "cancelled", "refunded"].includes(String(paymentState?.reservationStatus || "").toLowerCase());
+  const paymentAvailable = status === "awaiting_payment" && !paymentTerminal && paymentState?.configured !== false && (
+    paymentState?.checkoutAvailable === true ||
+    (paymentState?.paymentAvailable === true && paymentState?.configured === true)
+  );
+  const paymentEmailStatus = data?.paymentEmailStatus || data?.paymentEmailDeliveryStatus || data?.paymentEmail?.status || data?.emailDeliveryStatus || paymentState?.emailDeliveryStatus || paymentState?.paymentEmailStatus;
+  const emailPending = typeof paymentEmailStatus === "string" && (paymentEmailStatus.toLowerCase().includes("pending") || paymentEmailStatus.toLowerCase() === "queued");
   const changed = ["offer_pending", "offer_sent", "counter_offered", "change_proposed", "awaiting_customer_acceptance", "offer_pending_acceptance"].includes(status);
   const offeredVehicleId = data?.offer?.vehicleId ?? data?.offer?.vehicle?.id ?? data?.vehicleId;
   const originalVehicleId = data?.originalOffer?.vehicleId;
@@ -59,9 +81,16 @@ export function RentalRequestDetail() {
     <div className="mt-8 space-y-5">
       <section className="marketplace-panel p-6 sm:p-9" data-testid="status-rental-request">
         <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="marketplace-kicker">{ja ? "リクエスト" : "REQUEST"} #{requestId}</p><h2 className="mt-2 text-2xl">{label}</h2></div><Button variant="outline" onClick={() => query.refetch()} className="gap-2"><RefreshCw size={15} />{ja ? "更新" : "Refresh"}</Button></div>
-        <p className="mt-5 text-sm leading-6 text-slate-600">{changed ? ja ? "事業者から変更後の条件が提示されました。以下をご確認のうえ、承諾する場合のみボタンを押してください。" : "The operator proposed different terms. Review them below and accept only if they work for you." : status === "awaiting_payment" ? ja ? "事業者が依頼を承諾しました。安全な決済手順のご案内をお待ちください。このページでは決済されません。" : "The operator accepted your request. Await secure payment instructions; this page does not collect payment." : status === "declined" || status === "expired" ? ja ? "このリクエストでは予約できません。車両を再検索して新しいリクエストをお送りください。" : "This request can no longer be booked. Search again and submit a new request for an available vehicle." : ja ? "事業者からの回答をお待ちください。依頼時点では決済されず、車両はまだ確定していません。" : "Please wait for the operator's response. Your request has not been charged, and a vehicle is not yet confirmed."}</p>
-        {status === "awaiting_payment" && <div className="mt-5 border-l-2 border-[#b5593d] bg-[#faf8f1] p-4 text-sm"><strong>{ja ? "決済期限" : "Payment deadline"}: </strong>{data?.paymentDeadline ? formatTokyo(data.paymentDeadline, language) : ja ? "まだ提示されていません" : "Not yet supplied"}<p className="mt-2 text-slate-600">{ja ? "決済のご案内が届かない場合は事業者へお問い合わせください。期限後は空車状況を再確認してください。" : "Contact the operator if payment instructions have not arrived. After the deadline, availability must be checked again."}</p></div>}
+         <p className="mt-5 text-sm leading-6 text-slate-600">{changed ? ja ? "事業者から変更後の条件が提示されました。以下をご確認のうえ、承諾する場合のみボタンを押してください。" : "The operator proposed different terms. Review them below and accept only if they work for you." : status === "awaiting_payment" ? ja ? "事業者が依頼を承諾しました。お支払いはStripeの安全な決済ページで行います。" : "The operator accepted your request. Pay securely on Stripe to continue." : status === "declined" || status === "expired" ? ja ? "このリクエストでは予約できません。車両を再検索して新しいリクエストをお送りください。" : "This request can no longer be booked. Search again and submit a new request for an available vehicle." : ja ? "事業者からの回答をお待ちください。依頼時点では決済されず、車両はまだ確定していません。" : "Please wait for the operator's response. Your request has not been charged, and a vehicle is not yet confirmed."}</p>
+         {status === "awaiting_payment" && <div className="mt-5 border-l-2 border-[#b5593d] bg-[#faf8f1] p-4 text-sm"><strong>{ja ? "決済状況" : "Payment availability"}: </strong>{paymentQuery.isLoading ? ja ? "確認中…" : "Checking…" : paymentAvailable ? ja ? "決済可能です" : "Payment is available" : ja ? "現在決済を開始できません" : "Payment is not currently available"}{paymentStatus && <p className="mt-2"><strong>{ja ? "決済ステータス" : "Payment status"}: </strong>{String(paymentStatus).replaceAll("_", " ")}</p>}{paymentQuery.isError && <p role="alert" className="mt-2 text-[#a84736]">{ja ? "決済状況を確認できません。" : "Payment availability could not be verified."}</p>}<p className="mt-2"><strong>{ja ? "決済期限" : "Payment deadline"}: </strong>{data?.paymentDeadline ? formatTokyo(data.paymentDeadline, language) : ja ? "まだ提示されていません" : "Not yet supplied"}</p>{paymentEmailStatus && <p className="mt-2"><strong>{ja ? "決済案内メール" : "Payment email delivery"}: </strong>{emailPending ? ja ? "送信待ち" : "Delivery pending" : paymentEmailStatus}</p>}<p className="mt-2 text-slate-600">{ja ? "期限後は空車状況を再確認してください。" : "After the deadline, availability must be checked again."}</p></div>}
+         {status === "awaiting_payment" && <div className="mt-5">
+           {checkout.isError && <p role="alert" className="mb-3 text-sm text-[#a84736]">{checkout.error.message}</p>}
+            <Button disabled={!paymentAvailable || paymentQuery.isFetching || paymentQuery.isError || checkout.isPending} onClick={() => checkout.mutate()} className="gap-2">
+             <CreditCard size={16} />{checkout.isPending ? ja ? "Stripeへ接続中…" : "Connecting to Stripe…" : ja ? "安全に決済する" : "Continue to secure payment"}
+           </Button>
+         </div>}
         {status === "declined" && <div className="mt-5 border-l-2 border-[#a84736] bg-[#fff4e9] p-4 text-sm"><strong>{ja ? "お断りの理由：" : "Reason for decline: "}</strong>{data?.declinedReason || (ja ? "理由は提示されていません。" : "No reason was supplied.")}</div>}
+         {status !== "awaiting_payment" && paymentStatus && <div className="mt-5 border-l-2 border-[#b5593d] bg-[#faf8f1] p-4 text-sm"><strong>{ja ? "決済ステータス：" : "Payment status: "}</strong>{String(paymentStatus).replaceAll("_", " ")}{paymentState?.reservationStatus && <p className="mt-1"><strong>{ja ? "予約状況：" : "Reservation status: "}</strong>{String(paymentState.reservationStatus).replaceAll("_", " ")}</p>}</div>}
         {(status === "declined" || status === "expired") && <Link href={localizedPath("/rentalcar", language)} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#ab593d] underline">{ja ? "別の車両を探す" : "Search for another vehicle"}<ArrowRight size={15} /></Link>}
       </section>
       <section className="marketplace-panel p-6 sm:p-9">
@@ -92,7 +121,7 @@ export function RentalRequestDetail() {
           <Button disabled={!agreed || accept.isPending} onClick={() => accept.mutate()} className="mt-5 gap-2">{accept.isPending ? ja ? "承諾中…" : "Accepting…" : ja ? "変更提案を承諾する" : "Accept revised offer"}<ArrowRight size={16} /></Button>
         </div>}
       </section>
-      <p className="flex items-start gap-2 text-xs leading-5 text-slate-600"><ShieldCheck size={17} className="shrink-0" />{ja ? "決済はこのページでは行いません。必要書類の原本を貸出時にお持ちください。" : "No payment is taken on this page. Bring original driving documents at pickup."}</p>
+      <p className="flex items-start gap-2 text-xs leading-5 text-slate-600"><ShieldCheck size={17} className="shrink-0" />{ja ? "決済はStripeの安全なページで行われます。必要書類の原本を貸出時にお持ちください。" : "Payment takes place on Stripe's secure checkout page. Bring original driving documents at pickup."}</p>
     </div>}
     <Link href={localizedPath("/rentalcar", language)} className="mt-9 inline-block text-sm font-semibold text-[#ab593d] underline">{ja ? "レンタカーのトップへ" : "Back to rental cars"}</Link>
   </div></div>;

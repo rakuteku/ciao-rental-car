@@ -14,8 +14,11 @@ function field(column) {
   return Object.keys(column.table ?? {}).find((key) => column.table[key] === column) ?? column.name;
 }
 export const eq = (column, value) => ({ kind: "eq", column, field: field(column), value });
+export const gt = (column, value) => ({ kind: "gt", column, field: field(column), value });
 export const isNull = (column) => ({ kind: "isNull", column, field: field(column) });
+export const isNotNull = (column) => ({ kind: "isNotNull", column, field: field(column) });
 export const inArray = (column, values) => ({ kind: "inArray", column, field: field(column), values });
+export const lte = (column, value) => ({ kind: "lte", column, field: field(column), value });
 export const and = (...conditions) => ({ kind: "and", conditions: conditions.flat().filter(Boolean) });
 export const or = (...conditions) => ({ kind: "or", conditions: conditions.flat().filter(Boolean) });
 export const asc = (column) => ({ kind: "sort", column, field: field(column), direction: 1 });
@@ -33,8 +36,11 @@ function matches(row, condition) {
   if (condition.kind === "and") return condition.conditions.every((item) => matches(row, item));
   if (condition.kind === "or") return condition.conditions.some((item) => matches(row, item));
   if (condition.kind === "eq") return row[condition.field] === condition.value;
+  if (condition.kind === "gt") return row[condition.field] > condition.value;
   if (condition.kind === "isNull") return row[condition.field] == null;
+  if (condition.kind === "isNotNull") return row[condition.field] != null;
   if (condition.kind === "inArray") return condition.values.includes(row[condition.field]);
+  if (condition.kind === "lte") return row[condition.field] <= condition.value;
   if (condition.kind === "sql") {
     const column = condition.values.find((value) => value && typeof value === "object" && value.table);
     const date = condition.values.find((value) => value instanceof Date);
@@ -301,6 +307,11 @@ test("marketplace policy configuration gates listing and drives partner quote ac
           contents: drizzleMock,
           loader: "js",
         }));
+        buildApi.onResolve({ filter: /^\.\/logger$/ }, () => ({ path: "mock-logger", namespace: "marketplace-test" }));
+        buildApi.onLoad({ filter: /^mock-logger$/, namespace: "marketplace-test" }, () => ({
+          contents: "export const logger = { info() {}, warn() {}, error() {}, debug() {} };",
+          loader: "js",
+        }));
       },
     }],
   });
@@ -319,6 +330,7 @@ test("marketplace policy configuration gates listing and drives partner quote ac
   app.use(express.json());
   app.use((req, _res, next) => {
     req.session = { admin: { username: "scenario-admin" }, partner: { operatorId: operator.id, staffId: 88 } };
+    req.log = { info() {}, warn() {}, error() {}, debug() {} };
     next();
   });
   app.use("/api", operations, partner, vehicles, requests, reservations);

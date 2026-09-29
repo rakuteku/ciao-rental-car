@@ -6,6 +6,7 @@ import {
   db,
   rentalDriversTable,
   rentalMarketplaceRequestsTable,
+  rentalNotificationsTable,
   rentalOperatorsTable,
   rentalReservationAddonsTable,
   rentalReservationHoldsTable,
@@ -17,6 +18,7 @@ import { calculatePrice } from "../lib/rental-pricing";
 import { marketplacePolicy } from "../lib/marketplace-policy";
 import { isMarketplaceEnabled, isRentalRequestExpired, mayAcceptAlternateOffer } from "../lib/rental-request-policy.mjs";
 import { requireAdminAuth } from "../middlewares/admin-auth";
+import { queueRentalNotification, retryRentalNotification, type RentalNotificationEvent } from "../lib/rental-events";
 import { authenticatePartner, partnerIdentity } from "./partner";
 import { isVehicleAvailable, isVehicleServiceable, visibleVehicleIds } from "./rental-vehicles";
 
@@ -64,6 +66,7 @@ const LeadSchema = z.object({
   }).strict()).max(10).optional(),
   travelNotes: z.string().max(5000).optional(),
   marketingConsent: z.boolean(),
+  locale: z.enum(["en", "ja"]).optional(),
   attribution: AttributionSchema.optional(),
   addons: AddonsSchema.optional(),
   totalPrice: z.number().finite().nonnegative().optional(),
@@ -82,12 +85,29 @@ const CreateRequestSchema = z.object({
   }).strict()).max(10).optional(),
   travelNotes: z.string().max(5000).optional(),
   marketingConsent: z.boolean(),
+  locale: z.enum(["en", "ja"]).optional(),
   attribution: AttributionSchema.optional(),
   addons: AddonsSchema.optional(),
 }).strict();
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Internal server error";
+}
+
+function requestLocale(req: ExpressRequest): "en" | "ja" {
+  return req.body?.locale === "ja" || (req.body?.locale !== "en" && req.get("accept-language")?.toLowerCase().startsWith("ja")) ? "ja" : "en";
+}
+
+function notifyRequest(req: ExpressRequest, input: {
+  email?: string | null;
+  eventType: RentalNotificationEvent;
+  bookingId: number;
+  locale?: "en" | "ja";
+  extra?: Record<string, unknown>;
+}) {
+  void queueRentalNotification({ ...input, locale: input.locale ?? requestLocale(req) }).catch((error) => {
+    req.log.error({ err: error, action: "rental_notification_enqueue_failed", eventType: input.eventType, bookingId: input.bookingId });
+  });
 }
 
 function policySnapshot(policy: Awaited<ReturnType<typeof marketplacePolicy>>, vehicleDisclosures: unknown) {
@@ -271,6 +291,7 @@ router.post("/rental/requests", async (req, res): Promise<void> => {
         addons: data.addons ?? [],
         travelNotes: data.travelNotes ?? null,
         marketingConsent: data.marketingConsent,
+        locale: requestLocale(req),
         attribution: data.attribution ?? null,
         initialOffer: offer,
         currentOffer: offer,
@@ -280,6 +301,19 @@ router.post("/rental/requests", async (req, res): Promise<void> => {
       }).returning();
       await tx.update(rentalReservationHoldsTable).set({ heldUntil: respondBy }).where(eq(rentalReservationHoldsTable.id, hold.id));
       return { request, token };
+    });
+    notifyRequest(req, {
+      email: typeof (result.request.driver as Record<string, unknown>).email === "string"
+        ? String((result.request.driver as Record<string, unknown>).email) : null,
+      eventType: "request",
+      bookingId: result.request.id,
+      extra: { respondBy: result.request.respondBy.toISOString() },
+    });
+    notifyRequest(req, {
+      email: operator.contactEmail,
+      eventType: "alert",
+      bookingId: result.request.id,
+      extra: { message: `A new rental request requires a response by ${result.request.respondBy.toISOString()}.` },
     });
     res.status(201).json({
       ...serializeRequest(result.request),
@@ -298,8 +332,15 @@ router.get("/rental/requests/:id", async (req, res): Promise<void> => {
   if (!Number.isSafeInteger(id) || id < 1 || !accessCode) return void res.status(400).json({ error: "Request ID and accessCode are required" });
   const request = await expireRequestIfDue(id);
   if (!request || request.customerAccessToken !== accessCode) return void res.status(404).json({ error: "Request not found" });
+  const [paymentEmail] = await db.select({
+    deliveryStatus: rentalNotificationsTable.deliveryStatus,
+  }).from(rentalNotificationsTable).where(and(
+    eq(rentalNotificationsTable.eventType, "acceptance"),
+    sql`${rentalNotificationsTable.payload}->>'bookingId' = ${String(id)}`,
+    eq(rentalNotificationsTable.email, String((request.driver as Record<string, unknown>).email ?? "")),
+  )).orderBy(desc(rentalNotificationsTable.createdAt)).limit(1);
   res.set("Cache-Control", "no-store");
-  res.json(serializeRequest(request));
+  res.json({ ...serializeRequest(request), paymentEmailStatus: paymentEmail?.deliveryStatus ?? "pending" });
 });
 
 async function createPaymentReservation(
@@ -431,6 +472,14 @@ router.post("/rental/requests/:id/accept-offer", async (req, res): Promise<void>
       );
       return { reservation: created, deadline };
     });
+    notifyRequest(req, {
+      email: typeof (existing.driver as Record<string, unknown>).email === "string"
+        ? String((existing.driver as Record<string, unknown>).email) : null,
+      eventType: "acceptance",
+      bookingId: id,
+      locale: existing.locale === "ja" ? "ja" : "en",
+      extra: { paymentDeadline: reservation.deadline.toISOString() },
+    });
     res.json({
       id,
       status: "awaiting_payment",
@@ -494,6 +543,14 @@ router.post("/rental/requests/:id/decline-offer", async (req, res): Promise<void
     return declined ?? null;
   });
   if (!updated) return void res.status(409).json({ error: "Offer is no longer available" });
+  notifyRequest(req, {
+    email: typeof ((updated.driver as Record<string, unknown> | undefined)?.email) === "string"
+      ? String((updated.driver as Record<string, unknown>).email) : null,
+    eventType: "decline",
+    bookingId: updated.id,
+    locale: updated.locale === "ja" ? "ja" : "en",
+    extra: { reason: updated.declinedReason ?? undefined },
+  });
   res.json(serializeRequest(updated));
 });
 
@@ -571,6 +628,14 @@ router.post("/partner/rental/requests/:id/accept", authenticatePartner, async (r
       );
       return result;
     });
+    notifyRequest(req, {
+      email: typeof (request.driver as Record<string, unknown>).email === "string"
+        ? String((request.driver as Record<string, unknown>).email) : null,
+      eventType: "acceptance",
+      bookingId: request.id,
+      locale: request.locale === "ja" ? "ja" : "en",
+      extra: { paymentDeadline: deadline.toISOString() },
+    });
     res.json({ id: request.id, status: "awaiting_payment", reservationId: reservation.id, paymentDeadline: deadline.toISOString(), price: reservation.finalTotal });
   } catch (error) {
     res.status((error as { status?: number }).status ?? 500).json({ error: errorMessage(error) });
@@ -602,6 +667,14 @@ router.post("/partner/rental/requests/:id/decline", authenticatePartner, async (
     return declined;
   });
   if (!updated) return void res.status(409).json({ error: "Request has already changed" });
+  notifyRequest(req, {
+    email: typeof (request.driver as Record<string, unknown>).email === "string"
+      ? String((request.driver as Record<string, unknown>).email) : null,
+    eventType: "decline",
+    bookingId: request.id,
+    locale: request.locale === "ja" ? "ja" : "en",
+    extra: { reason: parsed.data.reason },
+  });
   res.json(serializeRequest(updated));
 });
 
@@ -740,6 +813,16 @@ async function submitOffer(req: ExpressRequest, res: ExpressResponse, isAdmin: b
     return;
   }
   if (!updated) return void res.status(409).json({ error: "Request has already changed" });
+  notifyRequest(req, {
+    email: typeof (updated.driver as Record<string, unknown>).email === "string"
+      ? String((updated.driver as Record<string, unknown>).email) : null,
+    eventType: "request",
+    bookingId: updated.id,
+    locale: updated.locale === "ja" ? "ja" : "en",
+    extra: {
+      message: `An alternate rental offer is ready for review. Please respond by ${updated.respondBy.toISOString()}.`,
+    },
+  });
   res.json(serializeRequest(updated));
 }
 
@@ -828,6 +911,7 @@ async function createStaffQuote(req: ExpressRequest, res: ExpressResponse, opera
         addons: data.addons ?? [],
         travelNotes: data.travelNotes ?? null,
         marketingConsent: data.marketingConsent,
+        locale: requestLocale(req),
         attribution: data.attribution ?? null,
         initialOffer: offer,
         currentOffer: offer,
@@ -843,6 +927,16 @@ async function createStaffQuote(req: ExpressRequest, res: ExpressResponse, opera
       }).returning();
       return created;
     });
+    notifyRequest(req, {
+      email: typeof (request.driver as Record<string, unknown>).email === "string"
+        ? String((request.driver as Record<string, unknown>).email) : null,
+      eventType: "request",
+      bookingId: request.id,
+      locale: request.locale === "ja" ? "ja" : "en",
+      extra: {
+        message: `Your rental quote is ready for review. Please respond by ${request.respondBy.toISOString()}.`,
+      },
+    });
     res.status(201).json({ ...serializeRequest(request), customerAccessToken: token });
   } catch (error) {
     res.status((error as { status?: number }).status ?? 500).json({ error: errorMessage(error) });
@@ -852,5 +946,60 @@ async function createStaffQuote(req: ExpressRequest, res: ExpressResponse, opera
 router.post("/partner/rental/requests/quote", authenticatePartner, (req, res) =>
   createStaffQuote(req, res, partnerIdentity(req).operatorId));
 router.post("/admin/rental/requests/quote", requireAdminAuth, (req, res) => createStaffQuote(req, res));
+
+router.post("/admin/rental/notifications/:id/retry", requireAdminAuth, async (req, res): Promise<void> => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) return void res.status(400).json({ error: "Invalid notification ID" });
+  const parsed = z.object({ confirmDuplicateRisk: z.boolean().optional().default(false) }).strict().safeParse(req.body ?? {});
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  try {
+    const notification = await retryRentalNotification(id, parsed.data.confirmDuplicateRisk);
+    if (!notification) return void res.status(404).json({ error: "Rental notification not found" });
+    res.json({
+      id: notification.id,
+      deliveryStatus: notification.deliveryStatus,
+      attemptCount: notification.attemptCount,
+      lastAttemptAt: notification.lastAttemptAt?.toISOString() ?? null,
+      nextAttemptAt: notification.nextAttemptAt?.toISOString() ?? null,
+      dataSubmittedAt: notification.dataSubmittedAt?.toISOString() ?? null,
+      lastError: notification.lastError,
+      sentAt: notification.sentAt?.toISOString() ?? null,
+    });
+  } catch (error) {
+    res.status(500).json({ error: errorMessage(error) });
+  }
+});
+
+router.get("/admin/rental/notifications", requireAdminAuth, async (req, res): Promise<void> => {
+  const statuses = ["pending", "unconfigured", "failed", "sent"] as const;
+  const status = req.query.status;
+  if (status !== undefined && (typeof status !== "string" || !statuses.includes(status as typeof statuses[number]))) {
+    return void res.status(400).json({ error: "Invalid delivery status" });
+  }
+  const rows = await db.select({
+    id: rentalNotificationsTable.id,
+    email: rentalNotificationsTable.email,
+    eventType: rentalNotificationsTable.eventType,
+    deliveryStatus: rentalNotificationsTable.deliveryStatus,
+    attemptCount: rentalNotificationsTable.attemptCount,
+    lastAttemptAt: rentalNotificationsTable.lastAttemptAt,
+    nextAttemptAt: rentalNotificationsTable.nextAttemptAt,
+    dataSubmittedAt: rentalNotificationsTable.dataSubmittedAt,
+    lastError: rentalNotificationsTable.lastError,
+    sentAt: rentalNotificationsTable.sentAt,
+    createdAt: rentalNotificationsTable.createdAt,
+  }).from(rentalNotificationsTable)
+    .where(status ? eq(rentalNotificationsTable.deliveryStatus, status) : undefined)
+    .orderBy(desc(rentalNotificationsTable.createdAt))
+    .limit(100);
+  res.json(rows.map((row) => ({
+    ...row,
+    lastAttemptAt: row.lastAttemptAt?.toISOString() ?? null,
+    nextAttemptAt: row.nextAttemptAt?.toISOString() ?? null,
+    dataSubmittedAt: row.dataSubmittedAt?.toISOString() ?? null,
+    sentAt: row.sentAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+  })));
+});
 
 export default router;

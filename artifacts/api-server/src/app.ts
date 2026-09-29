@@ -4,6 +4,7 @@ import pinoHttp from "pino-http";
 import session from "express-session";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { rentalStripeWebhookHandler } from "./routes/rental-finance";
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET environment variable is required");
@@ -33,6 +34,11 @@ app.use(
   }),
 );
 app.use(cors({ origin: true, credentials: true }));
+app.post(
+  "/api/rental/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  rentalStripeWebhookHandler,
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

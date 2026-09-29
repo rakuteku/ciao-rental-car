@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
 import { formatTokyo, tokyoInstant } from "@/lib/rental-marketplace";
 import { PartnerShell, Section, Field, inputClass, textareaClass, PrimaryButton, SecondaryButton, StatusMessage, partnerRequest, usePartnerText, type PartnerIdentity, record, arrayFrom } from "./shared";
@@ -7,6 +8,43 @@ import { PartnerShell, Section, Field, inputClass, textareaClass, PrimaryButton,
 type Vehicle = Record<string, any> & { id?: string | number; internalName?: string; publicTitle?: string; brand?: string; model?: string };
 type StaffMember = Record<string, any> & { id: string | number; email: string; role: string; active: boolean };
 type PartnerAddon = Record<string, any> & { id: string | number; name: string };
+
+function PartnerEarnings({ authenticated }: { authenticated: boolean }) {
+  const t = usePartnerText();
+  const query = useQuery({
+    queryKey: ["partner", "rental", "earnings"],
+    queryFn: () => partnerRequest("/api/partner/rental/earnings"),
+    enabled: authenticated,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  if (!authenticated) return null;
+  const payload = record(query.data);
+  const summary = record(payload.summary ?? payload.earnings);
+  const rows = arrayFrom(query.data, ["entries", "earnings", "payments", "payouts", "transactions", "items"]);
+  const totals = [
+    ["lifetimeEarnings", t("Lifetime earnings", "累計収益")],
+    ["totalEarned", t("Total earned", "総収益")],
+    ["paidOut", t("Paid out", "支払済み")],
+    ["pendingPayout", t("Pending payout", "支払待ち")],
+    ["availableForPayout", t("Available for payout", "支払可能額")],
+  ].filter(([key]) => summary[key] != null);
+  return <Section title={t("My rental earnings", "レンタカー収益")}>
+    {query.isLoading ? <p className="text-sm text-slate-500">{t("Loading earnings…", "収益を読み込み中…")}</p>
+      : query.isError ? <div role="alert" className="space-y-2 text-sm text-red-700"><p>{query.error.message}</p><SecondaryButton onClick={() => void query.refetch()}>{t("Retry", "再試行")}</SecondaryButton></div>
+        : <>
+          {totals.length > 0 && <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{totals.map(([key, label]) => <div key={key} className="rounded-md border bg-slate-50 p-4"><dt className="text-xs text-slate-500">{label}</dt><dd className="mt-1 text-xl font-semibold">{summary.currency || payload.currency || "JPY"} {Number(summary[key]).toLocaleString()}</dd></div>)}</dl>}
+          {rows.length > 0 ? <div className="divide-y rounded-md border">{rows.map((entry, index) => {
+            const row = record(entry);
+            return <div key={row.id ?? row.paymentId ?? row.payoutId ?? index} className="flex flex-wrap justify-between gap-2 p-3 text-sm">
+              <span>{row.type || row.kind || row.status || t("Earning", "収益")}{row.reference ? ` · ${row.reference}` : ""}{row.createdAt ? ` · ${new Date(row.createdAt).toLocaleDateString()}` : ""}</span>
+              {row.amount != null && <strong>{row.currency || "JPY"} {Number(row.amount).toLocaleString()}</strong>}
+            </div>;
+          })}</div> : totals.length === 0 && <p className="text-sm text-slate-500">{t("No earnings data has been reported yet.", "収益データはまだありません。")}</p>}
+        </>}
+  </Section>;
+}
+
 const blankAddon = {
   name: "", nameJa: "", description: "", descriptionJa: "", image: "", pricingType: "flat",
   flatFee: "0", perDayFee: "0", maxQty: "1", inventoryLimit: "", vehicleCompatibility: [] as string[],
@@ -528,6 +566,7 @@ export function PartnerInventoryPage() {
         <div className="text-sm"><span className="font-semibold">{String(operator.name ?? record(identity.staff).email ?? t("Partner account", "パートナーアカウント"))}</span><span className={`ml-2 rounded-full px-2.5 py-1 text-xs font-semibold ${isApproved ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-900"}`}>{String(operator.verificationStatus ?? operator.status ?? operator.applicationStatus ?? t("Application pending", "審査待ち"))}</span></div>
         <div className="flex gap-2"><Link href="/partner/apply"><SecondaryButton>{t("Application", "申請情報")}</SecondaryButton></Link><SecondaryButton onClick={() => void logout()}>{t("Sign out", "ログアウト")}</SecondaryButton></div>
       </div>
+      <div className="mb-6"><PartnerEarnings authenticated /></div>
       {!isApproved && <div className="mb-5"><StatusMessage><strong>{t("Partner application status", "パートナー申請状況")}: {String(operator.verificationStatus ?? operator.status ?? t("Pending review", "審査待ち"))}</strong><p className="mt-1">{t("You can prepare inventory now; vehicles are not publicly listed until the operator is approved.", "車両情報は準備できますが、事業者が承認されるまで公開掲載されません。")}</p>{operatorMissing.length > 0 && <><p className="mt-2 font-medium">{t("Outstanding application requirements", "未対応の申請要件")}:</p><ul className="list-inside list-disc">{operatorMissing.map((item) => <li key={item}>{requirementLabels[item] ? t(...requirementLabels[item]) : item}</li>)}</ul></>}</StatusMessage></div>}
       {!canManageInventory && <div className="mb-5"><StatusMessage>{t(`Your ${staffRole || "staff"} role has read-only inventory access. Contact the account owner for changes.`, `${staffRole || "スタッフ"}権限は在庫の閲覧のみです。変更はオーナーに依頼してください。`)}</StatusMessage></div>}
       <div className="mb-6"><PartnerRequestQueue role={staffRole} vehicles={vehicles} /></div>

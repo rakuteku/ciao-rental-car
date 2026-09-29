@@ -2013,6 +2013,88 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /rental/requests/{id}/checkout:
+    post:
+      operationId: startRentalStripeCheckout
+      tags: [rental]
+      summary: Create or resume a time-limited Stripe Checkout for an accepted offer
+      description: Requires the request access code, a valid accepted JPY offer, configured Stripe signing credentials, and an unexpired payment deadline. A redirect is never proof of payment.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: accessCode
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Checkout session; booking remains unconfirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalCheckoutSession"
+        "409":
+          description: Offer no longer payable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Payments are not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rental/requests/{id}/payment:
+    get:
+      operationId: getRentalRequestPayment
+      tags: [rental]
+      summary: Read server-verified payment and booking state after Checkout
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: accessCode
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Current ledger and reservation state; never derived from redirect parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalPaymentState"
+
+  /rental/stripe/webhook:
+    post:
+      operationId: receiveRentalStripeWebhook
+      tags: [rental]
+      summary: Signed Stripe event for rental payment, refund and dispute reconciliation
+      description: Provider-only endpoint. Stripe-Signature and the unmodified raw JSON body are required.
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalStripeEvent"
+      responses:
+        "200":
+          description: Event processed or previously processed
+        "400":
+          description: Signature invalid
+        "500":
+          description: Reconciliation failed; provider must retry
+
   /rental/requests/{id}/decline-offer:
     post:
       operationId: declineRentalAlternateOffer
@@ -2062,6 +2144,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /partner/rental/earnings:
+    get:
+      operationId: getPartnerRentalEarnings
+      tags: [rental]
+      summary: View only the authenticated operator's own earnings and manual payout reports
+      responses:
+        "200":
+          description: Operator-scoped paid bookings and adjustments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalOperatorEarnings"
 
   /partner/rental/requests/quote:
     post:
@@ -2272,8 +2367,141 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/rental/finance:
+    get:
+      operationId: getAdminRentalFinance
+      tags: [admin]
+      summary: View payment, refund, dispute, manual payout and failed reconciliation ledgers
+      parameters:
+        - name: reservationId
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Separate financial ledgers including unmatched provider events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalFinanceLedger"
+
+  /admin/rental/finance/{paymentId}/refund:
+    post:
+      operationId: refundAdminRentalPayment
+      tags: [admin]
+      summary: Request an idempotent Stripe refund for a verified charge
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalRefundInput"
+      responses:
+        "202":
+          description: Refund requested; final outcome is reconciled from provider events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalRefundResult"
+
+  /admin/rental/finance/{paymentId}/payout:
+    post:
+      operationId: reportAdminRentalManualPayout
+      tags: [admin]
+      summary: Record a manual payout report, not an automatic transfer
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RentalManualPayoutInput"
+      responses:
+        "201":
+          description: Manual report saved without initiating a transfer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RentalManualPayoutResult"
+
 components:
   schemas:
+    RentalStripeEvent:
+      type: object
+      additionalProperties: true
+    RentalCheckoutSession:
+      type: object
+      required: [checkoutUrl, paymentId, expiresAt]
+      properties:
+        checkoutUrl: { type: string, format: uri }
+        paymentId: { type: integer }
+        expiresAt: { type: string, format: date-time }
+    RentalPaymentState:
+      type: object
+      required: [requestId, requestStatus, paymentStatus, reservationStatus, verified, configured, checkoutAvailable]
+      properties:
+        requestId: { type: integer }
+        reservationId: { type: ["integer", "null"] }
+        requestStatus: { type: string }
+        paymentStatus: { type: string }
+        reservationStatus: { type: ["string", "null"] }
+        amount: { type: ["integer", "null"] }
+        currency: { type: ["string", "null"] }
+        paidAt: { type: ["string", "null"], format: date-time }
+        paymentDeadline: { type: ["string", "null"], format: date-time }
+        verified: { type: boolean }
+        configured: { type: boolean }
+        checkoutAvailable: { type: boolean }
+    RentalFinanceLedger:
+      type: object
+      required: [payments, refunds, disputes, payouts, reconciliationFailures, stripeEvents]
+      properties:
+        payments: { type: array, items: { type: object, additionalProperties: true } }
+        refunds: { type: array, items: { type: object, additionalProperties: true } }
+        disputes: { type: array, items: { type: object, additionalProperties: true } }
+        payouts: { type: array, items: { type: object, additionalProperties: true } }
+        reconciliationFailures: { type: array, items: { type: object, additionalProperties: true } }
+        stripeEvents: { type: array, items: { type: object, additionalProperties: true } }
+    RentalOperatorEarnings:
+      type: object
+      required: [payments]
+      properties:
+        payments: { type: array, items: { type: object, additionalProperties: true } }
+    RentalRefundInput:
+      type: object
+      required: [amount, reason]
+      properties:
+        amount: { type: integer, minimum: 1, description: JPY }
+        reason: { type: string, minLength: 3 }
+    RentalRefundResult:
+      type: object
+      required: [refund]
+      properties:
+        refund: { type: object, additionalProperties: true }
+        duplicate: { type: boolean }
+        providerStatus: { type: string }
+    RentalManualPayoutInput:
+      type: object
+      required: [reference]
+      properties:
+        reference: { type: string, minLength: 1 }
+        notes: { type: string }
+    RentalManualPayoutResult:
+      type: object
+      required: [payout, transferInitiated, notice]
+      properties:
+        payout: { type: object, additionalProperties: true }
+        duplicate: { type: boolean }
+        transferInitiated: { type: boolean }
+        notice: { type: string }
     HealthStatus:
       type: object
       properties:
@@ -4392,6 +4620,9 @@ components:
           type: string
         marketingConsent:
           type: boolean
+        locale:
+          type: string
+          enum: [en, ja]
         attribution:
           $ref: "#/components/schemas/RentalRequestAttribution"
         addons:
@@ -4429,6 +4660,7 @@ components:
             $ref: "#/components/schemas/RentalRequestAdditionalDriver"
         travelNotes: { type: string }
         marketingConsent: { type: boolean }
+        locale: { type: string, enum: [en, ja] }
         attribution:
           $ref: "#/components/schemas/RentalRequestAttribution"
         addons:
@@ -4453,7 +4685,10 @@ components:
         vehicleId: { type: integer }
         status:
           type: string
-          enum: [requested, offer_pending, awaiting_payment, declined, expired]
+          enum: [requested, offer_pending, awaiting_payment, confirmed, declined, expired]
+        paymentEmailStatus:
+          type: string
+          enum: [pending, unconfigured, failed, sent]
         offer:
           $ref: "#/components/schemas/RentalRequestOffer"
         originalOffer:

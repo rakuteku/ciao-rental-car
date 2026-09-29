@@ -17,6 +17,7 @@ import rentalPrivateDocumentsRouter from "./rental-private-documents";
 import operatorsRouter from "./operators";
 import partnerRouter from "./partner";
 import rentalRequestsRouter from "./rental-requests";
+import rentalFinanceRouter from "./rental-finance";
 
 const router: IRouter = Router();
 
@@ -38,5 +39,6 @@ router.use(rentalOperationsRouter);
 router.use(operatorsRouter);
 router.use(partnerRouter);
 router.use(rentalRequestsRouter);
+router.use(rentalFinanceRouter);
 
 export default router;

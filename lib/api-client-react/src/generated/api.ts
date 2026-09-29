@@ -46,10 +46,12 @@ import type {
   DeleteAdminRoom200,
   ErrorResponse,
   GetAdminRentalAvailabilityBlocksParams,
+  GetAdminRentalFinanceParams,
   GetAdminRentalReservationsParams,
   GetAdminRentalTurnaroundBuffer200,
   GetCarAvailabilityParams,
   GetRentalRequestParams,
+  GetRentalRequestPaymentParams,
   GetRoomsParams,
   HealthStatus,
   LocalizedPage,
@@ -61,11 +63,19 @@ import type {
   PriceCalculateBody,
   RentalAddon,
   RentalAvailabilityBlock,
+  RentalCheckoutSession,
+  RentalFinanceLedger,
   RentalHold,
+  RentalManualPayoutInput,
+  RentalManualPayoutResult,
   RentalMarketplaceConfig,
   RentalMarketplacePolicy,
   RentalMarketplacePolicyUpdate,
+  RentalOperatorEarnings,
+  RentalPaymentState,
   RentalPriceBreakdown,
+  RentalRefundInput,
+  RentalRefundResult,
   RentalRequest,
   RentalRequestAcceptance,
   RentalRequestCreated,
@@ -76,6 +86,7 @@ import type {
   RentalReservationDetail,
   RentalReservationWithPricing,
   RentalStaffQuoteInput,
+  RentalStripeEvent,
   RentalVehicle,
   RentalVehicleDetail,
   RentalVehicleImage,
@@ -89,6 +100,7 @@ import type {
   SearchRentalVehiclesParams,
   SetAvailabilityBody,
   SetCarAvailability200,
+  StartRentalStripeCheckoutParams,
   SupportedLanguage,
   UpdateCarBody,
   UpdateRentalVehicleBody,
@@ -6651,6 +6663,318 @@ export const useAcceptRentalAlternateOffer = <
 };
 
 /**
+ * Requires the request access code, a valid accepted JPY offer, configured Stripe signing credentials, and an unexpired payment deadline. A redirect is never proof of payment.
+ * @summary Create or resume a time-limited Stripe Checkout for an accepted offer
+ */
+export const getStartRentalStripeCheckoutUrl = (
+  id: number,
+  params: StartRentalStripeCheckoutParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rental/requests/${id}/checkout?${stringifiedParams}`
+    : `/api/rental/requests/${id}/checkout`;
+};
+
+export const startRentalStripeCheckout = async (
+  id: number,
+  params: StartRentalStripeCheckoutParams,
+  options?: RequestInit,
+): Promise<RentalCheckoutSession> => {
+  return customFetch<RentalCheckoutSession>(
+    getStartRentalStripeCheckoutUrl(id, params),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getStartRentalStripeCheckoutMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startRentalStripeCheckout>>,
+    TError,
+    { id: number; params: StartRentalStripeCheckoutParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof startRentalStripeCheckout>>,
+  TError,
+  { id: number; params: StartRentalStripeCheckoutParams },
+  TContext
+> => {
+  const mutationKey = ["startRentalStripeCheckout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof startRentalStripeCheckout>>,
+    { id: number; params: StartRentalStripeCheckoutParams }
+  > = (props) => {
+    const { id, params } = props ?? {};
+
+    return startRentalStripeCheckout(id, params, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StartRentalStripeCheckoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof startRentalStripeCheckout>>
+>;
+
+export type StartRentalStripeCheckoutMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Create or resume a time-limited Stripe Checkout for an accepted offer
+ */
+export const useStartRentalStripeCheckout = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof startRentalStripeCheckout>>,
+    TError,
+    { id: number; params: StartRentalStripeCheckoutParams },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof startRentalStripeCheckout>>,
+  TError,
+  { id: number; params: StartRentalStripeCheckoutParams },
+  TContext
+> => {
+  return useMutation(getStartRentalStripeCheckoutMutationOptions(options));
+};
+
+/**
+ * @summary Read server-verified payment and booking state after Checkout
+ */
+export const getGetRentalRequestPaymentUrl = (
+  id: number,
+  params: GetRentalRequestPaymentParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rental/requests/${id}/payment?${stringifiedParams}`
+    : `/api/rental/requests/${id}/payment`;
+};
+
+export const getRentalRequestPayment = async (
+  id: number,
+  params: GetRentalRequestPaymentParams,
+  options?: RequestInit,
+): Promise<RentalPaymentState> => {
+  return customFetch<RentalPaymentState>(
+    getGetRentalRequestPaymentUrl(id, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetRentalRequestPaymentQueryKey = (
+  id: number,
+  params?: GetRentalRequestPaymentParams,
+) => {
+  return [
+    `/api/rental/requests/${id}/payment`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetRentalRequestPaymentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getRentalRequestPayment>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params: GetRentalRequestPaymentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRentalRequestPayment>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetRentalRequestPaymentQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getRentalRequestPayment>>
+  > = ({ signal }) =>
+    getRentalRequestPayment(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getRentalRequestPayment>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetRentalRequestPaymentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getRentalRequestPayment>>
+>;
+export type GetRentalRequestPaymentQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Read server-verified payment and booking state after Checkout
+ */
+
+export function useGetRentalRequestPayment<
+  TData = Awaited<ReturnType<typeof getRentalRequestPayment>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  params: GetRentalRequestPaymentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getRentalRequestPayment>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetRentalRequestPaymentQueryOptions(
+    id,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Provider-only endpoint. Stripe-Signature and the unmodified raw JSON body are required.
+ * @summary Signed Stripe event for rental payment, refund and dispute reconciliation
+ */
+export const getReceiveRentalStripeWebhookUrl = () => {
+  return `/api/rental/stripe/webhook`;
+};
+
+export const receiveRentalStripeWebhook = async (
+  rentalStripeEvent: RentalStripeEvent,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getReceiveRentalStripeWebhookUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(rentalStripeEvent),
+  });
+};
+
+export const getReceiveRentalStripeWebhookMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof receiveRentalStripeWebhook>>,
+    TError,
+    { data: BodyType<RentalStripeEvent> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof receiveRentalStripeWebhook>>,
+  TError,
+  { data: BodyType<RentalStripeEvent> },
+  TContext
+> => {
+  const mutationKey = ["receiveRentalStripeWebhook"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof receiveRentalStripeWebhook>>,
+    { data: BodyType<RentalStripeEvent> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return receiveRentalStripeWebhook(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReceiveRentalStripeWebhookMutationResult = NonNullable<
+  Awaited<ReturnType<typeof receiveRentalStripeWebhook>>
+>;
+export type ReceiveRentalStripeWebhookMutationBody =
+  BodyType<RentalStripeEvent>;
+export type ReceiveRentalStripeWebhookMutationError = ErrorType<void>;
+
+/**
+ * @summary Signed Stripe event for rental payment, refund and dispute reconciliation
+ */
+export const useReceiveRentalStripeWebhook = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof receiveRentalStripeWebhook>>,
+    TError,
+    { data: BodyType<RentalStripeEvent> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof receiveRentalStripeWebhook>>,
+  TError,
+  { data: BodyType<RentalStripeEvent> },
+  TContext
+> => {
+  return useMutation(getReceiveRentalStripeWebhookMutationOptions(options));
+};
+
+/**
  * @summary Decline an alternate offer and release its inventory
  */
 export const getDeclineRentalAlternateOfferUrl = (
@@ -6822,6 +7146,82 @@ export function useGetPartnerRentalRequests<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetPartnerRentalRequestsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary View only the authenticated operator's own earnings and manual payout reports
+ */
+export const getGetPartnerRentalEarningsUrl = () => {
+  return `/api/partner/rental/earnings`;
+};
+
+export const getPartnerRentalEarnings = async (
+  options?: RequestInit,
+): Promise<RentalOperatorEarnings> => {
+  return customFetch<RentalOperatorEarnings>(getGetPartnerRentalEarningsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPartnerRentalEarningsQueryKey = () => {
+  return [`/api/partner/rental/earnings`] as const;
+};
+
+export const getGetPartnerRentalEarningsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPartnerRentalEarnings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPartnerRentalEarnings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPartnerRentalEarningsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPartnerRentalEarnings>>
+  > = ({ signal }) => getPartnerRentalEarnings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPartnerRentalEarnings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPartnerRentalEarningsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPartnerRentalEarnings>>
+>;
+export type GetPartnerRentalEarningsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary View only the authenticated operator's own earnings and manual payout reports
+ */
+
+export function useGetPartnerRentalEarnings<
+  TData = Awaited<ReturnType<typeof getPartnerRentalEarnings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getPartnerRentalEarnings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPartnerRentalEarningsQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -7553,4 +7953,285 @@ export const useUpdateAdminRentalMarketplacePolicy = <
   return useMutation(
     getUpdateAdminRentalMarketplacePolicyMutationOptions(options),
   );
+};
+
+/**
+ * @summary View payment, refund, dispute, manual payout and failed reconciliation ledgers
+ */
+export const getGetAdminRentalFinanceUrl = (
+  params?: GetAdminRentalFinanceParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/rental/finance?${stringifiedParams}`
+    : `/api/admin/rental/finance`;
+};
+
+export const getAdminRentalFinance = async (
+  params?: GetAdminRentalFinanceParams,
+  options?: RequestInit,
+): Promise<RentalFinanceLedger> => {
+  return customFetch<RentalFinanceLedger>(getGetAdminRentalFinanceUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAdminRentalFinanceQueryKey = (
+  params?: GetAdminRentalFinanceParams,
+) => {
+  return [`/api/admin/rental/finance`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetAdminRentalFinanceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminRentalFinance>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetAdminRentalFinanceParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminRentalFinance>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAdminRentalFinanceQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminRentalFinance>>
+  > = ({ signal }) =>
+    getAdminRentalFinance(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalFinance>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminRentalFinanceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminRentalFinance>>
+>;
+export type GetAdminRentalFinanceQueryError = ErrorType<unknown>;
+
+/**
+ * @summary View payment, refund, dispute, manual payout and failed reconciliation ledgers
+ */
+
+export function useGetAdminRentalFinance<
+  TData = Awaited<ReturnType<typeof getAdminRentalFinance>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetAdminRentalFinanceParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminRentalFinance>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminRentalFinanceQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Request an idempotent Stripe refund for a verified charge
+ */
+export const getRefundAdminRentalPaymentUrl = (paymentId: number) => {
+  return `/api/admin/rental/finance/${paymentId}/refund`;
+};
+
+export const refundAdminRentalPayment = async (
+  paymentId: number,
+  rentalRefundInput: RentalRefundInput,
+  options?: RequestInit,
+): Promise<RentalRefundResult> => {
+  return customFetch<RentalRefundResult>(
+    getRefundAdminRentalPaymentUrl(paymentId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(rentalRefundInput),
+    },
+  );
+};
+
+export const getRefundAdminRentalPaymentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof refundAdminRentalPayment>>,
+    TError,
+    { paymentId: number; data: BodyType<RentalRefundInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof refundAdminRentalPayment>>,
+  TError,
+  { paymentId: number; data: BodyType<RentalRefundInput> },
+  TContext
+> => {
+  const mutationKey = ["refundAdminRentalPayment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof refundAdminRentalPayment>>,
+    { paymentId: number; data: BodyType<RentalRefundInput> }
+  > = (props) => {
+    const { paymentId, data } = props ?? {};
+
+    return refundAdminRentalPayment(paymentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RefundAdminRentalPaymentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof refundAdminRentalPayment>>
+>;
+export type RefundAdminRentalPaymentMutationBody = BodyType<RentalRefundInput>;
+export type RefundAdminRentalPaymentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Request an idempotent Stripe refund for a verified charge
+ */
+export const useRefundAdminRentalPayment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof refundAdminRentalPayment>>,
+    TError,
+    { paymentId: number; data: BodyType<RentalRefundInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof refundAdminRentalPayment>>,
+  TError,
+  { paymentId: number; data: BodyType<RentalRefundInput> },
+  TContext
+> => {
+  return useMutation(getRefundAdminRentalPaymentMutationOptions(options));
+};
+
+/**
+ * @summary Record a manual payout report, not an automatic transfer
+ */
+export const getReportAdminRentalManualPayoutUrl = (paymentId: number) => {
+  return `/api/admin/rental/finance/${paymentId}/payout`;
+};
+
+export const reportAdminRentalManualPayout = async (
+  paymentId: number,
+  rentalManualPayoutInput: RentalManualPayoutInput,
+  options?: RequestInit,
+): Promise<RentalManualPayoutResult> => {
+  return customFetch<RentalManualPayoutResult>(
+    getReportAdminRentalManualPayoutUrl(paymentId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(rentalManualPayoutInput),
+    },
+  );
+};
+
+export const getReportAdminRentalManualPayoutMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportAdminRentalManualPayout>>,
+    TError,
+    { paymentId: number; data: BodyType<RentalManualPayoutInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof reportAdminRentalManualPayout>>,
+  TError,
+  { paymentId: number; data: BodyType<RentalManualPayoutInput> },
+  TContext
+> => {
+  const mutationKey = ["reportAdminRentalManualPayout"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof reportAdminRentalManualPayout>>,
+    { paymentId: number; data: BodyType<RentalManualPayoutInput> }
+  > = (props) => {
+    const { paymentId, data } = props ?? {};
+
+    return reportAdminRentalManualPayout(paymentId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReportAdminRentalManualPayoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof reportAdminRentalManualPayout>>
+>;
+export type ReportAdminRentalManualPayoutMutationBody =
+  BodyType<RentalManualPayoutInput>;
+export type ReportAdminRentalManualPayoutMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Record a manual payout report, not an automatic transfer
+ */
+export const useReportAdminRentalManualPayout = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof reportAdminRentalManualPayout>>,
+    TError,
+    { paymentId: number; data: BodyType<RentalManualPayoutInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof reportAdminRentalManualPayout>>,
+  TError,
+  { paymentId: number; data: BodyType<RentalManualPayoutInput> },
+  TContext
+> => {
+  return useMutation(getReportAdminRentalManualPayoutMutationOptions(options));
 };

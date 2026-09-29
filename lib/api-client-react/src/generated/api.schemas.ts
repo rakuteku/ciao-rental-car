@@ -5,6 +5,99 @@
  * CIAO Rental Car API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface RentalStripeEvent {
+  [key: string]: unknown;
+}
+
+export interface RentalCheckoutSession {
+  checkoutUrl: string;
+  paymentId: number;
+  expiresAt: string;
+}
+
+export interface RentalPaymentState {
+  requestId: number;
+  /** @nullable */
+  reservationId?: number | null;
+  requestStatus: string;
+  paymentStatus: string;
+  /** @nullable */
+  reservationStatus: string | null;
+  /** @nullable */
+  amount?: number | null;
+  /** @nullable */
+  currency?: string | null;
+  /** @nullable */
+  paidAt?: string | null;
+  /** @nullable */
+  paymentDeadline?: string | null;
+  verified: boolean;
+  configured: boolean;
+  checkoutAvailable: boolean;
+}
+
+export type RentalFinanceLedgerPaymentsItem = { [key: string]: unknown };
+
+export type RentalFinanceLedgerRefundsItem = { [key: string]: unknown };
+
+export type RentalFinanceLedgerDisputesItem = { [key: string]: unknown };
+
+export type RentalFinanceLedgerPayoutsItem = { [key: string]: unknown };
+
+export type RentalFinanceLedgerReconciliationFailuresItem = {
+  [key: string]: unknown;
+};
+
+export type RentalFinanceLedgerStripeEventsItem = { [key: string]: unknown };
+
+export interface RentalFinanceLedger {
+  payments: RentalFinanceLedgerPaymentsItem[];
+  refunds: RentalFinanceLedgerRefundsItem[];
+  disputes: RentalFinanceLedgerDisputesItem[];
+  payouts: RentalFinanceLedgerPayoutsItem[];
+  reconciliationFailures: RentalFinanceLedgerReconciliationFailuresItem[];
+  stripeEvents: RentalFinanceLedgerStripeEventsItem[];
+}
+
+export type RentalOperatorEarningsPaymentsItem = { [key: string]: unknown };
+
+export interface RentalOperatorEarnings {
+  payments: RentalOperatorEarningsPaymentsItem[];
+}
+
+export interface RentalRefundInput {
+  /**
+   * JPY
+   * @minimum 1
+   */
+  amount: number;
+  /** @minLength 3 */
+  reason: string;
+}
+
+export type RentalRefundResultRefund = { [key: string]: unknown };
+
+export interface RentalRefundResult {
+  refund: RentalRefundResultRefund;
+  duplicate?: boolean;
+  providerStatus?: string;
+}
+
+export interface RentalManualPayoutInput {
+  /** @minLength 1 */
+  reference: string;
+  notes?: string;
+}
+
+export type RentalManualPayoutResultPayout = { [key: string]: unknown };
+
+export interface RentalManualPayoutResult {
+  payout: RentalManualPayoutResultPayout;
+  duplicate?: boolean;
+  transferInitiated: boolean;
+  notice: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -1016,6 +1109,14 @@ export interface RentalRequestAdditionalDriver {
   phone: string;
 }
 
+export type RentalRequestInputLocale =
+  (typeof RentalRequestInputLocale)[keyof typeof RentalRequestInputLocale];
+
+export const RentalRequestInputLocale = {
+  en: "en",
+  ja: "ja",
+} as const;
+
 export interface RentalRequestInput {
   holdId: number;
   vehicleId: number;
@@ -1025,6 +1126,7 @@ export interface RentalRequestInput {
   additionalDrivers?: RentalRequestAdditionalDriver[];
   travelNotes?: string;
   marketingConsent: boolean;
+  locale?: RentalRequestInputLocale;
   attribution?: RentalRequestAttribution;
   addons?: CreateReservationAddonBody[];
 }
@@ -1037,6 +1139,14 @@ export interface RentalRequestOfferInput {
   vehicleId?: number;
 }
 
+export type RentalStaffQuoteInputLocale =
+  (typeof RentalStaffQuoteInputLocale)[keyof typeof RentalStaffQuoteInputLocale];
+
+export const RentalStaffQuoteInputLocale = {
+  en: "en",
+  ja: "ja",
+} as const;
+
 export interface RentalStaffQuoteInput {
   /** @minimum 1 */
   vehicleId: number;
@@ -1048,6 +1158,7 @@ export interface RentalStaffQuoteInput {
   additionalDrivers?: RentalRequestAdditionalDriver[];
   travelNotes?: string;
   marketingConsent: boolean;
+  locale?: RentalStaffQuoteInputLocale;
   attribution?: RentalRequestAttribution;
   addons?: CreateReservationAddonBody[];
   /** @minimum 0 */
@@ -1066,8 +1177,19 @@ export const RentalRequestStatus = {
   requested: "requested",
   offer_pending: "offer_pending",
   awaiting_payment: "awaiting_payment",
+  confirmed: "confirmed",
   declined: "declined",
   expired: "expired",
+} as const;
+
+export type RentalRequestPaymentEmailStatus =
+  (typeof RentalRequestPaymentEmailStatus)[keyof typeof RentalRequestPaymentEmailStatus];
+
+export const RentalRequestPaymentEmailStatus = {
+  pending: "pending",
+  unconfigured: "unconfigured",
+  failed: "failed",
+  sent: "sent",
 } as const;
 
 export type RentalOfferPolicySnapshotMarketplace = { [key: string]: unknown };
@@ -1107,6 +1229,7 @@ export interface RentalRequest {
   id: number;
   vehicleId: number;
   status: RentalRequestStatus;
+  paymentEmailStatus?: RentalRequestPaymentEmailStatus;
   offer: RentalRequestOffer;
   originalOffer: RentalRequestOffer;
   acceptedOffer?: RentalRequestOffer | null;
@@ -1282,6 +1405,18 @@ export type AcceptRentalAlternateOfferParams = {
   accessCode: string;
 };
 
+export type StartRentalStripeCheckoutParams = {
+  accessCode: string;
+};
+
+export type GetRentalRequestPaymentParams = {
+  accessCode: string;
+};
+
 export type DeclineRentalAlternateOfferParams = {
   accessCode: string;
+};
+
+export type GetAdminRentalFinanceParams = {
+  reservationId?: number;
 };

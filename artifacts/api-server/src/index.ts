@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startRentalNotificationWorker } from "./lib/rental-events";
 import { runRentalCatalogBackfill } from "@workspace/db";
 
 const rawPort = process.env["PORT"];
@@ -20,6 +21,7 @@ async function startServer() {
   await runRentalCatalogBackfill((message) => {
     logger.info({ message }, "Rental catalog backfill");
   });
+  startRentalNotificationWorker();
 
   app.listen(port, (err) => {
     if (err) {

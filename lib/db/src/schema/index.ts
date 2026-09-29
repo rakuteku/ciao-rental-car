@@ -15,3 +15,4 @@ export * from "./rental-operations";
 export * from "./rental-driver-documents";
 export * from "./rental-audit";
 export * from "./rental-marketplace";
+export * from "./rental-finance";

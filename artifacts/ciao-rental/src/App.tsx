@@ -15,6 +15,7 @@ import { CarsPage } from "@/pages/rentalcar/cars/index";
 import { CarDetailPage } from "@/pages/rentalcar/cars/detail";
 import { CheckoutPage } from "@/pages/rentalcar/checkout/index";
 import { RentalRequestDetail } from "@/pages/rentalcar/requests/detail";
+import { RentalPaymentReturn } from "@/pages/rentalcar/requests/payment-return";
 import { BookingSuccessPage } from "@/pages/rentalcar/booking/success";
 import { LodgingPage } from "@/pages/lodging/index";
 import { LodgingDetailPage } from "@/pages/lodging/detail";
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/rentalcar/cars/:slug" component={() => <MainLayout><CarDetailPage /></MainLayout>} />
       <Route path="/rentalcar/checkout" component={() => <MainLayout><CheckoutPage /></MainLayout>} />
       <Route path="/rentalcar/requests/:id" component={() => <MainLayout><RentalRequestDetail /></MainLayout>} />
+      <Route path="/rentalcar/payment/return" component={() => <MainLayout><RentalPaymentReturn /></MainLayout>} />
       <Route path="/rentalcar/booking/confirmation" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
       <Route path="/rentalcar/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
       <Route path="/rentalcar/my-bookings" component={() => <MainLayout><MyBookings /></MainLayout>} />
@@ -114,6 +116,7 @@ function Router() {
       <Route path="/:language/rentalcar/cars" component={() => <MainLayout><CarsPage /></MainLayout>} />
       <Route path="/:language/rentalcar/checkout" component={() => <MainLayout><CheckoutPage /></MainLayout>} />
       <Route path="/:language/rentalcar/requests/:id" component={() => <MainLayout><RentalRequestDetail /></MainLayout>} />
+      <Route path="/:language/rentalcar/payment/return" component={() => <MainLayout><RentalPaymentReturn /></MainLayout>} />
       <Route path="/:language/rentalcar/booking/confirmation" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
       <Route path="/:language/rentalcar/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
       <Route path="/:language/rentalcar/my-bookings/:id" component={() => <MainLayout><MyBookingDetail /></MainLayout>} />

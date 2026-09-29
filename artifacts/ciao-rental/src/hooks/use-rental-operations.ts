@@ -60,6 +60,39 @@ export const useAdminReservation = (id: number) => {
   });
 };
 
+export const useAdminRentalFinance = (reservationId: number) => {
+  return useQuery({
+    queryKey: ["admin", "rental", "finance", reservationId],
+    queryFn: () => fetchWithAuth(`/admin/rental/finance?reservationId=${encodeURIComponent(reservationId)}`),
+    enabled: Number.isInteger(reservationId) && reservationId > 0,
+    refetchInterval: 30_000,
+  });
+};
+
+export const useRefundAdminRentalPayment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ paymentId, amount, reason }: { paymentId: number; amount: number; reason: string }) =>
+      fetchWithAuth(`/admin/rental/finance/${encodeURIComponent(paymentId)}/refund`, {
+        method: "POST",
+        body: JSON.stringify({ amount, reason }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "rental", "finance"] }),
+  });
+};
+
+export const usePayoutAdminRentalPayment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ paymentId, reference, notes }: { paymentId: number; reference: string; notes: string }) =>
+      fetchWithAuth(`/admin/rental/finance/${encodeURIComponent(paymentId)}/payout`, {
+        method: "POST",
+        body: JSON.stringify({ reference, notes }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "rental", "finance"] }),
+  });
+};
+
 export const useUpdateAdminReservation = () => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -2972,6 +2972,7 @@ export const CreateRentalRequestBody = zod.object({
     .optional(),
   travelNotes: zod.string().optional(),
   marketingConsent: zod.boolean(),
+  locale: zod.enum(["en", "ja"]).optional(),
   attribution: zod
     .object({
       firstTouch: zod.record(zod.string(), zod.unknown()).optional(),
@@ -3019,9 +3020,13 @@ export const GetRentalRequestResponse = zod.object({
     "requested",
     "offer_pending",
     "awaiting_payment",
+    "confirmed",
     "declined",
     "expired",
   ]),
+  paymentEmailStatus: zod
+    .enum(["pending", "unconfigured", "failed", "sent"])
+    .optional(),
   offer: zod.object({
     vehicleId: zod.number(),
     operatorId: zod.number(),
@@ -3122,6 +3127,63 @@ export const AcceptRentalAlternateOfferResponse = zod.object({
 });
 
 /**
+ * Requires the request access code, a valid accepted JPY offer, configured Stripe signing credentials, and an unexpired payment deadline. A redirect is never proof of payment.
+ * @summary Create or resume a time-limited Stripe Checkout for an accepted offer
+ */
+export const StartRentalStripeCheckoutParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const StartRentalStripeCheckoutQueryParams = zod.object({
+  accessCode: zod.coerce.string(),
+});
+
+export const StartRentalStripeCheckoutResponse = zod.object({
+  checkoutUrl: zod.string().url(),
+  paymentId: zod.number(),
+  expiresAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Read server-verified payment and booking state after Checkout
+ */
+export const GetRentalRequestPaymentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetRentalRequestPaymentQueryParams = zod.object({
+  accessCode: zod.coerce.string(),
+});
+
+export const GetRentalRequestPaymentResponse = zod.object({
+  requestId: zod.number(),
+  reservationId: zod.number().nullish(),
+  requestStatus: zod.string(),
+  paymentStatus: zod.string(),
+  reservationStatus: zod.string().nullable(),
+  amount: zod.number().nullish(),
+  currency: zod.string().nullish(),
+  paidAt: zod.coerce.date().nullish(),
+  paymentDeadline: zod.coerce.date().nullish(),
+  verified: zod.boolean(),
+  configured: zod.boolean(),
+  checkoutAvailable: zod.boolean(),
+});
+
+/**
+ * Provider-only endpoint. Stripe-Signature and the unmodified raw JSON body are required.
+ * @summary Signed Stripe event for rental payment, refund and dispute reconciliation
+ */
+export const ReceiveRentalStripeWebhookHeader = zod.object({
+  "Stripe-Signature": zod.string(),
+});
+
+export const ReceiveRentalStripeWebhookBody = zod.record(
+  zod.string(),
+  zod.unknown(),
+);
+
+/**
  * @summary Decline an alternate offer and release its inventory
  */
 export const DeclineRentalAlternateOfferParams = zod.object({
@@ -3139,9 +3201,13 @@ export const DeclineRentalAlternateOfferResponse = zod.object({
     "requested",
     "offer_pending",
     "awaiting_payment",
+    "confirmed",
     "declined",
     "expired",
   ]),
+  paymentEmailStatus: zod
+    .enum(["pending", "unconfigured", "failed", "sent"])
+    .optional(),
   offer: zod.object({
     vehicleId: zod.number(),
     operatorId: zod.number(),
@@ -3233,9 +3299,13 @@ export const GetPartnerRentalRequestsResponseItem = zod
       "requested",
       "offer_pending",
       "awaiting_payment",
+      "confirmed",
       "declined",
       "expired",
     ]),
+    paymentEmailStatus: zod
+      .enum(["pending", "unconfigured", "failed", "sent"])
+      .optional(),
     offer: zod.object({
       vehicleId: zod.number(),
       operatorId: zod.number(),
@@ -3365,6 +3435,13 @@ export const GetPartnerRentalRequestsResponse = zod.array(
 );
 
 /**
+ * @summary View only the authenticated operator's own earnings and manual payout reports
+ */
+export const GetPartnerRentalEarningsResponse = zod.object({
+  payments: zod.array(zod.record(zod.string(), zod.unknown())),
+});
+
+/**
  * Uses the partner session and operator scope. Captures driver contact, attribution and explicit marketing consent separately. Creates a bounded inventory hold and an offer_pending request; customer acceptance is required before payment becomes available.
  * @summary Create a customer-accessible quote/lead for this operator
  */
@@ -3401,6 +3478,7 @@ export const CreatePartnerRentalRequestQuoteBody = zod.object({
     .optional(),
   travelNotes: zod.string().optional(),
   marketingConsent: zod.boolean(),
+  locale: zod.enum(["en", "ja"]).optional(),
   attribution: zod
     .object({
       firstTouch: zod.record(zod.string(), zod.unknown()).optional(),
@@ -3462,9 +3540,13 @@ export const DeclinePartnerRentalRequestResponse = zod.object({
     "requested",
     "offer_pending",
     "awaiting_payment",
+    "confirmed",
     "declined",
     "expired",
   ]),
+  paymentEmailStatus: zod
+    .enum(["pending", "unconfigured", "failed", "sent"])
+    .optional(),
   offer: zod.object({
     vehicleId: zod.number(),
     operatorId: zod.number(),
@@ -3569,9 +3651,13 @@ export const OfferPartnerRentalAlternatePriceResponse = zod.object({
     "requested",
     "offer_pending",
     "awaiting_payment",
+    "confirmed",
     "declined",
     "expired",
   ]),
+  paymentEmailStatus: zod
+    .enum(["pending", "unconfigured", "failed", "sent"])
+    .optional(),
   offer: zod.object({
     vehicleId: zod.number(),
     operatorId: zod.number(),
@@ -3676,9 +3762,13 @@ export const CreateAdminRentalRequestAlternateOfferResponse = zod.object({
     "requested",
     "offer_pending",
     "awaiting_payment",
+    "confirmed",
     "declined",
     "expired",
   ]),
+  paymentEmailStatus: zod
+    .enum(["pending", "unconfigured", "failed", "sent"])
+    .optional(),
   offer: zod.object({
     vehicleId: zod.number(),
     operatorId: zod.number(),
@@ -3795,6 +3885,7 @@ export const CreateAdminRentalRequestQuoteBody = zod.object({
     .optional(),
   travelNotes: zod.string().optional(),
   marketingConsent: zod.boolean(),
+  locale: zod.enum(["en", "ja"]).optional(),
   attribution: zod
     .object({
       firstTouch: zod.record(zod.string(), zod.unknown()).optional(),
@@ -3873,4 +3964,46 @@ export const UpdateAdminRentalMarketplacePolicyBody = zod.object({
 export const UpdateAdminRentalMarketplacePolicyResponse = zod.object({
   values: zod.record(zod.string(), zod.unknown()),
   missing: zod.array(zod.string()),
+});
+
+/**
+ * @summary View payment, refund, dispute, manual payout and failed reconciliation ledgers
+ */
+export const GetAdminRentalFinanceQueryParams = zod.object({
+  reservationId: zod.coerce.number().optional(),
+});
+
+export const GetAdminRentalFinanceResponse = zod.object({
+  payments: zod.array(zod.record(zod.string(), zod.unknown())),
+  refunds: zod.array(zod.record(zod.string(), zod.unknown())),
+  disputes: zod.array(zod.record(zod.string(), zod.unknown())),
+  payouts: zod.array(zod.record(zod.string(), zod.unknown())),
+  reconciliationFailures: zod.array(zod.record(zod.string(), zod.unknown())),
+  stripeEvents: zod.array(zod.record(zod.string(), zod.unknown())),
+});
+
+/**
+ * @summary Request an idempotent Stripe refund for a verified charge
+ */
+export const RefundAdminRentalPaymentParams = zod.object({
+  paymentId: zod.coerce.number(),
+});
+
+export const refundAdminRentalPaymentBodyReasonMin = 3;
+
+export const RefundAdminRentalPaymentBody = zod.object({
+  amount: zod.number().min(1).describe("JPY"),
+  reason: zod.string().min(refundAdminRentalPaymentBodyReasonMin),
+});
+
+/**
+ * @summary Record a manual payout report, not an automatic transfer
+ */
+export const ReportAdminRentalManualPayoutParams = zod.object({
+  paymentId: zod.coerce.number(),
+});
+
+export const ReportAdminRentalManualPayoutBody = zod.object({
+  reference: zod.string().min(1),
+  notes: zod.string().optional(),
 });

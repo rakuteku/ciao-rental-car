@@ -139,6 +139,7 @@ export const rentalMarketplaceRequestStatusEnum = pgEnum("rental_marketplace_req
   "requested",
   "offer_pending",
   "awaiting_payment",
+  "confirmed",
   "declined",
   "expired",
 ]);
@@ -159,6 +160,7 @@ export const rentalMarketplaceRequestsTable = pgTable(
     addons: jsonb("addons").$type<Array<{ addonId: number; qty: number }>>().notNull().default([]),
     travelNotes: text("travel_notes"),
     marketingConsent: boolean("marketing_consent").notNull().default(false),
+    locale: text("locale").notNull().default("en"),
     attribution: jsonb("attribution").$type<Record<string, unknown> | null>(),
     initialOffer: jsonb("initial_offer").$type<Record<string, unknown>>().notNull(),
     currentOffer: jsonb("current_offer").$type<Record<string, unknown>>().notNull(),

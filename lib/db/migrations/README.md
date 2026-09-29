@@ -62,6 +62,25 @@ attribution/marketing consent, and configured per-vehicle billable-period
 hours. It does not invent cancellation, coverage, commission, or payment terms;
 those remain administrator/operator disclosures.
 
+## Rental email delivery
+
+Configure SMTP with `SMTP_HOST` and `SMTP_FROM`; `SMTP_PORT` defaults to 587
+and uses STARTTLS, while port 465 uses implicit TLS. Set `SMTP_SECURE=true` for
+implicit TLS on another port. `SMTP_USER` and `SMTP_PASSWORD` must be supplied
+together and are optional for SMTP relays that do not require authentication.
+Keep credentials in deployment secrets, never in source control.
+
+The API starts a delivery/reminder worker at startup. Pending, failed, and
+unconfigured email rows are claimed under PostgreSQL row locks with a durable
+lease; retries use increasing delays capped at one hour. Reminder rows have
+unique per-reservation pickup/return dedupe keys. If a process stops after
+submitting SMTP DATA but before persisting the server's acceptance, automatic
+retry is paused to avoid a possible duplicate. An administrator can inspect
+delivery state at `GET /api/admin/rental/notifications` and retry through
+`POST /api/admin/rental/notifications/:id/retry`. To explicitly override an
+ambiguous SMTP submission, send `{ "confirmDuplicateRisk": true }`; this may
+resend a message that the SMTP server accepted before the process stopped.
+
 The versioned SQL migration is for controlled development/external databases:
 it creates/resolves the stable `platform` slug, backfills existing ownership,
 then applies `NOT NULL` constraints within the same transaction. Existing
@@ -77,7 +96,37 @@ operational `status`; marketplace auth checks for `approved`. Staff roles are
 `owner`, `manager`, `counter`, and `operations`; `active` is kept consistent
 with the staff lifecycle status, and each staff row requires a password hash.
 
-## Rollback
+## Verified rental payments (migration 0024)
+
+Migration `0024_rental_finance.up.sql` adds payment, refund, dispute,
+admin-reported manual payout, Stripe event, and reconciliation-failure ledgers.
+Apply it after `0023` on controlled development/external databases; managed
+production schema changes must go through the Publish schema diff. Rollback is
+explicit in `0024_rental_finance.down.sql`.
+
+Checkout remains disabled until all of these are configured:
+
+- `RENTAL_MARKETPLACE_ENABLED=true`
+- `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`
+- `RENTAL_PUBLIC_BASE_URL` set to the public website origin
+- `marketplaceCommissionPercent` in rental settings
+
+Register `POST /api/rental/stripe/webhook` in Stripe with
+`checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+`checkout.session.async_payment_failed`, `checkout.session.expired`,
+`payment_intent.payment_failed`, `refund.created`, `refund.updated`,
+`charge.refunded`, `charge.dispute.created`, `charge.dispute.updated`, and
+`charge.dispute.closed`. The signed raw body is required.
+Customer redirects do not confirm payment; a signed Stripe event and final
+inventory validation are required. Marketplace charges use JPY.
+Each accepted rental offer gets a Stripe Product and immutable one-time Price;
+Checkout uses that Price ID rather than an inline client-supplied amount.
+
+No Stripe Connect account or automatic bank transfer is configured. The admin
+payout endpoint records an admin-reported manual reference for reconciliation;
+it does not initiate or independently verify a transfer.
+
+## Rollback: tenant foundation
 
 Rollback guidance applies only to controlled development/external databases.
 For managed Replit production, use the managed Publish/recovery process rather

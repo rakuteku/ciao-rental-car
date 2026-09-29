@@ -9,7 +9,7 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "test:admin-session": "pnpm run build && node --test ./test/admin-session.test.mjs",
     "test:rental-catalog": "pnpm run build && node --test ./test/rental-catalog.test.mjs",
-    "test:rental-requests": "node --test ./test/rental-requests.test.mjs ./test/marketplace-api-flow.test.mjs",
+    "test:rental-requests": "node --test ./test/rental-requests.test.mjs ./test/marketplace-api-flow.test.mjs ./test/payment-boundaries.test.mjs",
     "test:rental-startup": "pnpm run build && node --test ./test/rental-startup-backfill.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -26,6 +26,7 @@
     "google-auth-library": "^11.0.2",
     "pino": "^9",
     "pino-http": "^10",
+    "stripe": "^22.6.2",
     "zod": "catalog:"
   },
   "devDependencies": {
