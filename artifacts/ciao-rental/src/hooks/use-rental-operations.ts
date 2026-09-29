@@ -15,13 +15,20 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   
   if (!response.ok) {
     let message = "An error occurred";
+    let requoteRequired = false;
+    let approvalStatus: string | undefined;
     try {
       const errorData = await response.json();
       message = errorData.error || errorData.message || message;
+      requoteRequired = errorData.requoteRequired === true;
+      approvalStatus = typeof errorData.approvalStatus === "string" ? errorData.approvalStatus : undefined;
     } catch {
       // Ignore
     }
-    throw new Error(message);
+    const error = new Error(message) as Error & { requoteRequired?: boolean; approvalStatus?: string };
+    if (requoteRequired) error.requoteRequired = true;
+    if (approvalStatus) error.approvalStatus = approvalStatus;
+    throw error;
   }
   
   // if no content (e.g. 204), return null
@@ -496,6 +503,136 @@ export const useAcknowledgeTripCharges = () => {
       }),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["my-bookings", id] });
+    },
+  });
+};
+
+export type RentalExceptionScope = "customer" | "partner" | "admin";
+
+export const useRentalExceptions = (reservationId: number, scope: RentalExceptionScope, enabled = true) => useQuery({
+  queryKey: ["rental", "exceptions", scope, reservationId],
+  queryFn: () => fetchWithAuth(`/rental/exceptions/reservations/${encodeURIComponent(reservationId)}`),
+  enabled: enabled && Number.isInteger(reservationId) && reservationId > 0,
+  refetchInterval: 30_000,
+  refetchOnMount: "always",
+});
+
+export const useRentalExceptionAlternatives = (reservationId: number, scope: "customer" | "partner", enabled = true) => useQuery({
+  queryKey: ["rental", "exceptions", scope, reservationId, "alternatives"],
+  queryFn: () => fetchWithAuth(scope === "partner"
+    ? `/partner/rental/exceptions/reservations/${encodeURIComponent(reservationId)}/alternatives`
+    : `/rental/exceptions/reservations/${encodeURIComponent(reservationId)}/alternatives`),
+  enabled: enabled && Number.isInteger(reservationId) && reservationId > 0,
+  refetchInterval: 30_000,
+  refetchOnMount: "always",
+});
+
+export const useRentalExceptionCancellationOffers = (reservationId: number, enabled = true) => useQuery({
+  queryKey: ["rental", "exceptions", "customer", reservationId, "cancellation-offers"],
+  queryFn: () => fetchWithAuth(`/rental/exceptions/reservations/${encodeURIComponent(reservationId)}/cancellation/offers`),
+  enabled: enabled && Number.isInteger(reservationId) && reservationId > 0,
+  refetchInterval: 30_000,
+  refetchOnMount: "always",
+});
+
+export const usePartnerRentalExceptionExtensions = (reservationId: number, enabled = true) => useQuery({
+  queryKey: ["rental", "exceptions", "partner", reservationId, "extensions"],
+  queryFn: () => fetchWithAuth(`/partner/rental/exceptions/reservations/${encodeURIComponent(reservationId)}/extensions`),
+  enabled: enabled && Number.isInteger(reservationId) && reservationId > 0,
+  refetchInterval: 15_000,
+  refetchOnMount: "always",
+});
+
+export const useRentalExceptionExtensionStatus = (reservationId: number, quoteId: number, enabled = true) => useQuery({
+  queryKey: ["rental", "exceptions", "customer", reservationId, "extension-status", quoteId],
+  queryFn: () => fetchWithAuth(`/rental/exceptions/reservations/${encodeURIComponent(reservationId)}/extension/status?quoteId=${encodeURIComponent(quoteId)}`),
+  enabled: enabled && Number.isInteger(reservationId) && reservationId > 0 && Number.isInteger(quoteId) && quoteId > 0,
+  refetchInterval: query => {
+    const result = query.state.data as { approvalStatus?: string; expiresAt?: string } | undefined;
+    if (result?.approvalStatus === "pending") return 5_000;
+    if (result?.approvalStatus === "approved" && result.expiresAt) {
+      const remainingMs = Date.parse(result.expiresAt) - Date.now();
+      return remainingMs > 0 ? Math.min(15_000, remainingMs) : false;
+    }
+    return false;
+  },
+  refetchOnMount: "always",
+});
+
+export const useRentalExceptionAction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reservationId, scope, url, method = "POST", data }: {
+      reservationId: number;
+      scope: RentalExceptionScope;
+      url: string;
+      method?: "POST" | "PATCH";
+      data: Record<string, unknown>;
+    }) => {
+      return fetchWithAuth(url, {
+        method,
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: (_, { reservationId, scope }) => {
+      queryClient.invalidateQueries({ queryKey: ["rental", "exceptions", scope, reservationId] });
+      queryClient.invalidateQueries({ queryKey: ["rental", "exceptions", scope, reservationId, "alternatives"] });
+      queryClient.invalidateQueries({ queryKey: ["rental", "exceptions"] });
+      queryClient.invalidateQueries({ queryKey: ["my-bookings", reservationId] });
+      queryClient.invalidateQueries({ queryKey: ["partner", "rental", "reservations", reservationId, "trip"] });
+      queryClient.invalidateQueries({ queryKey: ["partner", "rental", "reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "reservations", reservationId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "reservations"] });
+    },
+  });
+};
+
+export const useUploadRentalExceptionEvidence = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ reservationId, scope, file, evidenceKind, incidentId, claimId, claimItemId, inspectionId }: {
+      reservationId: number;
+      scope: RentalExceptionScope;
+      file: File;
+      evidenceKind: "incident" | "pickup" | "return" | "invoice" | "insurer" | "customer_response";
+      incidentId?: number;
+      claimId?: number;
+      claimItemId?: number;
+      inspectionId?: number;
+    }) => {
+      if (file.size > 10 * 1024 * 1024) throw new Error("Evidence file exceeds the 10 MB limit.");
+      const upload = await fetchWithAuth(`/rental/exceptions/reservations/${encodeURIComponent(reservationId)}/evidence/upload-request`, {
+        method: "POST",
+        body: JSON.stringify({
+          evidenceKind,
+          contentType: file.type,
+          ...(incidentId ? { incidentId } : {}),
+          ...(claimId ? { claimId } : {}),
+          ...(claimItemId ? { claimItemId } : {}),
+          ...(inspectionId ? { inspectionId } : {}),
+        }),
+      }) as { uploadPath: string; method: "PUT"; contentType: string; maxBytes: number };
+      if (file.size > upload.maxBytes) throw new Error(`Evidence file exceeds the ${Math.floor(upload.maxBytes / (1024 * 1024))} MB limit.`);
+      const response = await fetch(`${BASE_URL}${upload.uploadPath}`, {
+        method: upload.method,
+        headers: { "Content-Type": upload.contentType },
+        body: file,
+        credentials: "include",
+      });
+      if (!response.ok) {
+        let message = "Evidence upload failed";
+        try {
+          const errorData = await response.json();
+          message = errorData.error || errorData.message || message;
+        } catch {
+          // Preserve generic upload failure when the server has no JSON response.
+        }
+        throw new Error(message);
+      }
+      return null;
+    },
+    onSuccess: (_, { reservationId, scope }) => {
+      queryClient.invalidateQueries({ queryKey: ["rental", "exceptions", scope, reservationId] });
     },
   });
 };

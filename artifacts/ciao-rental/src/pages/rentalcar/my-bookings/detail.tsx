@@ -18,6 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { Ledger, TripRecordSummary } from "@/components/rental/TripWorkflow";
+import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
+import { usesMarketplaceExceptions } from "@/lib/rental-exception-rollout.mjs";
 
 export function MyBookingDetail() {
   const params = useParams();
@@ -44,9 +46,12 @@ export function MyBookingDetail() {
     ? res.drivers
     : res.driver ? [res.driver] : [];
   const uploadDriverId = Number(selectedDriverId || authorizedDrivers[0]?.id);
+  // The flag does not turn existing website/manual bookings into marketplace bookings.
+  const isMarketplaceBooking = res.source === "marketplace_request";
+  const marketplaceBookingEnabled = usesMarketplaceExceptions(marketplaceConfig?.enabled, res.source);
 
   const handleDocSubmit = () => {
-    if (isMarketplaceConfigLoading || !marketplaceConfig) {
+    if (isMarketplaceBooking && (isMarketplaceConfigLoading || !marketplaceConfig)) {
       toast({
         title: "Document upload unavailable",
         description: isMarketplaceConfigError ? "Could not check secure upload availability. Please try again." : "Checking secure upload availability. Please try again shortly.",
@@ -54,7 +59,7 @@ export function MyBookingDetail() {
       });
       return;
     }
-    if (marketplaceConfig.enabled) {
+    if (marketplaceBookingEnabled) {
       if (!documentFile) {
         toast({ title: "Choose a document file", variant: "destructive" });
         return;
@@ -186,7 +191,7 @@ export function MyBookingDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              {marketplaceConfig?.enabled && authorizedDrivers.length > 0 && <div className="space-y-2">
+              {marketplaceBookingEnabled && authorizedDrivers.length > 0 && <div className="space-y-2">
                 <Label htmlFor="booking-document-driver">Authorized driver</Label>
                 <Select value={String(uploadDriverId)} onValueChange={setSelectedDriverId}>
                   <SelectTrigger id="booking-document-driver" data-testid="select-booking-document-driver"><SelectValue placeholder="Select driver" /></SelectTrigger>
@@ -194,13 +199,13 @@ export function MyBookingDetail() {
                 </Select>
                 <p className="text-xs text-muted-foreground">Submit each driver’s documents under that authorized driver. Originals are still checked in person at pickup.</p>
               </div>}
-              {marketplaceConfig?.enabled && authorizedDrivers.length === 0 && <p role="alert" className="text-sm text-destructive">Authorized drivers are unavailable. Contact the rental operator before uploading documents.</p>}
+              {marketplaceBookingEnabled && authorizedDrivers.length === 0 && <p role="alert" className="text-sm text-destructive">Authorized drivers are unavailable. Contact the rental operator before uploading documents.</p>}
               <div className="space-y-2">
-                {isMarketplaceConfigLoading ? (
+                {isMarketplaceBooking && isMarketplaceConfigLoading ? (
                   <p className="text-sm text-muted-foreground">Checking secure document upload...</p>
-                ) : isMarketplaceConfigError || !marketplaceConfig ? (
+                ) : isMarketplaceBooking && (isMarketplaceConfigError || !marketplaceConfig) ? (
                   <p className="text-sm text-destructive">Secure document upload availability could not be checked. Please refresh and try again.</p>
-                ) : marketplaceConfig.enabled ? (
+                ) : marketplaceBookingEnabled ? (
                   <>
                     <Label htmlFor="booking-document-file">Document file</Label>
                     <Input
@@ -220,13 +225,13 @@ export function MyBookingDetail() {
                   </>
                 )}
               </div>
-              <Button className="w-full" onClick={handleDocSubmit} disabled={docMut.isPending || privateDocMut.isPending || isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig || (marketplaceConfig.enabled && !uploadDriverId)}>
+              <Button className="w-full" onClick={handleDocSubmit} disabled={docMut.isPending || privateDocMut.isPending || (isMarketplaceBooking && (isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig || !uploadDriverId))}>
                 Submit Document
               </Button>
             </CardContent>
           </Card>
 
-          {['pending', 'confirmed'].includes(res.status) && (
+          {['pending', 'confirmed'].includes(res.status) && !marketplaceBookingEnabled && (
             <Card className="border-destructive/20 bg-destructive/5">
               <CardContent className="pt-6">
                 <Button variant="destructive" className="w-full gap-2" onClick={handleCancelRequest} disabled={cancelMut.isPending}>
@@ -238,6 +243,10 @@ export function MyBookingDetail() {
           )}
         </div>
       </div>
+
+      {isMarketplaceConfigLoading && <p role="status" className="rounded-md border p-3 text-sm text-muted-foreground">Checking availability of rental support requests…</p>}
+      {isMarketplaceConfigError && <p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">Rental support requests are unavailable because rollout status could not be checked. Existing booking options remain available.</p>}
+      {marketplaceBookingEnabled && <RentalExceptionsPanel reservationId={id} scope="customer" reservationStatus={res.status} operatorContact={res.trip?.operatorContact ?? res.operatorContact} />}
 
       {res.trip && <section data-testid={`section-trip-receipt-${res.id}`} className="space-y-5 rounded-xl border bg-card p-5 shadow-sm">
         <div>

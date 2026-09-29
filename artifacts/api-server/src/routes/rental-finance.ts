@@ -9,6 +9,7 @@ import {
   rentalPaymentsTable,
   rentalPayoutsTable,
   rentalReconciliationFailuresTable,
+  rentalReservationExceptionsTable,
   rentalRefundsTable,
   rentalReservationsTable,
   rentalNotificationsTable,
@@ -23,6 +24,10 @@ import { requireAdminAuth } from "../middlewares/admin-auth";
 import { authenticatePartner, partnerIdentity } from "./partner";
 import { isVehicleAvailable } from "./rental-vehicles";
 import { retryRentalNotification } from "../lib/rental-events";
+import {
+  reconcileRentalExceptionCheckout,
+  reconcileRentalExceptionRefund,
+} from "./rental-reservation-exceptions";
 
 const router: IRouter = Router();
 const StripeCurrency = "jpy";
@@ -568,6 +573,74 @@ function stripeRefundStatus(refund: Stripe.Refund): "pending" | "succeeded" | "f
   return "pending";
 }
 
+async function reconcileCancellationExceptionRefund(
+  tx: FinanceTransaction,
+  refund: Stripe.Refund,
+  payment: typeof rentalPaymentsTable.$inferSelect,
+  storedRefund: typeof rentalRefundsTable.$inferSelect,
+): Promise<void> {
+  const metadataExceptionId = Number(refund.metadata?.rentalExceptionId);
+  const metadataRefundId = Number(refund.metadata?.rentalRefundId);
+  const [metadataException] = Number.isSafeInteger(metadataExceptionId) && metadataExceptionId > 0
+    ? await tx.select().from(rentalReservationExceptionsTable).where(and(
+      eq(rentalReservationExceptionsTable.id, metadataExceptionId),
+      eq(rentalReservationExceptionsTable.kind, "cancellation"),
+    )).for("update")
+    : [];
+  const [providerLinkedException] = await tx.select().from(rentalReservationExceptionsTable).where(and(
+    eq(rentalReservationExceptionsTable.stripeRefundId, refund.id),
+    eq(rentalReservationExceptionsTable.kind, "cancellation"),
+  )).for("update");
+  if (metadataException && providerLinkedException && metadataException.id !== providerLinkedException.id) return;
+  const exception = metadataException ?? providerLinkedException;
+  if (!exception) return;
+
+  const paymentIntentId = typeof refund.payment_intent === "string"
+    ? refund.payment_intent
+    : refund.payment_intent?.id;
+  const localRefundIdMatches = Number.isSafeInteger(metadataRefundId) &&
+    metadataRefundId === storedRefund.id;
+  const metadataLinkMatches = metadataExceptionId === exception.id && localRefundIdMatches;
+  const providerLinkMatches = exception.stripeRefundId === refund.id;
+  const expectedIdempotencyKeys = exception.quoteSnapshot.operatorInitiated === true
+    ? [`rental-cancellation-operator-${exception.id}`]
+    : [`rental-cancellation-exception-${exception.id}`, `rental-cancellation-operator-${exception.id}`];
+  const expectedAmount = exception.refundAmount ?? exception.quoteSnapshot.refundAmount ?? exception.quotedAmount;
+  const waiverOrNoRefund = ["operator_waived_refund", "no_refund_due"].includes(String(exception.providerStatus));
+  if (waiverOrNoRefund ||
+      exception.reservationId !== payment.reservationId ||
+      exception.operatorId !== payment.operatorId ||
+      Number(exception.quoteSnapshot.paymentId) !== payment.id ||
+      paymentIntentId == null ||
+      payment.stripePaymentIntentId !== paymentIntentId ||
+      storedRefund.paymentId !== payment.id ||
+      !expectedIdempotencyKeys.includes(storedRefund.idempotencyKey) ||
+      storedRefund.amount !== refund.amount ||
+      storedRefund.currency.toLowerCase() !== refund.currency.toLowerCase() ||
+      expectedAmount == null ||
+      Number(expectedAmount) !== refund.amount ||
+      (metadataExceptionId > 0 && metadataExceptionId !== exception.id) ||
+      (metadataRefundId > 0 && !localRefundIdMatches) ||
+      (!metadataLinkMatches && !providerLinkMatches)) {
+    return;
+  }
+
+  // Provider callbacks are authoritative only after matching the signed Stripe
+  // refund to the local payment, refund ledger, cancellation quote, and amount.
+  // The stored refund status is monotonic, so delayed events cannot undo success.
+  const status = storedRefund.status === "succeeded" ? "succeeded" : storedRefund.status;
+  const exceptionStatus = status === "succeeded" ? "cancelled"
+    : status === "failed" || status === "canceled" ? "refund_failed" : "refund_pending";
+  await tx.update(rentalReservationExceptionsTable).set({
+    status: exceptionStatus,
+    stripeRefundId: refund.id,
+    refundAmount: refund.amount,
+    providerStatus: status,
+    completedAt: status === "succeeded" ? new Date() : null,
+    updatedAt: new Date(),
+  }).where(eq(rentalReservationExceptionsTable.id, exception.id));
+}
+
 async function syncRefund(refund: Stripe.Refund, eventId: string): Promise<void> {
   const paymentIntentId = typeof refund.payment_intent === "string"
     ? refund.payment_intent
@@ -577,6 +650,7 @@ async function syncRefund(refund: Stripe.Refund, eventId: string): Promise<void>
     chargeId: typeof refund.charge === "string" ? refund.charge : refund.charge?.id,
   });
   if (!payment) {
+    if (await reconcileRentalExceptionRefund(refund)) return;
     await reconciliationFailure({
       eventId,
       type: "unmatched_stripe_refund",
@@ -592,6 +666,20 @@ async function syncRefund(refund: Stripe.Refund, eventId: string): Promise<void>
     const idempotencyKey = `stripe-refund:${refund.id}`;
     let [storedRefund] = await tx.select().from(rentalRefundsTable)
       .where(eq(rentalRefundsTable.stripeRefundId, refund.id)).for("update");
+    const metadataRefundId = Number(refund.metadata?.rentalRefundId);
+    if (Number.isSafeInteger(metadataRefundId) && metadataRefundId > 0) {
+      const [metadataRefund] = await tx.select().from(rentalRefundsTable)
+        .where(eq(rentalRefundsTable.id, metadataRefundId)).for("update");
+      if (metadataRefund && metadataRefund.paymentId === payment.id &&
+          metadataRefund.amount === refund.amount &&
+          metadataRefund.currency.toLowerCase() === refund.currency.toLowerCase() &&
+          (!metadataRefund.stripeRefundId || metadataRefund.stripeRefundId === refund.id)) {
+        if (storedRefund && storedRefund.id !== metadataRefund.id) {
+          throw new Error("Stripe refund metadata and provider refund ID point to different rental refund ledgers");
+        }
+        storedRefund = metadataRefund;
+      }
+    }
     if (!storedRefund) {
       [storedRefund] = await tx.select().from(rentalRefundsTable).where(and(
         eq(rentalRefundsTable.paymentId, payment.id),
@@ -626,6 +714,7 @@ async function syncRefund(refund: Stripe.Refund, eventId: string): Promise<void>
         createdBy: "stripe:webhook",
       }).returning();
     }
+    await reconcileCancellationExceptionRefund(tx, refund, lockedPayment, storedRefund);
 
     const refunds = await tx.select().from(rentalRefundsTable)
       .where(eq(rentalRefundsTable.paymentId, payment.id));
@@ -764,6 +853,7 @@ async function processStripeEvent(event: Stripe.Event): Promise<void> {
     const session = object as Stripe.Checkout.Session;
     const payment = await paymentFromMetadataOrReferences(session.metadata, { sessionId: session.id });
     if (!payment) {
+      if (await reconcileRentalExceptionCheckout(session, event.type)) return;
       await reconciliationFailure({
         eventId: event.id,
         type: "unmatched_checkout_session",
@@ -842,6 +932,14 @@ async function processStripeEvent(event: Stripe.Event): Promise<void> {
       chargeId: charge.id,
     });
     if (!payment) {
+      const latestCharge = charge.refunds?.data.length
+        ? charge
+        : await stripeClient().charges.retrieve(charge.id, { expand: ["refunds.data"] });
+      let exceptionRefundMatched = false;
+      for (const refund of latestCharge.refunds?.data ?? []) {
+        if (await reconcileRentalExceptionRefund(refund)) exceptionRefundMatched = true;
+      }
+      if (exceptionRefundMatched) return;
       await reconciliationFailure({
         eventId: event.id,
         type: "unmatched_charge_refund",

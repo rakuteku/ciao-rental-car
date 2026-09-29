@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePartnerReservationTrip } from "@/hooks/use-rental-operations";
+import { usePartnerReservationTrip, useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
 import { TripPageFrame, TripRecordSummary, TripWorkflow } from "@/components/rental/TripWorkflow";
+import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
 import { partnerRequest } from "./shared";
 
 function DriverDocumentReview({ id, trip }: { id: number; trip: Record<string, any> }) {
@@ -67,6 +68,7 @@ export function PartnerReservationTripPage() {
   const params = useParams();
   const id = Number(params.id);
   const query = usePartnerReservationTrip(id);
+  const marketplace = useRentalMarketplaceConfig();
   if (!Number.isInteger(id) || id < 1) return <main className="p-8">Invalid reservation ID.</main>;
   if (query.isLoading) return <main role="status" className="p-8">Loading trip details…</main>;
   if (query.isError || !query.data) return <main role="alert" className="p-8 text-red-800">{query.error instanceof Error ? query.error.message : "Reservation not found or unavailable to this operator."}</main>;
@@ -105,5 +107,8 @@ export function PartnerReservationTripPage() {
       <h2 className="text-lg font-semibold">Inspection history</h2>
       <TripRecordSummary trip={trip} />
     </section>
+    {marketplace.isLoading && <p role="status" className="rounded-lg border bg-white p-4 text-sm text-slate-600">Checking rental exception feature availability…</p>}
+    {marketplace.isError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">Rental exception actions are unavailable because rollout status could not be checked.</p>}
+    {marketplace.data?.enabled && reservation.source === "marketplace_request" && <RentalExceptionsPanel reservationId={id} scope="partner" operatorContact={trip.operatorContact ?? trip.reservation?.operatorContact} />}
   </TripPageFrame>;
 }

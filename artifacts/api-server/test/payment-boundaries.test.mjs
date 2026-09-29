@@ -334,6 +334,197 @@ test("conflicting refund metadata and provider references reconcile without chan
     .some((failure) => failure.stripeEventId === "evt-refund-reference-conflict"));
 });
 
+test("async Stripe refunds reconcile linked cancellation exceptions and reject cross-linked metadata", async (t) => {
+  const fixture = await createFinanceFixture(t);
+  process.env.STRIPE_SECRET_KEY = "sk_test_mock";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_mock";
+  process.env.RENTAL_MARKETPLACE_ENABLED = "true";
+  const paid = await fixture.webhook({
+    id: "evt-cancellation-payment-paid",
+    type: "checkout.session.completed",
+    data: { object: {
+      id: "cs_test_55",
+      payment_intent: "pi_test_55",
+      payment_status: "paid",
+      amount_total: 1000,
+      currency: "jpy",
+      metadata: { rentalPaymentId: "55" },
+    } },
+  });
+  assert.equal(paid.status, 200);
+
+  fixture.memory.seed("rental_reservation_exceptions", [
+    {
+      id: 88, reservationId: 65, operatorId: 7, kind: "cancellation",
+      status: "refund_pending", quotedAmount: 250, refundAmount: 250,
+      stripeRefundId: null, providerStatus: "pending",
+      quoteSnapshot: { paymentId: 55, refundAmount: 250 },
+    },
+    {
+      id: 89, reservationId: 65, operatorId: 7, kind: "cancellation",
+      status: "refund_pending", quotedAmount: 150, refundAmount: 150,
+      stripeRefundId: null, providerStatus: "pending",
+      quoteSnapshot: { paymentId: 55, refundAmount: 150 },
+    },
+    {
+      id: 90, reservationId: 65, operatorId: 7, kind: "cancellation",
+      status: "refund_pending", quotedAmount: 250, refundAmount: 250,
+      stripeRefundId: null, providerStatus: "pending",
+      quoteSnapshot: { paymentId: 55, refundAmount: 250 },
+    },
+    {
+      id: 91, reservationId: 65, operatorId: 7, kind: "cancellation",
+      status: "refund_pending", quotedAmount: 50, refundAmount: 50,
+      stripeRefundId: "re_cancel_by_provider_ref", providerStatus: "pending",
+      quoteSnapshot: { paymentId: 55, refundAmount: 50 },
+    },
+    {
+      id: 92, reservationId: 65, operatorId: 7, kind: "cancellation",
+      status: "cancelled", quotedAmount: 100, refundAmount: 0,
+      stripeRefundId: null, providerStatus: "operator_waived_refund",
+      quoteSnapshot: { paymentId: 55, refundAmount: 0 },
+    },
+    {
+      id: 93, reservationId: 65, operatorId: 7, kind: "cancellation",
+      status: "refund_pending", quotedAmount: 75, refundAmount: 75,
+      stripeRefundId: null, providerStatus: "pending",
+      quoteSnapshot: { paymentId: 55, refundAmount: 75, operatorInitiated: true },
+    },
+  ]);
+  fixture.memory.seed("rental_refunds", [
+    {
+      id: 901, paymentId: 55, amount: 250, currency: "jpy", status: "pending",
+      stripeRefundId: null, idempotencyKey: "rental-cancellation-exception-88",
+    },
+    {
+      id: 902, paymentId: 55, amount: 150, currency: "jpy", status: "pending",
+      stripeRefundId: null, idempotencyKey: "rental-cancellation-exception-89",
+    },
+    {
+      id: 903, paymentId: 55, amount: 250, currency: "jpy", status: "pending",
+      stripeRefundId: null, idempotencyKey: "rental-cancellation-exception-90",
+    },
+    {
+      id: 904, paymentId: 55, amount: 50, currency: "jpy", status: "pending",
+      stripeRefundId: "re_cancel_by_provider_ref", idempotencyKey: "rental-cancellation-exception-91",
+    },
+    {
+      id: 905, paymentId: 55, amount: 100, currency: "jpy", status: "pending",
+      stripeRefundId: null, idempotencyKey: "rental-cancellation-exception-92",
+    },
+    {
+      id: 906, paymentId: 55, amount: 75, currency: "jpy", status: "pending",
+      stripeRefundId: null, idempotencyKey: "rental-cancellation-operator-93",
+    },
+  ]);
+  const sendRefund = (eventId, refund) => fixture.webhook({
+    id: eventId,
+    type: "refund.updated",
+    data: { object: refund },
+  });
+  const successRefund = {
+    id: "re_cancel_success",
+    payment_intent: "pi_test_55",
+    charge: "ch_test_55",
+    amount: 250,
+    currency: "jpy",
+    metadata: { rentalPaymentId: "55", rentalRefundId: "901", rentalExceptionId: "88" },
+  };
+  const failureRefund = {
+    id: "re_cancel_failure",
+    payment_intent: "pi_test_55",
+    charge: "ch_test_55",
+    amount: 150,
+    currency: "jpy",
+    metadata: { rentalPaymentId: "55", rentalRefundId: "902", rentalExceptionId: "89" },
+  };
+
+  assert.equal((await sendRefund("evt-cancel-refund-success", { ...successRefund, status: "succeeded" })).status, 200);
+  assert.equal((await sendRefund("evt-cancel-refund-failure", { ...failureRefund, status: "failed" })).status, 200);
+  assert.equal(fixture.row("rental_reservation_exceptions", 88).status, "cancelled");
+  assert.equal(fixture.row("rental_reservation_exceptions", 88).providerStatus, "succeeded");
+  assert.equal(fixture.row("rental_reservation_exceptions", 89).status, "refund_failed");
+  assert.equal(fixture.row("rental_reservation_exceptions", 89).providerStatus, "failed");
+
+  assert.equal((await sendRefund("evt-cancel-success-stale-pending", { ...successRefund, status: "pending" })).status, 200);
+  assert.equal((await sendRefund("evt-cancel-failure-stale-pending", { ...failureRefund, status: "pending" })).status, 200);
+  assert.equal(fixture.row("rental_reservation_exceptions", 88).status, "cancelled");
+  assert.equal(fixture.row("rental_reservation_exceptions", 89).status, "refund_failed");
+
+  assert.equal((await sendRefund("evt-cancel-refund-provider-link", {
+    id: "re_cancel_by_provider_ref",
+    payment_intent: "pi_test_55",
+    charge: "ch_test_55",
+    amount: 50,
+    currency: "jpy",
+    status: "succeeded",
+    metadata: { rentalPaymentId: "55" },
+  })).status, 200);
+  assert.equal(fixture.row("rental_reservation_exceptions", 91).status, "cancelled");
+
+  const crossLinked = await sendRefund("evt-cancel-refund-cross-link", {
+    ...successRefund,
+    id: "re_cancel_cross_link",
+    metadata: { rentalPaymentId: "55", rentalRefundId: "901", rentalExceptionId: "90" },
+  });
+  assert.equal(crossLinked.status, 200);
+  assert.equal(fixture.row("rental_reservation_exceptions", 90).status, "refund_pending");
+  assert.equal(fixture.row("rental_reservation_exceptions", 90).stripeRefundId, null);
+
+  assert.equal((await sendRefund("evt-cancel-waiver-preserved", {
+    id: "re_cancel_after_waiver",
+    payment_intent: "pi_test_55",
+    charge: "ch_test_55",
+    amount: 100,
+    currency: "jpy",
+    status: "succeeded",
+    metadata: { rentalPaymentId: "55", rentalRefundId: "905", rentalExceptionId: "92" },
+  })).status, 200);
+  assert.equal(fixture.row("rental_reservation_exceptions", 92).status, "cancelled");
+  assert.equal(fixture.row("rental_reservation_exceptions", 92).providerStatus, "operator_waived_refund");
+
+  const operatorRefund = {
+    id: "re_operator_cancel", payment_intent: "pi_test_55", charge: "ch_test_55",
+    amount: 75, currency: "jpy",
+    metadata: { rentalPaymentId: "55", rentalRefundId: "906", rentalExceptionId: "93" },
+  };
+  assert.equal((await sendRefund("evt-operator-cancel-failed", { ...operatorRefund, status: "failed" })).status, 200);
+  assert.equal(fixture.row("rental_reservation_exceptions", 93).status, "refund_failed");
+  assert.equal((await sendRefund("evt-operator-cancel-success", { ...operatorRefund, status: "succeeded" })).status, 200);
+  assert.equal(fixture.row("rental_reservation_exceptions", 93).status, "cancelled");
+  assert.equal((await sendRefund("evt-operator-cancel-pending-late", { ...operatorRefund, status: "pending" })).status, 200);
+  assert.equal(fixture.row("rental_reservation_exceptions", 93).status, "cancelled");
+});
+
+test("a delayed pending exception-payment refund cannot undo a completed refund", async (t) => {
+  const fixture = await createFinanceFixture(t);
+  process.env.STRIPE_SECRET_KEY = "sk_test_mock";
+  process.env.STRIPE_WEBHOOK_SECRET = "whsec_mock";
+  process.env.RENTAL_MARKETPLACE_ENABLED = "true";
+  const completedAt = new Date("2026-01-01T00:00:00Z");
+  fixture.memory.seed("rental_reservation_exceptions", [{
+    id: 94, reservationId: 65, operatorId: 7, kind: "extension",
+    status: "cancelled", quotedAmount: 80, refundAmount: 80,
+    stripePaymentIntentId: "pi_exception_94", stripeRefundId: "re_exception_94",
+    providerStatus: "succeeded", completedAt,
+  }]);
+  const refund = {
+    id: "re_exception_94", payment_intent: "pi_exception_94",
+    amount: 80, currency: "jpy",
+    metadata: { rentalExceptionId: "94", rentalReservationId: "65" },
+  };
+  const response = await fixture.webhook({
+    id: "evt-old-exception-pending",
+    type: "refund.updated",
+    data: { object: { ...refund, status: "pending" } },
+  });
+  assert.equal(response.status, 200);
+  const exception = fixture.row("rental_reservation_exceptions", 94);
+  assert.equal(exception.status, "cancelled");
+  assert.equal(exception.providerStatus, "succeeded");
+  assert.equal(new Date(exception.completedAt).toISOString(), completedAt.toISOString());
+});
+
 async function createFinanceFixture(t) {
   const temporaryDir = await mkdtemp(path.join(apiDir.pathname, ".payment-boundaries-"));
   const bundlePath = path.join(temporaryDir, "rental-finance.mjs");
@@ -394,12 +585,17 @@ async function createFinanceFixture(t) {
         }));
         buildApi.onResolve({ filter: /rental-events$/ }, () => ({ path: "mock-events", namespace: "payment-test" }));
         buildApi.onLoad({ filter: /^mock-events$/, namespace: "payment-test" }, () => ({
-          contents: "export const retryRentalNotification = async () => null; export const logRentalAudit = async () => null;",
+          contents: "export const retryRentalNotification = async () => null; export const logRentalAudit = async () => null; export const queueRentalNotification = async () => null;",
           loader: "js",
         }));
         buildApi.onResolve({ filter: /middlewares\/admin-auth$/ }, () => ({ path: "mock-admin", namespace: "payment-test" }));
         buildApi.onLoad({ filter: /^mock-admin$/, namespace: "payment-test" }, () => ({
           contents: "export const requireAdminAuth = (_req, _res, next) => next();",
+          loader: "js",
+        }));
+        buildApi.onResolve({ filter: /lib\/logger$/ }, () => ({ path: "mock-logger", namespace: "payment-test" }));
+        buildApi.onLoad({ filter: /^mock-logger$/, namespace: "payment-test" }, () => ({
+          contents: "export const logger = { error() {}, warn() {}, info() {} };",
           loader: "js",
         }));
         buildApi.onResolve({ filter: /^\.\/partner$/ }, (args) => args.importer.includes("/src/routes/")
@@ -484,7 +680,7 @@ async function createFinanceFixture(t) {
   memory.seed("rental_operators", [{ id: 7, name: "Test Operator", contactEmail: "operator@example.invalid" }]);
   for (const table of [
     "rental_refunds", "rental_stripe_events", "rental_notifications",
-    "rental_reconciliation_failures", "rental_disputes", "rental_payouts",
+    "rental_reconciliation_failures", "rental_disputes", "rental_payouts", "rental_reservation_exceptions",
   ]) {
     memory.seed(table, []);
   }

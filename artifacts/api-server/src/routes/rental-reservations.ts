@@ -970,7 +970,14 @@ router.get("/rental/my-bookings/:id", async (req, res): Promise<void> => {
     driver,
     drivers: reservationDrivers,
     vehicle: vehicle ? serializePublicVehicle(vehicle) : null,
-    documents: documents.map((document) => ({ ...document, fileUrl: isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) ? null : document.fileUrl, createdAt: document.createdAt.toISOString(), updatedAt: document.updatedAt.toISOString(), reviewedAt: document.reviewedAt?.toISOString() ?? null })),
+    documents: documents.map((document) => ({
+      ...document,
+      fileUrl: reservation.source === "marketplace_request" && isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
+        ? null : document.fileUrl,
+      createdAt: document.createdAt.toISOString(),
+      updatedAt: document.updatedAt.toISOString(),
+      reviewedAt: document.reviewedAt?.toISOString() ?? null,
+    })),
     ...(trip ? { trip } : {}),
   });
 });

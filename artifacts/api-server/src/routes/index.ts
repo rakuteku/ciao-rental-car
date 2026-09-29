@@ -19,6 +19,8 @@ import partnerRouter from "./partner";
 import rentalRequestsRouter from "./rental-requests";
 import rentalFinanceRouter from "./rental-finance";
 import rentalTripRouter from "./rental-trip";
+import rentalReservationExceptionsRouter from "./rental-reservation-exceptions";
+import rentalExceptionsRouter from "./rental-exceptions";
 
 const router: IRouter = Router();
 
@@ -36,6 +38,8 @@ router.use(rentalAvailabilityBlocksRouter);
 router.use(rentalAddonsRouter);
 router.use(rentalPrivateDocumentsRouter);
 router.use(rentalTripRouter);
+router.use(rentalReservationExceptionsRouter);
+router.use(rentalExceptionsRouter);
 router.use(rentalReservationsRouter);
 router.use(rentalOperationsRouter);
 router.use(operatorsRouter);

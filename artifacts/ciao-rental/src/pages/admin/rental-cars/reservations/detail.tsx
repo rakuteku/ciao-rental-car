@@ -1,5 +1,5 @@
 import { useRoute, Link } from "wouter";
-import { useAdminReservation, useUpdateAdminReservation, useReviewAdminDocument, useAdminRentalFinance, useRefundAdminRentalPayment, usePayoutAdminRentalPayment } from "@/hooks/use-rental-operations";
+import { useAdminReservation, useAdminReservationTrip, useUpdateAdminReservation, useReviewAdminDocument, useAdminRentalFinance, useRefundAdminRentalPayment, usePayoutAdminRentalPayment, useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Car, Calendar, User, CreditCard } from "lucide-react";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useEffect, useRef, type FormEvent } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
 
 function financeRows(value: any): any[] {
   if (Array.isArray(value)) return value;
@@ -74,6 +75,8 @@ export function AdminReservationDetail() {
   const updateMut = useUpdateAdminReservation();
   const reviewDocument = useReviewAdminDocument();
   const financeQuery = useAdminRentalFinance(id);
+  const marketplace = useRentalMarketplaceConfig();
+  const tripQuery = useAdminReservationTrip(id, Boolean(marketplace.data?.enabled));
   const { toast } = useToast();
 
   const [notes, setNotes] = useState("");
@@ -244,6 +247,9 @@ export function AdminReservationDetail() {
           </CardContent>
         </Card>
       </div>
+      {marketplace.isLoading && <p role="status" className="rounded-md border p-3 text-sm text-muted-foreground">Checking rental exception feature availability…</p>}
+      {marketplace.isError && <p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">Platform exception tools are unavailable because rollout status could not be checked.</p>}
+      {marketplace.data?.enabled && res.source === "marketplace_request" && <RentalExceptionsPanel reservationId={id} scope="admin" operatorContact={tripQuery.data?.operatorContact ?? res.operatorContact} />}
     </div>
   );
 }

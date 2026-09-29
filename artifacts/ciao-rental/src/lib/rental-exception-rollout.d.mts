@@ -1,0 +1,1 @@
+export declare function usesMarketplaceExceptions(flagEnabled: boolean | undefined, reservationSource: string | undefined): boolean;
