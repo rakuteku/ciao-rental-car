@@ -40,6 +40,9 @@ import { AdminAddons } from "@/pages/admin/rental-cars/addons";
 import { AdminPricingRules } from "@/pages/admin/rental-cars/pricing";
 import { AdminSettings } from "@/pages/admin/rental-cars/settings";
 import { AdminAudit } from "@/pages/admin/rental-cars/audit";
+import { AdminRentalPartners } from "@/pages/admin/rental-cars/partners";
+import { PartnerApplyPage } from "@/pages/partner/apply";
+import { PartnerInventoryPage } from "@/pages/partner/inventory";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +73,8 @@ function Router() {
       <Route path="/rentalcar/my-bookings/:id" component={() => <MainLayout><MyBookingDetail /></MainLayout>} />
       <Route path="/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
       <Route path="/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
+      <Route path="/partner/apply" component={PartnerApplyPage} />
+      <Route path="/partner/inventory" component={PartnerInventoryPage} />
       {/* Admin Auth Route */}
       <Route path="/admin/login" component={AdminLogin} />
 
@@ -99,6 +104,7 @@ function Router() {
       <Route path="/admin/rental-cars/pricing" component={() => <AdminLayout><AdminPricingRules /></AdminLayout>} />
       <Route path="/admin/rental-cars/settings" component={() => <AdminLayout><AdminSettings /></AdminLayout>} />
       <Route path="/admin/rental-cars/audit" component={() => <AdminLayout><AdminAudit /></AdminLayout>} />
+      <Route path="/admin/rental-cars/partners" component={() => <AdminLayout><AdminRentalPartners /></AdminLayout>} />
       <Route path="/admin/rental-cars" component={() => <AdminLayout><AdminRentalCars /></AdminLayout>} />
 
       {/* Language-prefixed public routes preserve the unprefixed English URLs. */}
@@ -110,6 +116,9 @@ function Router() {
       <Route path="/:language/rentalcar/my-bookings/:id" component={() => <MainLayout><MyBookingDetail /></MainLayout>} />
       <Route path="/:language/rentalcar/my-bookings" component={() => <MainLayout><MyBookings /></MainLayout>} />
       <Route path="/:language/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
+      <Route path="/:language/partner/apply" component={PartnerApplyPage} />
+      <Route path="/:language/partner/inventory" component={PartnerInventoryPage} />
+      <Route path="/:language/admin/rental-cars/partners" component={() => <AdminLayout><AdminRentalPartners /></AdminLayout>} />
       <Route path="/:language/rentalcar" component={() => <MainLayout><RentalCarHome /></MainLayout>} />
       <Route path="/:language/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
       <Route path="/:language" component={() => <MainLayout><Home /></MainLayout>} />

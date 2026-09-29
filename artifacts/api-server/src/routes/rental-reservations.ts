@@ -19,7 +19,7 @@ import {
 } from "@workspace/db";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { calculatePrice } from "../lib/rental-pricing";
-import { isVehicleAvailable, isVehicleServiceable, serializePublicVehicle, visibleOperatorIds } from "./rental-vehicles";
+import { isVehicleAvailable, isVehicleServiceable, serializePublicVehicle, visibleVehicleIds } from "./rental-vehicles";
 import { z } from "zod/v4";
 import { logRentalAudit, queueRentalNotification } from "../lib/rental-events";
 
@@ -124,8 +124,8 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
         err.status = 404;
         throw err;
       }
-      const approvedIds = await visibleOperatorIds();
-      if (approvedIds && (vehicle.operatorId == null || !approvedIds.includes(vehicle.operatorId))) {
+      const approvedIds = await visibleVehicleIds();
+      if (approvedIds && !approvedIds.includes(vehicle.id)) {
         throw Object.assign(new Error("Vehicle not found or not available"), { status: 404 });
       }
 
@@ -297,8 +297,8 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
         err.status = 409;
         throw err;
       }
-      const approvedIds = await visibleOperatorIds();
-      if (approvedIds && (vehicle.operatorId == null || !approvedIds.includes(vehicle.operatorId))) {
+      const approvedIds = await visibleVehicleIds();
+      if (approvedIds && !approvedIds.includes(vehicle.id)) {
         throw Object.assign(new Error("Vehicle is not available"), { status: 404 });
       }
 
@@ -1006,8 +1006,8 @@ router.post("/rental/pricing/calculate", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Vehicle is not available at the selected pickup or return location" });
     return;
   }
-  const approvedIds = await visibleOperatorIds();
-  if (approvedIds && (vehicle.status !== "published" || vehicle.operatorId == null || !approvedIds.includes(vehicle.operatorId))) {
+  const approvedIds = await visibleVehicleIds();
+  if (approvedIds && !approvedIds.includes(vehicle.id)) {
     res.status(404).json({ error: "Vehicle not found" });
     return;
   }

@@ -18,6 +18,7 @@ import { requireAdminAuth } from "../middlewares/admin-auth";
 import { z } from "zod/v4";
 import { logRentalAudit } from "../lib/rental-events";
 import { platformOperatorId } from "../lib/platform-operator";
+import { eligibleMarketplaceVehicles } from "../lib/marketplace-policy";
 
 export async function getTurnaroundBufferHours(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,6 +80,10 @@ export async function visibleOperatorIds(): Promise<number[] | null> {
   const rows = await db.select({ id: rentalOperatorsTable.id }).from(rentalOperatorsTable)
     .where(and(eq(rentalOperatorsTable.status, "active"), eq(rentalOperatorsTable.verificationStatus, "approved")));
   return rows.map((row) => row.id);
+}
+
+export async function visibleVehicleIds(): Promise<number[]> {
+  return [...(await eligibleMarketplaceVehicles()).keys()];
 }
 
 async function getBasePrices(vehicleIds: number[]) {
@@ -264,7 +269,7 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
     .orderBy(asc(rentalVehiclesTable.sortOrder));
 
   const vehicles = await vehicleQuery;
-  const approvedIds = await visibleOperatorIds();
+  const eligible = await eligibleMarketplaceVehicles();
 
   const pickup = pickupAt ? new Date(pickupAt) : null;
   const returnD = returnAt ? new Date(returnAt) : null;
@@ -273,7 +278,7 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
   const unavailable: typeof vehicles = [];
 
   for (const v of vehicles) {
-    if (approvedIds && (v.operatorId == null || !approvedIds.includes(v.operatorId))) continue;
+    if (!eligible.has(v.id)) continue;
     if (slug && v.slug !== slug) continue;
     if (!isVehicleServiceable(v, pickupLocation, returnLocation)) continue;
     if (vehicleClass && v.vehicleClass !== vehicleClass) continue;
@@ -323,6 +328,7 @@ router.get("/rental/vehicles/search", async (req, res): Promise<void> => {
   const serialize = (v: RentalVehicle) =>
     ({
        ...serializePublicVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
+       ...(process.env.RENTAL_MARKETPLACE_ENABLED === "true" && eligible.get(v.id) ? { operatorName: eligible.get(v.id)!.name } : {}),
       basePrice: pricingByVehicle.get(v.id) ?? null,
     });
 
@@ -343,7 +349,7 @@ router.get("/rental/vehicles", async (_req, res): Promise<void> => {
       ),
     )
     .orderBy(asc(rentalVehiclesTable.sortOrder));
-  const approvedIds = await visibleOperatorIds();
+  const eligible = await eligibleMarketplaceVehicles();
 
   const ids = vehicles.map((v) => v.id);
   let images: RentalVehicleImage[] = [];
@@ -362,8 +368,9 @@ router.get("/rental/vehicles", async (_req, res): Promise<void> => {
   }
 
   const pricingByVehicle = await getBasePrices(ids);
-  res.json(vehicles.filter((v) => !approvedIds || (v.operatorId != null && approvedIds.includes(v.operatorId))).map((v) => ({
+  res.json(vehicles.filter((v) => eligible.has(v.id)).map((v) => ({
     ...serializePublicVehicle({ ...v, images: imagesByVehicle.get(v.id) ?? [] }),
+    ...(process.env.RENTAL_MARKETPLACE_ENABLED === "true" && eligible.get(v.id) ? { operatorName: eligible.get(v.id)!.name } : {}),
     basePrice: pricingByVehicle.get(v.id) ?? null,
   })));
 });
@@ -386,8 +393,8 @@ router.get("/rental/vehicles/:slug", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Vehicle not found" });
     return;
   }
-  const approvedIds = await visibleOperatorIds();
-  if (approvedIds && (vehicle.operatorId == null || !approvedIds.includes(vehicle.operatorId))) {
+  const eligible = await eligibleMarketplaceVehicles();
+  if (!eligible.has(vehicle.id)) {
     res.status(404).json({ error: "Vehicle not found" });
     return;
   }
@@ -403,7 +410,7 @@ router.get("/rental/vehicles/:slug", async (req, res): Promise<void> => {
     .from(rentalVehiclePricingTable)
     .where(eq(rentalVehiclePricingTable.vehicleId, vehicle.id));
 
-  res.json({ ...serializePublicVehicle({ ...vehicle, images }), pricing: pricing[0] ?? null });
+  res.json({ ...serializePublicVehicle({ ...vehicle, images }), ...(process.env.RENTAL_MARKETPLACE_ENABLED === "true" && eligible.get(vehicle.id) ? { operatorName: eligible.get(vehicle.id)!.name } : {}), pricing: pricing[0] ?? null });
 });
 
 router.get("/admin/rental/vehicles", requireAdminAuth, async (_req, res): Promise<void> => {

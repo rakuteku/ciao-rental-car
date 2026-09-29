@@ -205,6 +205,17 @@ export function CarDetailPage() {
                   <div>
                     <p className="text-sm text-muted-foreground font-medium tracking-wide uppercase">{car.brand} · {car.year}</p>
                     <h1 className="text-3xl font-serif font-bold mt-1">{localizedCar?.title || car.model}</h1>
+                    {typeof (car as typeof car & { operatorName?: string }).operatorName === "string" && (
+                      <p className="mt-2 text-sm text-muted-foreground">{language === "ja" ? "運営事業者" : "Operated by"}: {(car as typeof car & { operatorName?: string }).operatorName}</p>
+                    )}
+                    {Boolean((car as typeof car & { disclosures?: Record<string, unknown> }).disclosures) && (
+                      <div className="mt-3 text-sm text-muted-foreground">
+                        <p className="font-medium">{language === "ja" ? "ご利用に関するご案内" : "Rental disclosures"}</p>
+                        {Object.entries((car as typeof car & { disclosures?: Record<string, unknown> }).disclosures ?? {}).map(([key, value]) => (
+                          <p key={key}>{key}: {Array.isArray(value) ? value.join(", ") : String(value)}</p>
+                        ))}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-3 mt-3">
                       <Badge variant="secondary" className="gap-1">
                         <Users className="w-3 h-3" /> {car.seats} passengers

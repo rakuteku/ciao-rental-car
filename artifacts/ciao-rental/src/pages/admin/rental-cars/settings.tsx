@@ -6,6 +6,72 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useCallback } from "react";
+
+const policyFields = [
+  ["marketplaceCommissionPercent", "Commission (%)", "number"],
+  ["marketplacePayoutTerms", "Payout terms", "text"],
+  ["marketplaceCancellationPolicy", "Cancellation policy", "text"],
+  ["marketplaceDepositPolicy", "Deposit policy", "text"],
+  ["marketplaceResponsePeriodHours", "Response period (hours)", "number"],
+  ["marketplaceCoverageTerms", "Insurance / coverage terms", "text"],
+] as const;
+
+function MarketplacePolicySettings() {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [missing, setMissing] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const load = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/rental/marketplace-policy", { credentials: "same-origin" });
+      if (!response.ok) throw new Error(`Unable to load marketplace policy (${response.status})`);
+      const data = await response.json() as { values: Record<string, string | number | null>; missing: string[] };
+      setValues(Object.fromEntries(policyFields.map(([key]) => [key, String(data.values[key] ?? "")])));
+      setMissing(data.missing);
+      setError("");
+    } catch (err) { setError(err instanceof Error ? err.message : "Unable to load policy"); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+  async function save() {
+    setSaving(true); setError(""); setSuccess("");
+    try {
+      const body = Object.fromEntries(policyFields.map(([key, , type]) =>
+        [key, values[key]?.trim() ? (type === "number" ? Number(values[key]) : values[key].trim()) : null]));
+      const response = await fetch("/api/admin/rental/marketplace-policy", {
+        method: "PUT", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? "Could not save policy");
+      }
+      const data = await response.json() as { missing: string[] };
+      setMissing(data.missing);
+      setSuccess("Marketplace policy saved.");
+    } catch (err) { setError(err instanceof Error ? err.message : "Could not save policy"); }
+    finally { setSaving(false); }
+  }
+  return <Card>
+    <CardHeader><CardTitle>Partner marketplace decisions</CardTitle></CardHeader>
+    <CardContent className="space-y-4">
+      <p className="text-sm text-muted-foreground">Partner vehicles cannot be offered until every decision is supplied. Enter approved terms only; blank fields remain undecided. Existing CIAO fleet settings are unchanged.</p>
+      {loading ? <p role="status">Loading marketplace decisions…</p> : <>
+        {policyFields.map(([key, label, type]) => <div key={key} className="space-y-2">
+          <Label htmlFor={key}>{label}{missing.includes(key) ? " — decision required" : ""}</Label>
+          <Input id={key} type={type} min={type === "number" ? 0 : undefined} step={type === "number" ? "any" : undefined}
+            value={values[key] ?? ""} onChange={event => setValues(prev => ({ ...prev, [key]: event.target.value }))} />
+        </div>)}
+        {error && <p role="alert" className="text-red-700">{error}</p>}
+        {success && <p role="status">{success}</p>}
+        <Button onClick={save} disabled={saving}>{saving ? "Saving…" : "Save partner decisions"}</Button>
+      </>}
+    </CardContent>
+  </Card>;
+}
 
 export function AdminSettings() {
   const { data: settings, isLoading } = useAdminSettings();
@@ -80,6 +146,7 @@ export function AdminSettings() {
           </Button>
         </CardContent>
       </Card>
+      <MarketplacePolicySettings />
     </div>
   );
 }

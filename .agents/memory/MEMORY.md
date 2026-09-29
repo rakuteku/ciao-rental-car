@@ -6,3 +6,4 @@
 - [Generated client freshness](generated-client-freshness.md) — rebuild composite library declarations before frontend checks after merged API/codegen changes.
 - [Localized CMS fallback](bilingual-cms-fallback.md) — Japanese and Chinese content remain editor-authored; blank fields resolve individually to English.
 - [Startup catalog backfill](rental-catalog-startup.md) — CLI and API startup share one transactional, marker-only backfill so production cannot drift from manual seed logic.
+- [Marketplace publication boundary](marketplace-publication.md) — partner policy gates must fail closed without taking the existing platform fleet offline.

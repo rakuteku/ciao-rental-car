@@ -24,6 +24,13 @@ export const rentalVehicleStatusEnum = pgEnum("rental_vehicle_status", [
   "archived",
 ]);
 
+export const rentalVehicleModerationStatusEnum = pgEnum("rental_vehicle_moderation_status", [
+  "pending",
+  "approved",
+  "rejected",
+  "changes_requested",
+]);
+
 export const rentalTransmissionEnum = pgEnum("rental_transmission", [
   "automatic",
   "manual",
@@ -96,6 +103,9 @@ export const rentalVehiclesTable = pgTable(
     smokingPolicy: text("smoking_policy").notNull().default("no_smoking"),
     petPolicy: text("pet_policy").notNull().default("no_pets"),
     status: rentalVehicleStatusEnum("status").notNull().default("draft"),
+    moderationStatus: rentalVehicleModerationStatusEnum("moderation_status").notNull().default("pending"),
+    disclosures: jsonb("disclosures").$type<Record<string, unknown>>().notNull().default({}),
+    hours: jsonb("hours").$type<Record<string, unknown>>().notNull().default({}),
     featured: boolean("featured").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
     has4wd: boolean("has_4wd").notNull().default(false),

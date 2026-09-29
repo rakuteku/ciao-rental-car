@@ -12,6 +12,7 @@ import {
 } from "@workspace/db";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { logRentalAudit } from "../lib/rental-events";
+import { marketplacePolicy, marketplacePolicyKeys } from "../lib/marketplace-policy";
 
 const router: IRouter = Router();
 
@@ -178,6 +179,32 @@ router.put("/admin/rental/settings", requireAdminAuth, async (req, res): Promise
   }
   await logRentalAudit({ adminUser: adminName(req), action: "rental_settings_updated", recordType: "settings", newValue: req.body as Record<string, unknown> });
   res.json({ saved: true });
+});
+
+const PolicySchema = z.object({
+  marketplaceCommissionPercent: z.number().min(0).max(100).nullable().optional(),
+  marketplacePayoutTerms: z.string().trim().min(1).max(5000).nullable().optional(),
+  marketplaceCancellationPolicy: z.string().trim().min(1).max(5000).nullable().optional(),
+  marketplaceDepositPolicy: z.string().trim().min(1).max(5000).nullable().optional(),
+  marketplaceResponsePeriodHours: z.number().positive().max(720).nullable().optional(),
+  marketplaceCoverageTerms: z.string().trim().min(1).max(5000).nullable().optional(),
+}).strict();
+router.get("/admin/rental/marketplace-policy", requireAdminAuth, async (_req, res): Promise<void> => {
+  res.json(await marketplacePolicy());
+});
+router.put("/admin/rental/marketplace-policy", requireAdminAuth, async (req, res): Promise<void> => {
+  const parsed = PolicySchema.safeParse(req.body);
+  if (!parsed.success || !Object.keys(parsed.data).length) {
+    res.status(400).json({ error: parsed.success ? "At least one policy field is required" : parsed.error.message });
+    return;
+  }
+  for (const key of marketplacePolicyKeys) {
+    if (parsed.data[key] === undefined) continue;
+    await db.insert(rentalSettingsTable).values({ key, value: JSON.stringify(parsed.data[key]) })
+      .onConflictDoUpdate({ target: rentalSettingsTable.key, set: { value: JSON.stringify(parsed.data[key]), updatedAt: new Date() } });
+  }
+  await logRentalAudit({ adminUser: adminName(req), action: "marketplace_policy_updated", recordType: "settings", newValue: parsed.data });
+  res.json(await marketplacePolicy());
 });
 
 router.get("/admin/rental/audit", requireAdminAuth, async (req, res): Promise<void> => {

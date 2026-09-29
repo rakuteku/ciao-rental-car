@@ -142,6 +142,7 @@ export function CarsPage() {
                         <div>
                           <p className="text-xs text-muted-foreground">{car.brand} · {car.year}</p>
                           <h2 className="font-serif text-xl font-semibold group-hover:text-muted-foreground transition-colors">{localizeVehicle(car, language).title || car.model}</h2>
+                          {typeof (car as typeof car & { operatorName?: string }).operatorName === "string" && <p className="text-xs text-muted-foreground">{language === "ja" ? "運営事業者" : "Operated by"}: {(car as typeof car & { operatorName?: string }).operatorName}</p>}
                         </div>
                         <EstimatedPrice vehicle={car} pickupAt={pickupAt} returnAt={returnAt} pickupLocation={pickupLocation} returnLocation={returnLocation} />
                       </div>
@@ -190,6 +191,7 @@ export function CarsPage() {
                         <div>
                           <p className="text-xs text-muted-foreground">{car.brand} · {car.year}</p>
                           <h2 className="font-serif text-xl font-semibold">{car.publicTitle || car.model}</h2>
+                          {typeof (car as typeof car & { operatorName?: string }).operatorName === "string" && <p className="text-xs text-muted-foreground">{language === "ja" ? "運営事業者" : "Operated by"}: {(car as typeof car & { operatorName?: string }).operatorName}</p>}
                         </div>
                         <Button variant="outline" size="sm" className="w-full text-xs tracking-wide" disabled>
                           Currently Unavailable

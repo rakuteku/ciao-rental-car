@@ -19,7 +19,8 @@ import {
   Activity,
   BarChart2,
   Menu,
-  X
+  X,
+  UserCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ const rentalCarSubItems: NavItem[] = [
   { href: "/admin/rental-cars/pricing", label: "Pricing Rules", icon: DollarSign },
   { href: "/admin/rental-cars/settings", label: "Settings", icon: Settings },
   { href: "/admin/rental-cars/audit", label: "Audit Logs", icon: Activity },
+  { href: "/admin/rental-cars/partners", label: "Rental Partners", icon: UserCheck },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
