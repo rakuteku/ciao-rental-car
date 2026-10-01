@@ -9,6 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { useCallback } from "react";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { useLanguage } from "@/lib/language";
+import { DEFAULT_RENTAL_LOCATIONS, normalizeRentalLocations, type RentalLocation } from "@/lib/rental-locations";
 
 const policyFields = [
   ["marketplaceCommissionPercent", "Commission (%)", "number"],
@@ -270,13 +273,24 @@ export function AdminSettings() {
   const { data: settings, isLoading } = useAdminSettings();
   const updateMut = useUpdateAdminSettings();
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const ja = language === "ja";
+  const t = (english: string, japanese: string) => ja ? japanese : english;
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    cleaningBufferMinutes: number;
+    preparationBufferMinutes: number;
+    airportDeliveryTravelBufferMinutes: number;
+    lateNightReturnBufferMinutes: number;
+    holdExpiryMinutes: number;
+    bookingLocations: RentalLocation[];
+  }>({
     cleaningBufferMinutes: 120,
     preparationBufferMinutes: 60,
     airportDeliveryTravelBufferMinutes: 60,
     lateNightReturnBufferMinutes: 30,
     holdExpiryMinutes: 30,
+    bookingLocations: DEFAULT_RENTAL_LOCATIONS,
   });
 
   useEffect(() => {
@@ -287,34 +301,39 @@ export function AdminSettings() {
         airportDeliveryTravelBufferMinutes: settings.airportDeliveryTravelBufferMinutes ?? 60,
         lateNightReturnBufferMinutes: settings.lateNightReturnBufferMinutes ?? 30,
         holdExpiryMinutes: settings.holdExpiryMinutes ?? 30,
+        bookingLocations: normalizeRentalLocations(settings.bookingLocations),
       });
     }
   }, [settings]);
 
   const handleSave = () => {
+    if (formData.bookingLocations.some(location => !location.value.trim() || !location.labelEn.trim())) {
+      toast({ title: t("Location details are incomplete", "場所の設定が未入力です"), description: t("Each location needs a booking value and English label.", "各場所に予約値と英語表示名を入力してください。"), variant: "destructive" });
+      return;
+    }
     updateMut.mutate(formData, {
-      onSuccess: () => toast({ title: "Settings saved successfully" }),
-      onError: (err: any) => toast({ title: "Failed to save", description: err.message, variant: "destructive" })
+      onSuccess: () => toast({ title: t("Settings saved successfully", "設定を保存しました") }),
+      onError: (err: any) => toast({ title: t("Failed to save", "保存できませんでした"), description: err.message, variant: "destructive" })
     });
   };
 
-  if (isLoading) return <div className="p-8 text-center">Loading settings...</div>;
+  if (isLoading) return <div className="p-8 text-center">{t("Loading settings...", "設定を読み込んでいます...")}</div>;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-serif font-bold">Global Settings</h1>
-        <p className="text-muted-foreground">System-wide parameters for the rental car operations.</p>
+        <h1 className="text-3xl font-serif font-bold">{t("Global Settings", "全体設定")}</h1>
+        <p className="text-muted-foreground">{t("System-wide parameters for the rental car operations.", "レンタカー運営全体に適用される設定です。")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Turnaround buffers & booking holds</CardTitle>
+          <CardTitle>{t("Turnaround buffers & booking holds", "清掃・準備時間と予約保持")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label>Cleaning buffer (minutes)</Label>
+              <Label>{t("Cleaning buffer (minutes)", "清掃時間（分）")}</Label>
               <Input 
                 type="number" 
                 value={formData.cleaningBufferMinutes} 
@@ -322,7 +341,7 @@ export function AdminSettings() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Preparation buffer (minutes)</Label>
+              <Label>{t("Preparation buffer (minutes)", "準備時間（分）")}</Label>
               <Input 
                 type="number" value={formData.preparationBufferMinutes} 
                 onChange={e => setFormData(s => ({...s, preparationBufferMinutes: Number(e.target.value)}))} 
@@ -331,12 +350,38 @@ export function AdminSettings() {
           </div>
 
           <div className="grid gap-4 pt-4 border-t">
-            {[["Airport delivery travel buffer", "airportDeliveryTravelBufferMinutes"], ["Late-night return buffer", "lateNightReturnBufferMinutes"], ["Booking hold expiry", "holdExpiryMinutes"]].map(([label, key]) => <div className="space-y-2" key={key}><Label>{label} (minutes)</Label><Input type="number" value={(formData as Record<string, number>)[key]} onChange={e => setFormData(s => ({...s, [key]: Number(e.target.value)}))} /></div>)}
+            {[[t("Airport delivery travel buffer", "空港配車の移動時間"), "airportDeliveryTravelBufferMinutes"], [t("Late-night return buffer", "夜間返却の予備時間"), "lateNightReturnBufferMinutes"], [t("Booking hold expiry", "予約保持の有効時間"), "holdExpiryMinutes"]].map(([label, key]) => <div className="space-y-2" key={key}><Label>{label} ({t("minutes", "分")})</Label><Input type="number" value={formData[key as "airportDeliveryTravelBufferMinutes" | "lateNightReturnBufferMinutes" | "holdExpiryMinutes"]} onChange={e => setFormData(s => ({...s, [key]: Number(e.target.value)}))} /></div>)}
           </div>
 
           <Button onClick={handleSave} disabled={updateMut.isPending} className="w-full">
-            Save Settings
+            {t("Save Settings", "設定を保存")}
           </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("Pickup & return locations", "受取・返却場所")}</CardTitle>
+          <p className="text-sm text-muted-foreground">{t("Set the customer-facing translation for every booking option. The booking value is stored with reservations and should remain stable.", "予約画面に表示する各場所の翻訳を設定します。予約値は予約データに保存されるため、運用開始後は変更しないでください。")}</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {formData.bookingLocations.map((location, index) => {
+            const updateLocation = (key: keyof RentalLocation, value: string) => setFormData(current => ({
+              ...current,
+              bookingLocations: current.bookingLocations.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item),
+            }));
+            return <div key={`${location.value}-${index}`} className="grid gap-3 rounded-md border p-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+              <div className="space-y-1.5"><Label>{t("Booking value", "予約値")}</Label><Input value={location.value} onChange={event => updateLocation("value", event.target.value)} placeholder="Sapporo Station" /></div>
+              <div className="space-y-1.5"><Label>{t("English label", "英語表示")}</Label><Input value={location.labelEn} onChange={event => updateLocation("labelEn", event.target.value)} /></div>
+              <div className="space-y-1.5"><Label>{t("Japanese label", "日本語表示")}</Label><Input value={location.labelJa} onChange={event => updateLocation("labelJa", event.target.value)} /></div>
+              <div className="space-y-1.5"><Label>{t("Traditional Chinese label", "繁体字表示")}</Label><Input value={location.labelZhTw} onChange={event => updateLocation("labelZhTw", event.target.value)} /></div>
+              <Button type="button" variant="ghost" size="icon" className="self-end" aria-label={t("Remove location", "場所を削除")} disabled={formData.bookingLocations.length === 1}
+                onClick={() => setFormData(current => ({ ...current, bookingLocations: current.bookingLocations.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 className="h-4 w-4" /></Button>
+            </div>;
+          })}
+          <div className="flex flex-wrap gap-3">
+            <Button type="button" variant="outline" onClick={() => setFormData(current => ({ ...current, bookingLocations: [...current.bookingLocations, { value: "", labelEn: "", labelJa: "", labelZhTw: "" }] }))}><Plus className="mr-2 h-4 w-4" />{t("Add location", "場所を追加")}</Button>
+            <Button type="button" onClick={handleSave} disabled={updateMut.isPending}>{updateMut.isPending ? t("Saving...", "保存中...") : t("Save locations", "場所を保存")}</Button>
+          </div>
         </CardContent>
       </Card>
       <MarketplacePolicySettings />

@@ -21,26 +21,29 @@ import {
   Menu,
   X,
   UserCheck,
+  Languages,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language";
 
 type NavItem = {
   href: string;
   label: string;
+  labelJa?: string;
   icon: React.ComponentType<{ className?: string }>;
 };
 
 const rentalCarSubItems: NavItem[] = [
-  { href: "/admin/rental-cars/dashboard", label: "Dashboard", icon: BarChart2 },
-  { href: "/admin/rental-cars", label: "Cars Fleet", icon: Car },
-  { href: "/admin/rental-cars/availability", label: "Availability", icon: CalendarRange },
-  { href: "/admin/rental-cars/reservations", label: "Reservations", icon: ClipboardList },
-  { href: "/admin/rental-cars/maintenance", label: "Maintenance", icon: Wrench },
-  { href: "/admin/rental-cars/addons", label: "Add-ons", icon: Package },
-  { href: "/admin/rental-cars/pricing", label: "Pricing Rules", icon: DollarSign },
-  { href: "/admin/rental-cars/settings", label: "Settings", icon: Settings },
-  { href: "/admin/rental-cars/audit", label: "Audit Logs", icon: Activity },
-  { href: "/admin/rental-cars/partners", label: "Rental Partners", icon: UserCheck },
+  { href: "/admin/rental-cars/dashboard", label: "Dashboard", labelJa: "ダッシュボード", icon: BarChart2 },
+  { href: "/admin/rental-cars", label: "Cars Fleet", labelJa: "車両管理", icon: Car },
+  { href: "/admin/rental-cars/availability", label: "Availability", labelJa: "空車状況", icon: CalendarRange },
+  { href: "/admin/rental-cars/reservations", label: "Reservations", labelJa: "予約", icon: ClipboardList },
+  { href: "/admin/rental-cars/maintenance", label: "Maintenance", labelJa: "整備", icon: Wrench },
+  { href: "/admin/rental-cars/addons", label: "Add-ons", labelJa: "追加オプション", icon: Package },
+  { href: "/admin/rental-cars/pricing", label: "Pricing Rules", labelJa: "料金ルール", icon: DollarSign },
+  { href: "/admin/rental-cars/settings", label: "Settings", labelJa: "設定", icon: Settings },
+  { href: "/admin/rental-cars/audit", label: "Audit Logs", labelJa: "監査ログ", icon: Activity },
+  { href: "/admin/rental-cars/partners", label: "Rental Partners", labelJa: "提携事業者", icon: UserCheck },
 ];
 
 function AdminNavLink({
@@ -71,6 +74,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const isRentalCarSection = location.startsWith("/admin/rental-cars");
   const [rentalCarsOpen, setRentalCarsOpen] = useState(isRentalCarSection);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { language, setLanguage } = useLanguage();
+  const japanese = language === "ja";
+  const t = (english: string, japaneseText: string) => japanese ? japaneseText : english;
 
   useEffect(() => {
     if (isRentalCarSection) setRentalCarsOpen(true);
@@ -94,11 +100,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const closeMobileNav = () => setMobileMenuOpen(false);
   const topNavItems: NavItem[] = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/fleet", label: "Fleet (Legacy)", icon: Car },
-    { href: "/admin/lodging", label: "Lodging", icon: Building2 },
-    { href: "/admin/bookings", label: "Bookings", icon: Calendar },
-    { href: "/admin/content", label: "Page Content", icon: FileText },
+    { href: "/admin/dashboard", label: t("Dashboard", "ダッシュボード"), icon: LayoutDashboard },
+    { href: "/admin/fleet", label: t("Fleet (Legacy)", "旧車両管理"), icon: Car },
+    { href: "/admin/lodging", label: t("Lodging", "宿泊施設"), icon: Building2 },
+    { href: "/admin/bookings", label: t("Bookings", "予約"), icon: Calendar },
+    { href: "/admin/content", label: t("Page Content", "ページ内容"), icon: FileText },
   ];
 
   return (
@@ -147,8 +153,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-5" aria-label="Admin sections">
-          <section aria-label="Workspace">
-            <p className="mb-2 px-2 text-[10px] font-semibold uppercase text-white/55">Workspace</p>
+          <section aria-label={t("Workspace", "ワークスペース")}>
+            <p className="mb-2 px-2 text-[10px] font-semibold uppercase text-white/55">{t("Workspace", "ワークスペース")}</p>
             <div className="space-y-1">
               {topNavItems.map(({ href, label, icon }) => (
                 <AdminNavLink
@@ -163,8 +169,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
           </section>
 
-          <section aria-label="Rental operations">
-            <p className="mb-2 px-2 text-[10px] font-semibold uppercase text-white/55">Rental operations</p>
+          <section aria-label={t("Rental operations", "レンタカー運営")}>
+            <p className="mb-2 px-2 text-[10px] font-semibold uppercase text-white/55">{t("Rental operations", "レンタカー運営")}</p>
             <button
               type="button"
               className={cn(
@@ -176,7 +182,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               onClick={() => setRentalCarsOpen((open) => !open)}
             >
               <Car aria-hidden="true" className="h-4 w-4 shrink-0" />
-              <span className="min-w-0 flex-1 truncate">Rental Cars</span>
+              <span className="min-w-0 flex-1 truncate">{t("Rental Cars", "レンタカー")}</span>
               {rentalCarsOpen
                 ? <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0" />
                 : <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0" />}
@@ -184,7 +190,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
             {rentalCarsOpen && (
               <div id="admin-rental-nav" className="ml-3 mt-1 space-y-1 border-l border-white/15 pl-2">
-                {rentalCarSubItems.map(({ href, label, icon }) => {
+                {rentalCarSubItems.map(({ href, label, labelJa, icon }) => {
                   const active = href === "/admin/rental-cars"
                     ? location === href || location.startsWith(`${href}/new`) || Boolean(location.match(/\/admin\/rental-cars\/\d+\/edit/))
                     : location.startsWith(href);
@@ -192,7 +198,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     <AdminNavLink
                       key={href}
                       href={href}
-                      label={label}
+                      label={japanese ? labelJa ?? label : label}
                       icon={icon}
                       active={active}
                       nested
@@ -206,6 +212,16 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="shrink-0 border-t border-white/10 p-3">
+          <div className="mb-2 flex items-center gap-2 rounded-md bg-white/5 p-1" aria-label={t("Admin language", "管理画面の言語")}>
+            <Languages aria-hidden="true" className="ml-2 h-4 w-4 text-white/60" />
+            {(["en", "ja"] as const).map((option) => (
+              <button key={option} type="button" onClick={() => setLanguage(option)}
+                className={cn("flex-1 rounded px-2 py-1.5 text-xs font-semibold transition-colors", (japanese ? "ja" : "en") === option ? "bg-white text-slate-950" : "text-white/70 hover:bg-white/10 hover:text-white")}
+                aria-pressed={(japanese ? "ja" : "en") === option}>
+                {option === "en" ? "English" : "日本語"}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             data-testid="button-admin-logout"
@@ -214,7 +230,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             onClick={() => logout.mutate(undefined, { onSuccess: () => setLocation("/") })}
           >
             <LogOut aria-hidden="true" className="h-4 w-4 shrink-0" />
-            <span>{logout.isPending ? "Logging out…" : "Log out"}</span>
+            <span>{logout.isPending ? t("Logging out…", "ログアウト中…") : t("Log out", "ログアウト")}</span>
           </button>
         </div>
       </aside>

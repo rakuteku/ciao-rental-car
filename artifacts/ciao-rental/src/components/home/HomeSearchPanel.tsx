@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
 import { CalendarDays, MapPin, Search, Users } from "lucide-react";
-import { LOCATIONS } from "@/lib/constants";
 import { localizedPath, type Language } from "@/lib/language";
+import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 import { tokyoInstant, tokyoParts } from "@/lib/rental-marketplace";
 
 const copy = {
@@ -47,12 +47,14 @@ const nextTokyoDate = (date: string) => {
 
 export function HomeSearchPanel({ language }: { language: Language }) {
   const [, setLocation] = useLocation();
+  const { data: configuredLocations } = useRentalLocations();
+  const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
   const labels = copy[language];
   const today = todayInTokyo();
   const tomorrow = nextTokyoDate(today);
   const [pickupDate, setPickupDate] = useState(today);
   const [returnDate, setReturnDate] = useState(tomorrow > today ? tomorrow : today);
-  const [pickupLocation, setPickupLocation] = useState(LOCATIONS[0]);
+  const [pickupLocation, setPickupLocation] = useState(DEFAULT_RENTAL_LOCATIONS[0].value);
   const [adults, setAdults] = useState("2");
   const [error, setError] = useState("");
 
@@ -144,7 +146,9 @@ export function HomeSearchPanel({ language }: { language: Language }) {
             onChange={(event) => setPickupLocation(event.target.value)}
             className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-foreground outline-none focus-visible:ring-0"
           >
-            {LOCATIONS.map((location) => <option key={location} value={location}>{location}</option>)}
+            {locations.map((location) => (
+              <option key={location.value} value={location.value}>{rentalLocationLabel(location.value, locations, language)}</option>
+            ))}
           </select>
         </label>
         <label className="min-w-0 rounded-md border border-border bg-background px-3 py-2.5">

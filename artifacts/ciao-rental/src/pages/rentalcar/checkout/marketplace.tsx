@@ -13,6 +13,7 @@ import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
 import { useLanguage, localizedPath } from "@/lib/language";
 import { localizeVehicle, localizeAddon } from "@/lib/rental-localization";
 import { captureRentalAttribution, createRentalRequest, formatTokyo } from "@/lib/rental-marketplace";
+import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 
 const schema = z.object({
   fullName: z.string().trim().min(2),
@@ -28,6 +29,9 @@ type Driver = z.infer<typeof schema>;
 export function MarketplaceCheckout() {
   const { language } = useLanguage();
   const ja = language === "ja";
+  const { data: configuredLocations } = useRentalLocations();
+  const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
+  const locationLabel = (value: string) => rentalLocationLabel(value, locations, language);
   const { draft, updateDraft, clearDraft } = useCheckoutDraft();
   const [, navigate] = useLocation();
   const [extra, setExtra] = useState({ fullName: "", email: "", phone: "" });
@@ -124,8 +128,8 @@ export function MarketplaceCheckout() {
             <p className="marketplace-kicker">02 / {ja ? "旅程" : "YOUR TRIP"}</p>
             <h2 className="mt-2 mb-4 text-2xl">{ja ? "お迎えとご返却" : "Pickup & return"}</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="border-l-2 border-[#b5593d] pl-4"><p className="text-xs uppercase tracking-wide text-slate-500">{ja ? "貸出" : "Pickup"}</p><p className="mt-2 font-medium">{formatTokyo(draft.pickupAt, language)}</p><p className="text-sm text-slate-600">{draft.pickupLocation}</p></div>
-              <div className="border-l-2 border-[#b5593d] pl-4"><p className="text-xs uppercase tracking-wide text-slate-500">{ja ? "返却" : "Return"}</p><p className="mt-2 font-medium">{formatTokyo(draft.returnAt, language)}</p><p className="text-sm text-slate-600">{draft.returnLocation}</p></div>
+              <div className="border-l-2 border-[#b5593d] pl-4"><p className="text-xs uppercase tracking-wide text-slate-500">{ja ? "貸出" : "Pickup"}</p><p className="mt-2 font-medium">{formatTokyo(draft.pickupAt, language)}</p><p className="text-sm text-slate-600">{locationLabel(draft.pickupLocation)}</p></div>
+              <div className="border-l-2 border-[#b5593d] pl-4"><p className="text-xs uppercase tracking-wide text-slate-500">{ja ? "返却" : "Return"}</p><p className="mt-2 font-medium">{formatTokyo(draft.returnAt, language)}</p><p className="text-sm text-slate-600">{locationLabel(draft.returnLocation)}</p></div>
             </div>
             <label htmlFor="travel-notes" className="mt-7 block text-sm font-semibold">{ja ? "旅程メモ（任意）" : "Travel notes (optional)"}</label>
             <textarea id="travel-notes" data-testid="input-travel-notes" maxLength={2000} value={notes} onChange={e => setNotes(e.target.value)} className="mt-2 min-h-28 w-full rounded-sm border border-[#dcded8] bg-[#fffdf8] p-3 text-sm" placeholder={ja ? "便名、スキー用荷物、お迎えのご希望など" : "Flight details, ski equipment, pickup questions or accessibility needs"} />

@@ -20,6 +20,7 @@ import { MarketplaceCheckout } from "./marketplace";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeAddon, localizeVehicle, rentalCopy } from "@/lib/rental-localization";
+import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 import {
   useGetRentalAddons,
   useGetRentalVehicle,
@@ -57,6 +58,9 @@ function LegacyCheckout() {
   const { toast } = useToast();
   const { language } = useLanguage();
   const copy = rentalCopy(language);
+  const { data: configuredLocations } = useRentalLocations();
+  const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
+  const locationLabel = (value: string) => rentalLocationLabel(value, locations, language);
   useInlineSeoMeta({
     metaTitle: "Checkout | CIAO Rental Car Sapporo",
     metaDescription: "Review your CIAO Sapporo rental car booking, driver details, add-ons, and pickup information.",
@@ -321,14 +325,14 @@ function LegacyCheckout() {
                     <CardContent className="p-6 space-y-2">
                       <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Pickup</div>
                       <div className="font-bold text-lg">{format(new Date(draft.pickupAt), "MMM d, yyyy")}</div>
-                      <div className="text-sm text-muted-foreground">{draft.pickupLocation}</div>
+                      <div className="text-sm text-muted-foreground">{locationLabel(draft.pickupLocation)}</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-6 space-y-2">
                       <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Return</div>
                       <div className="font-bold text-lg">{format(new Date(draft.returnAt), "MMM d, yyyy")}</div>
-                      <div className="text-sm text-muted-foreground">{draft.returnLocation}</div>
+                      <div className="text-sm text-muted-foreground">{locationLabel(draft.returnLocation)}</div>
                     </CardContent>
                   </Card>
                 </div>
@@ -558,12 +562,12 @@ function LegacyCheckout() {
                           <div>
                             <span className="text-muted-foreground block text-xs">Pickup</span>
                             <span className="font-medium">{format(new Date(draft.pickupAt), "MMM d, yyyy")}</span><br/>
-                            <span className="text-xs text-muted-foreground">{draft.pickupLocation}</span>
+                            <span className="text-xs text-muted-foreground">{locationLabel(draft.pickupLocation)}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground block text-xs">Return</span>
                             <span className="font-medium">{format(new Date(draft.returnAt), "MMM d, yyyy")}</span><br/>
-                            <span className="text-xs text-muted-foreground">{draft.returnLocation}</span>
+                            <span className="text-xs text-muted-foreground">{locationLabel(draft.returnLocation)}</span>
                           </div>
                         </div>
                       </div>

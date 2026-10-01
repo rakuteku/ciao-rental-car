@@ -43,7 +43,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setLanguage = (nextLanguage: Language) => {
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
     const currentPath = `${stripLanguagePrefix(window.location.pathname)}${window.location.search}${window.location.hash}`;
-    const nextPath = localizedPath(currentPath, nextLanguage);
+    const nextPath = currentPath.startsWith("/admin") ? currentPath : localizedPath(currentPath, nextLanguage);
     if (nextPath !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
       window.history.pushState({}, "", nextPath);
       window.dispatchEvent(new PopStateEvent("popstate"));

@@ -23,7 +23,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { LOCATIONS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
 import { readSelectedRoom } from "@/hooks/use-checkout-draft";
@@ -33,6 +32,7 @@ import { localizeAddon, localizeVehicle, rentalCopy } from "@/lib/rental-localiz
 import { captureRentalAttribution, formatTokyo, tokyoInstant, tokyoParts } from "@/lib/rental-marketplace";
 import { useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
 import { MarketplaceTerms } from "@/components/rental/MarketplaceTerms";
+import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 
 const bookingSchema = z.object({
   pickupLocation: z.string({ required_error: "Pickup location is required" }),
@@ -53,6 +53,8 @@ export function CarDetailPage() {
   const { language } = useLanguage();
   const marketplace = useRentalMarketplaceConfig();
   const copy = rentalCopy(language);
+  const { data: configuredLocations } = useRentalLocations();
+  const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
 
   const { data: car, isLoading } = useGetRentalVehicle(slug, {
     query: { enabled: !!slug, queryKey: getGetRentalVehicleQueryKey(slug) }
@@ -72,8 +74,8 @@ export function CarDetailPage() {
   const form = useForm<z.infer<typeof bookingSchema>>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      pickupLocation: searchParams.get("pickupLocation") || LOCATIONS[0],
-      returnLocation: searchParams.get("returnLocation") || LOCATIONS[0],
+      pickupLocation: searchParams.get("pickupLocation") || DEFAULT_RENTAL_LOCATIONS[0].value,
+      returnLocation: searchParams.get("returnLocation") || DEFAULT_RENTAL_LOCATIONS[0].value,
       pickupDate: defaultPickupDate,
       returnDate: defaultReturnDate,
     },
@@ -345,8 +347,8 @@ export function CarDetailPage() {
                                 <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                 {(car.pickupLocations?.length ? car.pickupLocations : LOCATIONS).map(loc => (
-                                  <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                                 {(car.pickupLocations?.length ? car.pickupLocations : locations.map(location => location.value)).map(loc => (
+                                  <SelectItem key={loc} value={loc}>{rentalLocationLabel(loc, locations, language)}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -366,8 +368,8 @@ export function CarDetailPage() {
                                 <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                 {(car.returnLocations?.length ? car.returnLocations : LOCATIONS).map(loc => (
-                                  <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                                 {(car.returnLocations?.length ? car.returnLocations : locations.map(location => location.value)).map(loc => (
+                                  <SelectItem key={loc} value={loc}>{rentalLocationLabel(loc, locations, language)}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>

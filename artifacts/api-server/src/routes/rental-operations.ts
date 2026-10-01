@@ -154,7 +154,23 @@ const DEFAULT_SETTINGS = {
   pickupLocations: [{ name: "CIAO Sapporo", address: "Wayado Sapporo Ciao, Sapporo", isAirport: false, deliveryFee: 0, afterHours: false, businessHours: "09:00–18:00" }],
   cancellationPolicy: [{ daysBefore: 7, refundPercent: 100 }, { daysBefore: 3, refundPercent: 50 }, { daysBefore: 0, refundPercent: 0 }],
   requiredDocuments: ["drivers_license", "passport"],
+  bookingLocations: [
+    { value: "Sapporo Station", labelEn: "Sapporo Station", labelJa: "札幌駅", labelZhTw: "札幌站" },
+    { value: "New Chitose Airport", labelEn: "New Chitose Airport", labelJa: "新千歳空港", labelZhTw: "新千歲機場" },
+    { value: "Sapporo City Center", labelEn: "Sapporo City Center", labelJa: "札幌市中心部", labelZhTw: "札幌市中心" },
+  ],
 };
+
+router.get("/rental/locations", async (_req, res): Promise<void> => {
+  const [stored] = await db.select().from(rentalSettingsTable).where(eq(rentalSettingsTable.key, "bookingLocations"));
+  if (!stored?.value) return void res.json({ locations: DEFAULT_SETTINGS.bookingLocations });
+  try {
+    const locations = JSON.parse(stored.value);
+    res.json({ locations: Array.isArray(locations) && locations.length ? locations : DEFAULT_SETTINGS.bookingLocations });
+  } catch {
+    res.json({ locations: DEFAULT_SETTINGS.bookingLocations });
+  }
+});
 
 router.get("/admin/rental/settings", requireAdminAuth, async (_req, res): Promise<void> => {
   const rows = await db.select().from(rentalSettingsTable);

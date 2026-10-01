@@ -14,13 +14,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { LOCATIONS } from "@/lib/constants";
 import { useGetPageContent, useGetRentalAddons, useGetRentalVehicles } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeContent, localizedPath, useLanguage } from "@/lib/language";
 import { localizeAddon, rentalCopy } from "@/lib/rental-localization";
 import { captureRentalAttribution, tokyoInstant, tokyoParts } from "@/lib/rental-marketplace";
+import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 
 interface PricingRow {
   label: string;
@@ -42,6 +42,12 @@ interface RentalCarContent {
   addOns?: Array<{ name: string; description: string; price: string }>;
   importantNotes: string[];
 }
+
+const SEARCH_COPY = {
+  en: { pickupDate: "Pickup Date", returnDate: "Return Date", pickupLocation: "Pickup Location", returnLocation: "Return Location", pickupTime: "Pickup Time", returnTime: "Return Time", pickDate: "Pick a date", selectLocation: "Select location", adults: "Adults", children: "Children", babies: "Babies", largeLuggage: "Large luggage", smallLuggage: "Small luggage", optionalFilters: "Optional filters", vehicleClass: "Vehicle class", anyClass: "Any class", searchVehicles: "Search Vehicles", minDailyPrice: "Minimum daily price", maxDailyPrice: "Maximum daily price", priceRangeTo: "to", perDay: "/day", compact: "Compact", suv: "SUV", minivan: "Minivan", fourWheelDrive: "4WD", winterTires: "Winter tires", childSeat: "Child seat", airportDelivery: "Airport delivery", skiLuggage: "Ski luggage", passengersLuggage: "Passengers & luggage", dailyPrice: "Daily price", timeNote: "Dates and times are Japan Standard Time (Asia/Tokyo). Airport and hotel delivery require operator confirmation.", returnAfterPickup: "Return must be after pickup" },
+  ja: { pickupDate: "受取日", returnDate: "返却日", pickupLocation: "受取場所", returnLocation: "返却場所", pickupTime: "受取時間", returnTime: "返却時間", pickDate: "日付を選択", selectLocation: "場所を選択", adults: "大人", children: "子ども", babies: "乳幼児", largeLuggage: "大型荷物", smallLuggage: "小型荷物", optionalFilters: "詳細条件", vehicleClass: "車両クラス", anyClass: "すべてのクラス", searchVehicles: "空車を検索", minDailyPrice: "最低日額料金", maxDailyPrice: "最高日額料金", priceRangeTo: "から", perDay: "/日", compact: "コンパクト", suv: "SUV", minivan: "ミニバン", fourWheelDrive: "4WD", winterTires: "冬用タイヤ", childSeat: "チャイルドシート", airportDelivery: "空港配車", skiLuggage: "スキー用荷物", passengersLuggage: "乗車人数・荷物", dailyPrice: "日額料金", timeNote: "日時は日本標準時（Asia/Tokyo）で指定します。空港・ホテルへの配車は事業者の確認が必要です。", returnAfterPickup: "返却日時は受取日時より後にしてください" },
+  "zh-CN": { pickupDate: "取車日期", returnDate: "還車日期", pickupLocation: "取車地點", returnLocation: "還車地點", pickupTime: "取車時間", returnTime: "還車時間", pickDate: "選擇日期", selectLocation: "選擇地點", adults: "成人", children: "兒童", babies: "嬰幼兒", largeLuggage: "大型行李", smallLuggage: "小型行李", optionalFilters: "更多條件", vehicleClass: "車輛類別", anyClass: "所有類別", searchVehicles: "搜尋車輛", minDailyPrice: "最低每日價格", maxDailyPrice: "最高每日價格", priceRangeTo: "至", perDay: "/天", compact: "小型車", suv: "SUV", minivan: "廂型車", fourWheelDrive: "四輪驅動", winterTires: "冬季輪胎", childSeat: "兒童座椅", airportDelivery: "機場送車", skiLuggage: "滑雪行李", passengersLuggage: "乘客與行李", dailyPrice: "每日價格", timeNote: "日期與時間均為日本標準時間（Asia/Tokyo）。機場與飯店送車須由租車業者確認。", returnAfterPickup: "還車時間必須晚於取車時間" },
+} as const;
 
 const searchSchema = z.object({
   pickupLocation: z.string({ required_error: "Please select a pickup location" }),
@@ -72,15 +78,22 @@ export function RentalCarHome() {
   const [, setLocation] = useLocation();
   const { data: vehicles, isLoading } = useGetRentalVehicles();
   const { data: addons } = useGetRentalAddons();
+  const { data: configuredLocations } = useRentalLocations();
+  const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
   const { data: contentData } = useGetPageContent("rentalcar");
   const content = contentData ? localizeContent(contentData.content.en as unknown as RentalCarContent, contentData.content, language) : undefined;
+  const rawLanguageContent = contentData?.content?.[language] as { search?: Record<string, string> } | undefined;
+  const search = { ...SEARCH_COPY[language] } as Record<string, string>;
+  Object.entries(language === "en" ? content?.search ?? {} : rawLanguageContent?.search ?? {}).forEach(([key, value]) => {
+    if (typeof value === "string" && value.trim()) search[key] = value;
+  });
   useSeoMeta("rentalcar");
 
   const form = useForm<z.infer<typeof searchSchema>>({
     resolver: zodResolver(searchSchema),
     defaultValues: {
-      pickupLocation: LOCATIONS[0],
-      returnLocation: LOCATIONS[0],
+      pickupLocation: DEFAULT_RENTAL_LOCATIONS[0].value,
+      returnLocation: DEFAULT_RENTAL_LOCATIONS[0].value,
       pickupTime: "10:00",
       returnTime: "10:00",
       adults: 2,
@@ -98,7 +111,7 @@ export function RentalCarHome() {
     const pickupAt = tokyoInstant(format(data.pickupDate, "yyyy-MM-dd"), data.pickupTime);
     const returnAt = tokyoInstant(format(data.returnDate, "yyyy-MM-dd"), data.returnTime);
     if (returnAt <= pickupAt) {
-      form.setError("returnDate", { message: "Return must be after pickup" });
+      form.setError("returnDate", { message: search.returnAfterPickup });
       return;
     }
     const params = new URLSearchParams({
@@ -158,7 +171,7 @@ export function RentalCarHome() {
                   name="pickupDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>{content?.search.pickupDate ?? "Pickup Date"}</FormLabel>
+                      <FormLabel>{search.pickupDate}</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -167,7 +180,7 @@ export function RentalCarHome() {
                               data-testid="button-pickup-date"
                               className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}
                             >
-                               {field.value ? format(field.value, "MMM d, yyyy") : <span>{content?.search.pickDate ?? "Pick a date"}</span>}
+                               {field.value ? format(field.value, "MMM d, yyyy") : <span>{search.pickDate}</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -192,16 +205,16 @@ export function RentalCarHome() {
                   name="pickupLocation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{content?.search.pickupLocation ?? "Pickup Location"}</FormLabel>
+                      <FormLabel>{search.pickupLocation}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-pickup-location" className="h-11 md:h-10">
-                             <SelectValue placeholder={content?.search.selectLocation ?? "Select location"} />
+                             <SelectValue placeholder={search.selectLocation} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {LOCATIONS.map(loc => (
-                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                          {locations.map(loc => (
+                            <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -215,7 +228,7 @@ export function RentalCarHome() {
                   name="returnDate"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>{content?.search.returnDate ?? "Return Date"}</FormLabel>
+                      <FormLabel>{search.returnDate}</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -224,7 +237,7 @@ export function RentalCarHome() {
                               data-testid="button-return-date"
                               className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}
                             >
-                               {field.value ? format(field.value, "MMM d, yyyy") : <span>{content?.search.pickDate ?? "Pick a date"}</span>}
+                               {field.value ? format(field.value, "MMM d, yyyy") : <span>{search.pickDate}</span>}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
@@ -249,16 +262,16 @@ export function RentalCarHome() {
                   name="returnLocation"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{content?.search.returnLocation ?? "Return Location"}</FormLabel>
+                      <FormLabel>{search.returnLocation}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-return-location" className="h-11 md:h-10">
-                             <SelectValue placeholder={content?.search.selectLocation ?? "Select location"} />
+                             <SelectValue placeholder={search.selectLocation} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {LOCATIONS.map(loc => (
-                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                          {locations.map(loc => (
+                            <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -271,7 +284,7 @@ export function RentalCarHome() {
                   name="pickupTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{content?.search.pickupTime ?? "Pickup Time"}</FormLabel>
+                      <FormLabel>{search.pickupTime}</FormLabel>
                       <FormControl><Input type="time" className="h-11 md:h-10" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -282,7 +295,7 @@ export function RentalCarHome() {
                   name="returnTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{content?.search.returnTime ?? "Return Time"}</FormLabel>
+                      <FormLabel>{search.returnTime}</FormLabel>
                       <FormControl><Input type="time" className="h-11 md:h-10" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -290,15 +303,15 @@ export function RentalCarHome() {
                 />
                 <details className="col-span-2 border-t pt-3 lg:col-span-5">
                   <summary className="cursor-pointer text-xs font-semibold text-foreground">
-                    {language === "ja" ? "乗車人数・荷物" : language === "zh-CN" ? "乘客與行李" : "Passengers & luggage"}
+                    {search.passengersLuggage}
                   </summary>
                   <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-5">
                   {([
-                     ["adults", content?.search.adults ?? "Adults", 1],
-                     ["children", content?.search.children ?? "Children", 0],
-                     ["babies", content?.search.babies ?? "Babies", 0],
-                     ["luggageLarge", content?.search.largeLuggage ?? "Large luggage", 0],
-                     ["luggageSmall", content?.search.smallLuggage ?? "Small luggage", 0],
+                     ["adults", search.adults, 1],
+                     ["children", search.children, 0],
+                     ["babies", search.babies, 0],
+                     ["luggageLarge", search.largeLuggage, 0],
+                     ["luggageSmall", search.smallLuggage, 0],
                   ] as const).map(([name, label, min]) => (
                     <FormField key={name} control={form.control} name={name} render={({ field }) => (
                       <FormItem>
@@ -313,40 +326,40 @@ export function RentalCarHome() {
                 </details>
                 <details className="col-span-2 border-t pt-3 lg:col-span-5">
                   <summary className="cursor-pointer text-xs font-semibold text-foreground">
-                    {content?.search.optionalFilters ?? "Optional filters"}
+                    {search.optionalFilters}
                   </summary>
                   <div className="mt-3 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{language === "ja" ? "日額料金" : language === "zh-CN" ? "每日價格" : "Daily price"}</p>
+                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{search.dailyPrice}</p>
                     <div className="flex items-center gap-2 text-xs">
                       <span>¥</span>
-                      <FormField control={form.control} name="minPrice" render={({ field }) => <FormItem><FormControl><Input aria-label={content?.search.minDailyPrice ?? "Minimum daily price"} className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
-                       <span>{content?.search.priceRangeTo ?? "to"}</span>
-                      <FormField control={form.control} name="maxPrice" render={({ field }) => <FormItem><FormControl><Input aria-label={content?.search.maxDailyPrice ?? "Maximum daily price"} className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
-                       <span>{content?.search.perDay ?? "/day"}</span>
+                      <FormField control={form.control} name="minPrice" render={({ field }) => <FormItem><FormControl><Input aria-label={search.minDailyPrice} className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
+                       <span>{search.priceRangeTo}</span>
+                      <FormField control={form.control} name="maxPrice" render={({ field }) => <FormItem><FormControl><Input aria-label={search.maxDailyPrice} className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
+                       <span>{search.perDay}</span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     <FormField control={form.control} name="vehicleClass" render={({ field }) => (
                       <FormItem>
-                         <FormLabel className="text-xs">{content?.search.vehicleClass ?? "Vehicle class"}</FormLabel>
+                         <FormLabel className="text-xs">{search.vehicleClass}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
-                           <FormControl><SelectTrigger className="h-11 md:h-9"><SelectValue placeholder={content?.search.anyClass ?? "Any"} /></SelectTrigger></FormControl>
+                           <FormControl><SelectTrigger className="h-11 md:h-9"><SelectValue placeholder={search.anyClass} /></SelectTrigger></FormControl>
                           <SelectContent>
-                             <SelectItem value="any">{content?.search.anyClass ?? "Any class"}</SelectItem>
-                            <SelectItem value="compact">{content?.search.compact ?? "Compact"}</SelectItem>
-                             <SelectItem value="suv">{content?.search.suv ?? "SUV"}</SelectItem>
-                             <SelectItem value="minivan">{content?.search.minivan ?? "Minivan"}</SelectItem>
+                             <SelectItem value="any">{search.anyClass}</SelectItem>
+                            <SelectItem value="compact">{search.compact}</SelectItem>
+                             <SelectItem value="suv">{search.suv}</SelectItem>
+                             <SelectItem value="minivan">{search.minivan}</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormItem>
                     )} />
                     {([
-                       ["has4wd", content?.search.fourWheelDrive ?? "4WD"],
-                       ["winterTires", content?.search.winterTires ?? "Winter tires"],
-                       ["childSeat", content?.search.childSeat ?? "Child seat"],
-                       ["airportDelivery", content?.search.airportDelivery ?? "Airport delivery"],
-                       ["skiLuggage", content?.search.skiLuggage ?? "Ski luggage"],
+                       ["has4wd", search.fourWheelDrive],
+                       ["winterTires", search.winterTires],
+                       ["childSeat", search.childSeat],
+                       ["airportDelivery", search.airportDelivery],
+                       ["skiLuggage", search.skiLuggage],
                     ] as const).map(([name, label]) => (
                       <FormField key={name} control={form.control} name={name} render={({ field }) => (
                         <FormItem className="flex flex-row items-center gap-2 space-y-0 pt-6">
@@ -358,8 +371,8 @@ export function RentalCarHome() {
                   </div>
                   </div>
                 </details>
-                 <p className="col-span-2 text-xs text-muted-foreground lg:col-span-5">{language === "ja" ? "日時は日本標準時（Asia/Tokyo）で指定します。空港・ホテルへの配車は事業者の確認が必要です。" : language === "zh-CN" ? "日期與時間均為日本標準時間（Asia/Tokyo）。機場與飯店送車須由租車業者確認。" : "Dates and times are Japan Standard Time (Asia/Tokyo). Airport and hotel delivery require operator confirmation."}</p>
-                 <Button type="submit" data-testid="button-search" className="col-span-2 w-full lg:col-span-5" size="lg">{content?.search.searchVehicles ?? "Search Vehicles"}</Button>
+                 <p className="col-span-2 text-xs text-muted-foreground lg:col-span-5">{search.timeNote}</p>
+                 <Button type="submit" data-testid="button-search" className="col-span-2 w-full lg:col-span-5" size="lg">{search.searchVehicles}</Button>
               </form>
             </Form>
           </Card>
