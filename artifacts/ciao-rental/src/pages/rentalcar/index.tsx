@@ -128,30 +128,30 @@ export function RentalCarHome() {
   return (
     <div className="flex flex-col min-h-[100dvh]">
       {/* Hero Section */}
-      <section className="relative w-full min-h-[92vh] flex items-end overflow-hidden">
+      <section className="relative flex min-h-[720px] w-full items-center overflow-hidden sm:min-h-[760px] lg:min-h-[calc(100svh-8rem)]">
         <div className="absolute inset-0">
           <img
             src="/hero-sapporo.png"
             alt={content?.search.roadImageAlt ?? "Sapporo winter road"}
             className="w-full h-full object-cover object-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/10" />
+          <div className="absolute inset-0 bg-foreground/65" />
         </div>
-        <div className="relative z-10 w-full pb-16 pt-32">
-          <div className="container space-y-10">
-            <div className="max-w-2xl space-y-4">
-              <p className="text-xs tracking-[0.3em] uppercase text-white/60 font-medium">{content?.hero.eyebrow ?? "Sapporo · Hokkaido"}</p>
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold tracking-tight text-white leading-[1.05]">
+        <div className="relative z-10 w-full py-12 sm:py-16">
+          <div className="container space-y-7">
+            <div className="mx-auto max-w-4xl space-y-4 text-center">
+              <p className="eyebrow text-white/80">{content?.hero.eyebrow ?? "Sapporo · Hokkaido"}</p>
+              <h1 className="mx-auto max-w-3xl font-serif text-4xl font-semibold leading-[1.05] text-white sm:text-5xl lg:text-6xl">
                 {content?.hero.title ?? "Rent a Car in Sapporo with Ease"}
               </h1>
-              <p className="text-base md:text-lg text-white/70 max-w-xl leading-relaxed">
+              <p className="mx-auto max-w-2xl text-sm leading-7 text-white/85 sm:text-base sm:leading-8">
                 {content?.hero.subtitle ?? "Premium vehicles, flexible pickup, fully insured options."}
               </p>
             </div>
 
-          <Card className="max-w-5xl p-5 bg-white/98 text-foreground border border-white/20 shadow-2xl rounded-sm">
+          <Card className="mx-auto max-w-5xl border border-white/70 bg-background/95 p-4 text-foreground shadow-xl sm:p-5">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 items-end gap-3 sm:gap-4 lg:grid-cols-5">
                 {/* 1. Pickup Date */}
                 <FormField
                   control={form.control}
@@ -288,7 +288,11 @@ export function RentalCarHome() {
                     </FormItem>
                   )}
                 />
-                <div className="sm:col-span-2 lg:col-span-5 grid grid-cols-2 md:grid-cols-5 gap-3 border-t pt-4">
+                <details className="col-span-2 border-t pt-3 lg:col-span-5">
+                  <summary className="cursor-pointer text-xs font-semibold text-foreground">
+                    {language === "ja" ? "乗車人数・荷物" : language === "zh-CN" ? "乘客與行李" : "Passengers & luggage"}
+                  </summary>
+                  <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-5">
                   {([
                      ["adults", content?.search.adults ?? "Adults", 1],
                      ["children", content?.search.children ?? "Children", 0],
@@ -305,10 +309,15 @@ export function RentalCarHome() {
                       </FormItem>
                     )} />
                   ))}
-                </div>
-                <div className="sm:col-span-2 lg:col-span-5 border-t pt-4 space-y-3">
+                  </div>
+                </details>
+                <details className="col-span-2 border-t pt-3 lg:col-span-5">
+                  <summary className="cursor-pointer text-xs font-semibold text-foreground">
+                    {content?.search.optionalFilters ?? "Optional filters"}
+                  </summary>
+                  <div className="mt-3 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{content?.search.optionalFilters ?? "Optional filters"}</p>
+                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{language === "ja" ? "日額料金" : language === "zh-CN" ? "每日價格" : "Daily price"}</p>
                     <div className="flex items-center gap-2 text-xs">
                       <span>¥</span>
                       <FormField control={form.control} name="minPrice" render={({ field }) => <FormItem><FormControl><Input aria-label={content?.search.minDailyPrice ?? "Minimum daily price"} className="w-24 h-11 md:h-9" type="number" min={0} value={field.value} onChange={(event) => field.onChange(Number(event.target.value))} /></FormControl></FormItem>} />
@@ -347,9 +356,10 @@ export function RentalCarHome() {
                       )} />
                     ))}
                   </div>
-                </div>
-                 <p className="sm:col-span-2 lg:col-span-5 text-xs text-muted-foreground">{language === "ja" ? "日時は日本標準時（Asia/Tokyo）で指定します。空港・ホテルへの配車は事業者の確認が必要です。" : "Dates and times are Japan Standard Time (Asia/Tokyo). Airport and hotel delivery require operator confirmation."}</p>
-                 <Button type="submit" data-testid="button-search" className="w-full sm:col-span-2 lg:col-span-5" size="lg">{content?.search.searchVehicles ?? "Search Vehicles"}</Button>
+                  </div>
+                </details>
+                 <p className="col-span-2 text-xs text-muted-foreground lg:col-span-5">{language === "ja" ? "日時は日本標準時（Asia/Tokyo）で指定します。空港・ホテルへの配車は事業者の確認が必要です。" : language === "zh-CN" ? "日期與時間均為日本標準時間（Asia/Tokyo）。機場與飯店送車須由租車業者確認。" : "Dates and times are Japan Standard Time (Asia/Tokyo). Airport and hotel delivery require operator confirmation."}</p>
+                 <Button type="submit" data-testid="button-search" className="col-span-2 w-full lg:col-span-5" size="lg">{content?.search.searchVehicles ?? "Search Vehicles"}</Button>
               </form>
             </Form>
           </Card>

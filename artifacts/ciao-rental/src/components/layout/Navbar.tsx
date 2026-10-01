@@ -2,8 +2,14 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useAdminMe, useAdminLogout, getAdminMeQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { ArrowUpRight, Menu, X } from "lucide-react";
 import { localizedPath, useLanguage } from "@/lib/language";
+
+const languageLabels = {
+  en: { lodging: "Lodging", cars: "Rental cars", bookings: "My bookings", language: "Language", admin: "Admin", logout: "Log out" },
+  ja: { lodging: "宿泊", cars: "レンタカー", bookings: "予約の確認", language: "言語", admin: "管理", logout: "ログアウト" },
+  "zh-CN": { lodging: "住宿", cars: "租车", bookings: "我的预订", language: "语言", admin: "管理", logout: "退出" },
+} as const;
 
 export function Navbar() {
   const { data: admin } = useAdminMe({ query: { retry: false, queryKey: getAdminMeQueryKey() } });
@@ -11,125 +17,131 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
   const localizedHref = (path: string) => localizedPath(path, language);
+  const labels = languageLabels[language];
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const toggleMenu = () => setIsMenuOpen((open) => !open);
   const closeMenu = () => setIsMenuOpen(false);
+  const changeLanguage = (nextLanguage: typeof language) => {
+    setLanguage(nextLanguage);
+    closeMenu();
+  };
+  const languageOptions = (mobile = false) => (
+    <div className="inline-flex items-center gap-0.5 rounded-full border border-border/70 bg-background/70 p-1" role="group" aria-label="Website language">
+      {(["en", "ja", "zh-CN"] as const).map((item) => (
+        <button
+          key={item}
+          type="button"
+          data-testid={`${mobile ? "button-mobile-" : "button-"}language-${item}`}
+          onClick={() => changeLanguage(item)}
+          aria-pressed={language === item}
+          className={`min-h-8 rounded-full px-3 text-[10px] font-semibold tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+            language === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {item === "en" ? "EN" : item === "ja" ? "JP" : "中文"}
+        </button>
+      ))}
+    </div>
+  );
+  const logoutFromAdmin = () => logout.mutate(undefined, { onSuccess: () => { window.location.href = "/"; } });
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-border/60">
-      <div className="container flex h-14 md:h-16 items-center justify-between px-4 sm:px-6">
-        <Link href={localizedHref("/")} className="flex items-center gap-2.5 z-50 relative" onClick={closeMenu}>
-          <span className="text-lg md:text-xl font-bold font-serif tracking-widest uppercase">Ciao</span>
-          <span className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden sm:inline-block pt-0.5">Sapporo · Hokkaido</span>
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/90 backdrop-blur-xl">
+      <div className="container flex h-[4.5rem] items-center justify-between gap-4">
+        <Link href={localizedHref("/")} className="group relative z-50 flex shrink-0 items-center gap-3" onClick={closeMenu} aria-label="CIAO Sapporo home">
+          <span className="font-serif text-[1.35rem] font-semibold tracking-[0.17em]">CIAO</span>
+          <span className="hidden h-7 w-px bg-border sm:block" aria-hidden="true" />
+          <span className="hidden text-[9px] font-medium uppercase leading-[1.5] tracking-[0.19em] text-muted-foreground sm:block">Sapporo<br />Hokkaido</span>
         </Link>
 
-        {/* Mobile Menu Toggle */}
-        <button 
-          className="md:hidden flex items-center justify-center p-2 -mr-2 z-50 relative text-foreground"
+        <button
+          type="button"
+          className="relative z-50 inline-flex size-11 items-center justify-center rounded-full border border-border/70 text-foreground transition-colors hover:bg-muted md:hidden"
           onClick={toggleMenu}
-          aria-label="Toggle Menu"
+          aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={isMenuOpen}
+          aria-controls="mobile-primary-navigation"
+          data-testid="button-toggle-mobile-menu"
         >
-          {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {isMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
 
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-6">
-          <div className="inline-flex items-center rounded-md border p-0.5" aria-label="Website language">
-            {(["en", "ja", "zh-CN"] as const).map((item) => (
-              <button
-                key={item}
-                type="button"
-                data-testid={`button-language-${item}`}
-                onClick={() => setLanguage(item)}
-                aria-pressed={language === item}
-                className={`rounded px-2 py-1 text-[10px] font-bold tracking-[0.12em] transition-colors ${
-                  language === item ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {item === "en" ? "ENG" : item === "ja" ? "JP" : "中文"}
-              </button>
-            ))}
-          </div>
-          <Link href={localizedHref("/lodging")} className="text-xs tracking-[0.15em] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors py-2">
-            Lodging
+        <nav className="hidden items-center gap-8 md:flex" aria-label="Main navigation">
+          <Link href={localizedHref("/lodging")} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground">
+            {labels.lodging}
           </Link>
-          <Link href={localizedHref("/rentalcar")} className="text-xs tracking-[0.15em] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors py-2">
-            Rental Car
+          <Link href={localizedHref("/rentalcar")} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground">
+            {labels.cars}
           </Link>
+          <Link href={localizedHref("/rentalcar/my-bookings")} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground">
+            {labels.bookings}
+          </Link>
+          {languageOptions()}
           {admin?.authenticated ? (
-            <div className="flex items-center gap-4 ml-2 border-l pl-6">
-              <Link href="/admin/dashboard" className="text-xs tracking-[0.15em] uppercase font-bold text-primary">
-                Admin
+            <div className="flex items-center gap-4 border-l border-border/70 pl-6">
+              <Link href="/admin/dashboard" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+                {labels.admin}
               </Link>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-xs h-8 font-bold tracking-wide"
-                onClick={() => logout.mutate(undefined, { onSuccess: () => window.location.href = "/" })}
+                className="h-9 rounded-full px-4 text-xs font-semibold"
+                onClick={logoutFromAdmin}
+                disabled={logout.isPending}
               >
-                Logout
+                {logout.isPending ? "…" : labels.logout}
               </Button>
             </div>
           ) : (
-            <Link href="/admin/login" className="text-xs tracking-[0.15em] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors py-2">
-              Admin
+            <Link href="/admin/login" className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground">
+              {labels.admin}<ArrowUpRight className="size-3.5" aria-hidden="true" />
             </Link>
           )}
         </nav>
 
-        {/* Mobile Nav Overlay */}
-        {isMenuOpen && (
-          <div className="fixed inset-0 top-[56px] z-40 bg-background md:hidden flex flex-col px-4 py-6 border-t animate-in slide-in-from-top-2">
-            <nav className="flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b pb-4">
-                <span className="text-xs font-semibold tracking-[0.15em] uppercase text-muted-foreground">Language</span>
-                <div className="inline-flex items-center rounded-md border p-0.5" aria-label="Website language">
-                  {(["en", "ja", "zh-CN"] as const).map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      data-testid={`button-mobile-language-${item}`}
-                      onClick={() => setLanguage(item)}
-                      aria-pressed={language === item}
-                      className={`rounded px-3 py-2 text-xs font-bold tracking-[0.12em] ${
-                        language === item ? "bg-foreground text-background" : "text-muted-foreground"
-                      }`}
-                    >
-                      {item === "en" ? "ENG" : item === "ja" ? "JP" : "中文"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Link href={localizedHref("/lodging")} onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
-                Lodging
-              </Link>
-              <Link href={localizedHref("/rentalcar")} onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
-                Rental Car
-              </Link>
-              <Link href={localizedHref("/rentalcar/my-bookings")} onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-foreground border-b pb-4">
-                My Bookings
-              </Link>
+        <div
+          id="mobile-primary-navigation"
+          className={`fixed inset-x-0 top-[4.5rem] z-40 border-b border-border bg-background px-6 pb-8 pt-4 shadow-lg transition-[opacity,transform] duration-200 md:hidden ${
+            isMenuOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
+          }`}
+          aria-hidden={!isMenuOpen}
+          inert={!isMenuOpen}
+        >
+          <nav className="mx-auto flex max-w-xl flex-col" aria-label="Mobile navigation">
+            <div className="flex items-center justify-between border-b border-border/70 py-4">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{labels.language}</span>
+              {languageOptions(true)}
+            </div>
+            <Link href={localizedHref("/lodging")} onClick={closeMenu} className="flex min-h-14 items-center justify-between border-b border-border/70 text-sm font-semibold">
+              {labels.lodging}<ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
+            </Link>
+            <Link href={localizedHref("/rentalcar")} onClick={closeMenu} className="flex min-h-14 items-center justify-between border-b border-border/70 text-sm font-semibold">
+              {labels.cars}<ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
+            </Link>
+            <Link href={localizedHref("/rentalcar/my-bookings")} onClick={closeMenu} className="flex min-h-14 items-center justify-between border-b border-border/70 text-sm font-semibold">
+              {labels.bookings}<ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
+            </Link>
               {admin?.authenticated ? (
                 <>
-                  <Link href="/admin/dashboard" onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-primary border-b pb-4">
-                    Admin Dashboard
+                  <Link href="/admin/dashboard" onClick={closeMenu} className="flex min-h-14 items-center justify-between border-b border-border/70 text-sm font-semibold text-primary">
+                    {labels.admin}<ArrowUpRight className="size-4" aria-hidden="true" />
                   </Link>
                   <Button
                     variant="outline"
-                    className="mt-4 w-full h-12 font-bold tracking-wide"
-                    onClick={() => { closeMenu(); logout.mutate(undefined, { onSuccess: () => window.location.href = "/" }); }}
+                    className="mt-5 h-12 w-full rounded-full font-semibold"
+                    onClick={() => { closeMenu(); logoutFromAdmin(); }}
+                    disabled={logout.isPending}
                   >
-                    Logout
+                    {logout.isPending ? "…" : labels.logout}
                   </Button>
                 </>
               ) : (
-                <Link href="/admin/login" onClick={closeMenu} className="text-sm tracking-[0.15em] uppercase font-bold text-muted-foreground pt-4">
-                  Admin Login
+                <Link href="/admin/login" onClick={closeMenu} className="flex min-h-14 items-center justify-between text-sm font-semibold text-muted-foreground">
+                  {labels.admin}<ArrowUpRight className="size-4" aria-hidden="true" />
                 </Link>
               )}
-            </nav>
-          </div>
-        )}
+          </nav>
+        </div>
       </div>
     </header>
   );

@@ -1,0 +1,28 @@
+4206628af3b95d1a0824f6a1122a8e05541edf14
+2026-09-24 06:05:19.810103511 +0000 7398741 ciao-rental-pages-staging.zip
+✓ 3142 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/public/index.html                   0.74 kB │ gzip:   0.41 kB
+dist/public/assets/index-CXrqJ9Tn.css  130.41 kB │ gzip:  20.84 kB
+dist/public/assets/index-D-ldFu-2.js   925.17 kB │ gzip: 255.47 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.25s
+Cloudflare Pages staging bundle: /home/runner/workspace/ciao-rental-pages-staging.zip
+
+> @workspace/ciao-rental@0.0.0 verify:pages-staging /home/runner/workspace/artifacts/ciao-rental
+> node ../../scripts/verify-cloudflare-pages-staging.mjs
+
+Cloudflare Pages staging worker verification passed.
+exit=0
+-rw-r--r-- 1 runner runner 7.1M Sep 24 06:05 ciao-rental-pages-staging.zip
+{
+  "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+  "build": "pnpm run typecheck && pnpm -r --if-present run build",
+  "typecheck:libs": "tsc --build",
+  "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+}

@@ -52,7 +52,7 @@ const queryClient = new QueryClient();
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col min-h-[100dvh]">
+    <div className="public-site flex min-h-[100dvh] flex-col">
       <Navbar />
       <main className="flex-1">
         {children}

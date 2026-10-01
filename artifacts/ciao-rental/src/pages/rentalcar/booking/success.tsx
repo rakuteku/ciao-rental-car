@@ -54,7 +54,7 @@ export function BookingSuccessPage() {
           alt="Sapporo winter road"
           className="w-full h-full object-cover opacity-20"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/95 to-background/80" />
+        <div className="absolute inset-0 bg-background/90" />
       </div>
 
       <div className="mx-auto max-w-3xl bg-background/95 backdrop-blur-sm rounded-xl p-6 md:p-10 space-y-7 shadow-2xl border border-primary/10 relative z-10 animate-in fade-in zoom-in duration-500">
