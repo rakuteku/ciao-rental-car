@@ -395,6 +395,57 @@ export const useAdminRentalDashboard = () => {
 // Public / User Booking Endpoints
 // ------------------------------------------------------------------
 
+export type CustomerAccountPayload = {
+  email: string;
+  password: string;
+  fullName?: string;
+  phone?: string;
+  preferredLanguage?: "en" | "ja" | "zh-TW";
+};
+
+export const useCustomerAccount = () => useQuery({
+  queryKey: ["rental", "customer-account"],
+  queryFn: () => fetchWithAuth("/rental/account/me"),
+  retry: false,
+});
+
+export const useCustomerLogin = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Pick<CustomerAccountPayload, "email" | "password">) => fetchWithAuth("/rental/account/login", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: (data) => queryClient.setQueryData(["rental", "customer-account"], data),
+  });
+};
+
+export const useCustomerRegister = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CustomerAccountPayload) => fetchWithAuth("/rental/account/register", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: (data) => queryClient.setQueryData(["rental", "customer-account"], data),
+  });
+};
+
+export const useCustomerLogout = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => fetchWithAuth("/rental/account/logout", { method: "POST" }),
+    onSuccess: () => queryClient.setQueryData(["rental", "customer-account"], null),
+  });
+};
+
+export const useAdminCustomers = () => useQuery({
+  queryKey: ["admin", "rental", "customers"],
+  queryFn: () => fetchWithAuth("/admin/rental/customers"),
+});
+
+export const useUpdateAdminCustomer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: "active" | "suspended" }) => fetchWithAuth(`/admin/rental/customers/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "rental", "customers"] }),
+  });
+};
+
 export const useMyBookings = (email?: string, bookingId?: string) => {
   return useQuery({
     queryKey: ["my-bookings", email, bookingId],

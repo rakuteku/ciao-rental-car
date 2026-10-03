@@ -26,7 +26,7 @@ const copy = {
     note: "選択した日程で車両の空き状況を検索します。宿泊施設は別ページをご覧ください。",
     invalidDates: "返却日は受取日より後の日付を選択してください。",
   },
-  "zh-CN": {
+  "zh-TW": {
     title: "搜尋符合日期的租車",
     pickupDate: "取車日期",
     returnDate: "還車日期",

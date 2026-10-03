@@ -43,6 +43,7 @@ import { AdminPricingRules } from "@/pages/admin/rental-cars/pricing";
 import { AdminSettings } from "@/pages/admin/rental-cars/settings";
 import { AdminAudit } from "@/pages/admin/rental-cars/audit";
 import { AdminRentalPartners } from "@/pages/admin/rental-cars/partners";
+import { AdminRentalCustomers } from "@/pages/admin/rental-cars/customers";
 import { PartnerApplyPage } from "@/pages/partner/apply";
 import { PartnerInventoryPage } from "@/pages/partner/inventory";
 import { PartnerReservationsPage } from "@/pages/partner/reservations";
@@ -100,6 +101,7 @@ function Router() {
       <Route path="/admin/rental-cars/:id/edit" component={() => <AdminLayout><AdminRentalCarEdit /></AdminLayout>} />
       <Route path="/admin/rental-cars/availability" component={() => <AdminLayout><AdminRentalAvailability /></AdminLayout>} />
       <Route path="/admin/rental-cars/reservations" component={() => <AdminLayout><AdminReservations /></AdminLayout>} />
+      <Route path="/admin/rental-cars/customers" component={() => <AdminLayout><AdminRentalCustomers /></AdminLayout>} />
       <Route path="/admin/rental-cars/reservations/:id" component={() => <AdminLayout><AdminReservationDetail /></AdminLayout>} />
       <Route path="/admin/rental-cars/reservations/:id/pickup" component={() => <AdminLayout><AdminReservationPickup /></AdminLayout>} />
       <Route path="/admin/rental-cars/reservations/:id/return" component={() => <AdminLayout><AdminReservationReturn /></AdminLayout>} />

@@ -60,22 +60,24 @@ export function useSeoMeta(page: string) {
 
   useEffect(() => {
     if (!seo) return;
+    const storedLanguage = language === "zh-TW" ? "zh-CN" : language;
     const selected = {
       metaTitle: localizedText(seo.metaTitle, language),
       metaDescription: localizedText(seo.metaDescription, language),
-      keywords: seo.keywords[language].length ? seo.keywords[language] : seo.keywords.en,
+      keywords: seo.keywords[storedLanguage].length ? seo.keywords[storedLanguage] : seo.keywords.en,
       ogTitle: localizedText(seo.ogTitle, language),
       ogDescription: localizedText(seo.ogDescription, language),
       ogImage: seo.ogImage,
     };
     applySeoMeta(selected);
     setMetaTag("property", "og:image:alt", localizedText(seo.ogImageAlt, language));
-    setMetaTag("property", "og:locale", language === "ja" ? "ja_JP" : language === "zh-CN" ? "zh_CN" : "en_US");
+    setMetaTag("property", "og:locale", language === "ja" ? "ja_JP" : language === "zh-TW" ? "zh_TW" : "en_US");
     setMetaTag("name", "robots", seo.allowIndexing ? "index,follow" : "noindex,nofollow");
-    const canonical = seo.canonicalUrls[language] || seo.canonicalUrl || seo.slug;
+    const canonical = seo.canonicalUrls[storedLanguage] || seo.canonicalUrl || seo.slug;
     setLinkTag("canonical", new URL(canonical, window.location.origin).toString());
-    for (const alternate of ["en", "ja", "zh-CN"] as const) {
-      const route = seo.canonicalUrls[alternate] || seo.slugs[alternate] || seo.slugs.en;
+    for (const alternate of ["en", "ja", "zh-TW"] as const) {
+      const storedAlternate = alternate === "zh-TW" ? "zh-CN" : alternate;
+      const route = seo.canonicalUrls[storedAlternate] || seo.slugs[storedAlternate] || seo.slugs.en;
       setAlternateLink(alternate, new URL(route, window.location.origin).toString());
     }
     setAlternateLink("x-default", new URL(seo.canonicalUrls.en || seo.slugs.en, window.location.origin).toString());

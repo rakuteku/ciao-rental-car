@@ -3516,6 +3516,14 @@ components:
           type: ["integer", "null"]
         billablePeriodHours:
           type: integer
+        pickupWindowStart:
+          type: string
+        pickupWindowEnd:
+          type: string
+        returnWindowStart:
+          type: string
+        returnWindowEnd:
+          type: string
         cleaningFee:
           type: number
         deliveryFee:
@@ -3545,6 +3553,11 @@ components:
         - weeklyDiscountPct
         - monthlyDiscountPct
         - minDays
+        - billablePeriodHours
+        - pickupWindowStart
+        - pickupWindowEnd
+        - returnWindowStart
+        - returnWindowEnd
         - cleaningFee
         - deliveryFee
         - lateReturnFee
@@ -4428,6 +4441,14 @@ components:
           type: integer
         billablePeriodHours:
           type: integer
+        pickupWindowStart:
+          type: string
+        pickupWindowEnd:
+          type: string
+        returnWindowStart:
+          type: string
+        returnWindowEnd:
+          type: string
         cleaningFee:
           type: number
         deliveryFee:

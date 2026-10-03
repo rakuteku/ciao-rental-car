@@ -8,7 +8,7 @@ import { localizedPath, useLanguage } from "@/lib/language";
 const languageLabels = {
   en: { lodging: "Lodging", cars: "Rental cars", bookings: "My bookings", language: "Language", admin: "Admin", logout: "Log out" },
   ja: { lodging: "宿泊", cars: "レンタカー", bookings: "予約の確認", language: "言語", admin: "管理", logout: "ログアウト" },
-  "zh-CN": { lodging: "住宿", cars: "租车", bookings: "我的预订", language: "语言", admin: "管理", logout: "退出" },
+  "zh-TW": { lodging: "住宿", cars: "租車", bookings: "我的預訂", language: "語言", admin: "管理", logout: "登出" },
 } as const;
 
 export function Navbar() {
@@ -27,7 +27,7 @@ export function Navbar() {
   };
   const languageOptions = (mobile = false) => (
     <div className="inline-flex items-center gap-0.5 rounded-full border border-border/70 bg-background/70 p-1" role="group" aria-label="Website language">
-      {(["en", "ja", "zh-CN"] as const).map((item) => (
+      {(["en", "ja", "zh-TW"] as const).map((item) => (
         <button
           key={item}
           type="button"

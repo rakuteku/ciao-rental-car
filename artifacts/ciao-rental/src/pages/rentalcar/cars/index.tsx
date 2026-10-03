@@ -36,10 +36,10 @@ export function CarsPage() {
   const { language } = useLanguage();
   const copy = rentalCopy(language);
   useInlineSeoMeta({
-    metaTitle: language === "ja" ? "札幌のレンタカー一覧｜CIAO北海道" : language === "zh-CN" ? "札幌租車車輛｜CIAO北海道" : "Rental Cars in Sapporo | CIAO Hokkaido Car Rental",
-    metaDescription: language === "ja" ? "札幌で利用できるCIAOのレンタカーを比較し、北海道旅行に合う車両をお選びください。" : language === "zh-CN" ? "比較 CIAO 在札幌提供的租車車輛，選擇適合北海道旅程的車款。" : "Compare CIAO's available rental vehicles in Sapporo and choose the right car for your Hokkaido journey.",
-    ogTitle: language === "ja" ? "札幌のレンタカー一覧｜CIAO" : language === "zh-CN" ? "札幌租車車輛｜CIAO" : "Rental Cars in Sapporo | CIAO",
-    ogDescription: language === "ja" ? "北海道旅行に利用できるCIAOの車両をご覧ください。" : language === "zh-CN" ? "查看適合北海道旅程的 CIAO 租車。" : "Compare available CIAO rental cars for your Hokkaido trip.",
+    metaTitle: language === "ja" ? "札幌のレンタカー一覧｜CIAO北海道" : language === "zh-TW" ? "札幌租車車輛｜CIAO北海道" : "Rental Cars in Sapporo | CIAO Hokkaido Car Rental",
+    metaDescription: language === "ja" ? "札幌で利用できるCIAOのレンタカーを比較し、北海道旅行に合う車両をお選びください。" : language === "zh-TW" ? "比較 CIAO 在札幌提供的租車車輛，選擇適合北海道旅程的車款。" : "Compare CIAO's available rental vehicles in Sapporo and choose the right car for your Hokkaido journey.",
+    ogTitle: language === "ja" ? "札幌のレンタカー一覧｜CIAO" : language === "zh-TW" ? "札幌租車車輛｜CIAO" : "Rental Cars in Sapporo | CIAO",
+    ogDescription: language === "ja" ? "北海道旅行に利用できるCIAOの車両をご覧ください。" : language === "zh-TW" ? "查看適合北海道旅程的 CIAO 租車。" : "Compare available CIAO rental cars for your Hokkaido trip.",
     ogImage: "",
   });
   const searchString = useSearch();

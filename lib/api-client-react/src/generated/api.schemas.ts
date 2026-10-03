@@ -583,7 +583,11 @@ export interface RentalVehiclePricing {
   minDays: number;
   /** @nullable */
   maxDays?: number | null;
-  billablePeriodHours?: number;
+  billablePeriodHours: number;
+  pickupWindowStart: string;
+  pickupWindowEnd: string;
+  returnWindowStart: string;
+  returnWindowEnd: string;
   cleaningFee: number;
   deliveryFee: number;
   lateReturnFee: number;
@@ -1008,6 +1012,10 @@ export interface UpdateVehiclePricingBody {
   minDays?: number;
   maxDays?: number;
   billablePeriodHours?: number;
+  pickupWindowStart?: string;
+  pickupWindowEnd?: string;
+  returnWindowStart?: string;
+  returnWindowEnd?: string;
   cleaningFee?: number;
   deliveryFee?: number;
   lateReturnFee?: number;

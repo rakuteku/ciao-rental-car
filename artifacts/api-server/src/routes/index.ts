@@ -21,6 +21,7 @@ import rentalFinanceRouter from "./rental-finance";
 import rentalTripRouter from "./rental-trip";
 import rentalReservationExceptionsRouter from "./rental-reservation-exceptions";
 import rentalExceptionsRouter from "./rental-exceptions";
+import rentalCustomersRouter from "./rental-customers";
 
 const router: IRouter = Router();
 
@@ -40,6 +41,7 @@ router.use(rentalPrivateDocumentsRouter);
 router.use(rentalTripRouter);
 router.use(rentalReservationExceptionsRouter);
 router.use(rentalExceptionsRouter);
+router.use(rentalCustomersRouter);
 router.use(rentalReservationsRouter);
 router.use(rentalOperationsRouter);
 router.use(operatorsRouter);

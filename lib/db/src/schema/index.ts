@@ -9,6 +9,7 @@ export * from "./rental-vehicles";
 export * from "./rental-pricing";
 export * from "./rental-availability";
 export * from "./rental-drivers";
+export * from "./rental-customers";
 export * from "./rental-reservations";
 export * from "./rental-addons";
 export * from "./rental-operations";

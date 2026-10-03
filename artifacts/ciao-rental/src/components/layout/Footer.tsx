@@ -7,7 +7,7 @@ export function Footer() {
   const content = {
     en: { location: "Find your way", locationList: ["Sapporo Station", "New Chitose Airport", "Sapporo City Center"], contact: "Contact", explore: "Explore", lodging: "Lodging", cars: "Rental cars", bookings: "My bookings", legal: "Information", terms: "Terms of Service", privacy: "Privacy Policy", insurance: "Insurance Details" },
     ja: { location: "アクセス", locationList: ["札幌駅", "新千歳空港", "札幌市中心部"], contact: "お問い合わせ", explore: "サービス", lodging: "宿泊", cars: "レンタカー", bookings: "予約の確認", legal: "ご案内", terms: "利用規約", privacy: "プライバシーポリシー", insurance: "保険について" },
-    "zh-CN": { location: "出行指南", locationList: ["札幌站", "新千岁机场", "札幌市中心"], contact: "联系方式", explore: "浏览服务", lodging: "住宿", cars: "租车", bookings: "我的预订", legal: "信息", terms: "服务条款", privacy: "隐私政策", insurance: "保险详情" },
+    "zh-TW": { location: "交通指南", locationList: ["札幌站", "新千歲機場", "札幌市中心"], contact: "聯絡方式", explore: "瀏覽服務", lodging: "住宿", cars: "租車", bookings: "我的預訂", legal: "資訊", terms: "服務條款", privacy: "隱私權政策", insurance: "保險詳情" },
   }[language];
 
   return (

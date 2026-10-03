@@ -36,7 +36,7 @@ export function rentalLocationLabel(value: string, locations: RentalLocation[], 
   const location = locations.find((candidate) => candidate.value === value);
   if (!location) return value;
   if (language === "ja") return location.labelJa || location.labelEn;
-  if (language === "zh-CN") return location.labelZhTw || location.labelEn;
+  if (language === "zh-TW") return location.labelZhTw || location.labelEn;
   return location.labelEn;
 }
 

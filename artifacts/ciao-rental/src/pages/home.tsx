@@ -44,7 +44,7 @@ export function Home() {
   const interfaceCopy = {
     en: { retry: "Try again", pageError: "We couldn’t load this page just now.", errorHint: "Please try again in a moment.", roomsError: "Featured rooms are temporarily unavailable.", roomsEmpty: "There are no featured rooms at the moment." },
     ja: { retry: "もう一度試す", pageError: "ページを読み込めませんでした。", errorHint: "少し時間をおいて、もう一度お試しください。", roomsError: "おすすめのお部屋を一時的に表示できません。", roomsEmpty: "現在、おすすめのお部屋はありません。" },
-    "zh-CN": { retry: "重试", pageError: "暂时无法加载此页面。", errorHint: "请稍后再试。", roomsError: "暂时无法显示精选客房。", roomsEmpty: "目前没有精选客房。" },
+    "zh-TW": { retry: "重試", pageError: "暫時無法載入此頁面。", errorHint: "請稍後再試。", roomsError: "暫時無法顯示精選客房。", roomsEmpty: "目前沒有精選客房。" },
   }[language];
   const { data, isLoading, isError, refetch } = useGetPageContent("home");
   const content = data ? localizeContent(data.content.en as unknown as HomeContent, data.content, language) : undefined;

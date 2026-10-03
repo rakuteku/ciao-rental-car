@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-export type Language = "en" | "ja" | "zh-CN";
+export type Language = "en" | "ja" | "zh-TW";
 
 const LANGUAGE_STORAGE_KEY = "ciao-public-language";
-const SUPPORTED_LANGUAGES: Language[] = ["en", "ja", "zh-CN"];
+const SUPPORTED_LANGUAGES: Language[] = ["en", "ja", "zh-TW"];
 
 type LanguageContextValue = {
   language: Language;
@@ -14,6 +14,7 @@ const LanguageContext = createContext<LanguageContextValue | undefined>(undefine
 
 function languageFromPath(pathname: string): Language | undefined {
   const pathLanguage = pathname.split("/")[1];
+  if (pathLanguage === "zh-CN") return "zh-TW";
   return SUPPORTED_LANGUAGES.includes(pathLanguage as Language) ? pathLanguage as Language : undefined;
 }
 
@@ -24,12 +25,12 @@ function initialLanguage(): Language {
   const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
   if (SUPPORTED_LANGUAGES.includes(saved as Language)) return saved as Language;
   if (navigator.language.toLowerCase().startsWith("ja")) return "ja";
-  if (navigator.language.toLowerCase().startsWith("zh")) return "zh-CN";
+  if (navigator.language.toLowerCase().startsWith("zh")) return "zh-TW";
   return "en";
 }
 
 export function stripLanguagePrefix(pathname: string): string {
-  return pathname.replace(/^\/(?:en|ja|zh-CN)(?=\/|$)/, "") || "/";
+  return pathname.replace(/^\/(?:en|ja|zh-TW|zh-CN)(?=\/|$)/, "") || "/";
 }
 
 export function localizedPath(path: string, language: Language): string {
@@ -83,7 +84,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * strings and missing array/object entries fall back at the matching field.
  */
 export function localizeContent<T>(english: T, translated: unknown, language: Language = "ja"): T {
-  const localized = isRecord(translated) && (language in translated) ? translated[language] : translated;
+  const localized = isRecord(translated)
+    ? translated[language] ?? (language === "zh-TW" ? translated["zh-CN"] : undefined) ?? translated
+    : translated;
   if (typeof english === "string") {
     return (typeof localized === "string" && localized.trim() ? localized : english) as T;
   }
@@ -100,7 +103,8 @@ export function localizeContent<T>(english: T, translated: unknown, language: La
   return english;
 }
 
-export function localizedText(value: { en?: string; ja?: string; "zh-CN"?: string } | undefined, language: Language) {
+export function localizedText(value: { en?: string; ja?: string; "zh-TW"?: string; "zh-CN"?: string } | undefined, language: Language) {
   if (!value) return "";
-  return language !== "en" && value[language]?.trim() ? value[language] : value.en ?? "";
+  const translated = language === "zh-TW" ? value["zh-TW"] ?? value["zh-CN"] : value[language];
+  return language !== "en" && translated?.trim() ? translated : value.en ?? "";
 }

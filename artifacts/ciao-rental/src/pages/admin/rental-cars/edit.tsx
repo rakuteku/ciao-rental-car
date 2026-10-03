@@ -145,6 +145,11 @@ type PricingFormData = {
   monthlyDiscountPct: number;
   minDays: number;
   maxDays: number | null;
+  billablePeriodHours: number;
+  pickupWindowStart: string;
+  pickupWindowEnd: string;
+  returnWindowStart: string;
+  returnWindowEnd: string;
   cleaningFee: number;
   deliveryFee: number;
   lateReturnFee: number;
@@ -247,6 +252,11 @@ const defaultPricing: PricingFormData = {
   monthlyDiscountPct: 0,
   minDays: 1,
   maxDays: null,
+  billablePeriodHours: 24,
+  pickupWindowStart: "08:00",
+  pickupWindowEnd: "19:00",
+  returnWindowStart: "08:00",
+  returnWindowEnd: "19:30",
   cleaningFee: 0,
   deliveryFee: 0,
   lateReturnFee: 0,
@@ -352,6 +362,11 @@ function pricingToForm(p: RentalVehiclePricing): PricingFormData {
     monthlyDiscountPct: p.monthlyDiscountPct,
     minDays: p.minDays,
     maxDays: p.maxDays ?? null,
+    billablePeriodHours: p.billablePeriodHours,
+    pickupWindowStart: p.pickupWindowStart,
+    pickupWindowEnd: p.pickupWindowEnd,
+    returnWindowStart: p.returnWindowStart,
+    returnWindowEnd: p.returnWindowEnd,
     cleaningFee: p.cleaningFee,
     deliveryFee: p.deliveryFee,
     lateReturnFee: p.lateReturnFee,
@@ -723,6 +738,18 @@ function getRequiredFieldErrors(form: VehicleFormData): string[] {
   return errs;
 }
 
+function getPricingFieldErrors(pricing: PricingFormData): string[] {
+  const errs: string[] = [];
+  if (pricing.basePrice <= 0) errs.push("Base daily price is required");
+  if (pricing.billablePeriodHours < 1) errs.push("Price validity hours are required");
+  if (!pricing.pickupWindowStart || !pricing.pickupWindowEnd) errs.push("Pickup time range is required");
+  if (pricing.pickupWindowStart >= pricing.pickupWindowEnd) errs.push("Pickup end time must be later than its start time");
+  if (!pricing.returnWindowStart || !pricing.returnWindowEnd) errs.push("Return time range is required");
+  if (pricing.returnWindowStart >= pricing.returnWindowEnd) errs.push("Return end time must be later than its start time");
+  if (pricing.lateReturnFee < 0) errs.push("Late return fee is required");
+  return errs;
+}
+
 interface EditPageProps {
   isNew?: boolean;
 }
@@ -801,11 +828,13 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
     }
   }
 
-  const validationErrors = getRequiredFieldErrors(form);
+  const vehicleValidationErrors = getRequiredFieldErrors(form);
+  const pricingValidationErrors = getPricingFieldErrors(pricing);
+  const validationErrors = [...vehicleValidationErrors, ...pricingValidationErrors];
 
   async function handleSave(asDraft = false, continueEditing = false) {
     if (!asDraft && validationErrors.length > 0) {
-      setActiveTab("basic");
+      setActiveTab(vehicleValidationErrors.length ? "basic" : "pricing");
       toast({ title: "Required fields missing", description: validationErrors[0], variant: "destructive" });
       return;
     }
@@ -921,6 +950,11 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
               monthlyDiscountPct: pricing.monthlyDiscountPct,
               minDays: pricing.minDays,
               maxDays: pricing.maxDays ?? undefined,
+              billablePeriodHours: pricing.billablePeriodHours,
+              pickupWindowStart: pricing.pickupWindowStart,
+              pickupWindowEnd: pricing.pickupWindowEnd,
+              returnWindowStart: pricing.returnWindowStart,
+              returnWindowEnd: pricing.returnWindowEnd,
               cleaningFee: pricing.cleaningFee,
               deliveryFee: pricing.deliveryFee,
               lateReturnFee: pricing.lateReturnFee,
@@ -1333,9 +1367,28 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
           </div>
 
           <FieldSection title="Rental Duration" />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <NumberInput label="Min Rental Days" value={pricing.minDays} onChange={(v) => setP("minDays", v ?? 1)} min={1} />
             <NumberInput label="Max Rental Days" value={pricing.maxDays} onChange={(v) => setP("maxDays", v)} nullable hint="Leave blank for no limit" />
+            <NumberInput label="Price Valid For *" value={pricing.billablePeriodHours} onChange={(v) => setP("billablePeriodHours", v ?? 24)} suffix="hours" min={1} max={168} hint="Number of rental hours covered by this price" />
+          </div>
+
+          <FieldSection title="Mandatory Pickup & Return Time Ranges" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-md border p-4">
+              <p className="mb-3 text-sm font-semibold">Pickup time *</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label htmlFor="pickupWindowStart">From</Label><Input id="pickupWindowStart" type="time" required value={pricing.pickupWindowStart} onChange={(e) => setP("pickupWindowStart", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label htmlFor="pickupWindowEnd">To</Label><Input id="pickupWindowEnd" type="time" required value={pricing.pickupWindowEnd} onChange={(e) => setP("pickupWindowEnd", e.target.value)} /></div>
+              </div>
+            </div>
+            <div className="rounded-md border p-4">
+              <p className="mb-3 text-sm font-semibold">Return time *</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label htmlFor="returnWindowStart">From</Label><Input id="returnWindowStart" type="time" required value={pricing.returnWindowStart} onChange={(e) => setP("returnWindowStart", e.target.value)} /></div>
+                <div className="space-y-1.5"><Label htmlFor="returnWindowEnd">To</Label><Input id="returnWindowEnd" type="time" required value={pricing.returnWindowEnd} onChange={(e) => setP("returnWindowEnd", e.target.value)} /></div>
+              </div>
+            </div>
           </div>
 
           <FieldSection title="Additional Fees (¥)" />
@@ -1344,7 +1397,7 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
             <NumberInput label="Delivery Fee" value={pricing.deliveryFee} onChange={(v) => setP("deliveryFee", v ?? 0)} prefix="¥" step={100} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <NumberInput label="Late Return Fee" value={pricing.lateReturnFee} onChange={(v) => setP("lateReturnFee", v ?? 0)} prefix="¥" step={100} />
+            <NumberInput label="Late Return Fee *" value={pricing.lateReturnFee} onChange={(v) => setP("lateReturnFee", v ?? 0)} prefix="¥" step={100} hint="Charged when a vehicle is returned after the selected return window" />
             <NumberInput label="Extra Mileage Fee (per km)" value={pricing.extraMileageFee} onChange={(v) => setP("extraMileageFee", v ?? 0)} prefix="¥" step={10} />
           </div>
           <div className="grid grid-cols-2 gap-4">

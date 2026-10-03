@@ -20,19 +20,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import type { Language } from "@/lib/language";
-
+type CmsLanguage = "en" | "ja" | "zh-CN";
 const languages = ["en", "ja", "zh-CN"] as const;
-const languageLabels: Record<Language, string> = { en: "English", ja: "日本語", "zh-CN": "简体中文" };
+const languageLabels: Record<CmsLanguage, string> = { en: "English", ja: "日本語", "zh-CN": "繁體中文" };
 type ContentTree = Record<string, unknown>;
-type LocalizedContent = Record<Language, ContentTree>;
-type LocalizedText = Record<Language, string>;
+type LocalizedContent = Record<CmsLanguage, ContentTree>;
+type LocalizedText = Record<CmsLanguage, string>;
 
 type SeoDraft = {
   slugs: LocalizedText;
   metaTitle: LocalizedText;
   metaDescription: LocalizedText;
-  keywords: Record<Language, string[]>;
+  keywords: Record<CmsLanguage, string[]>;
   ogTitle: LocalizedText;
   ogDescription: LocalizedText;
   ogImage: string;
@@ -140,7 +139,7 @@ function ContentFields({
 function PageEditor({ page, summary }: { page: string; summary?: AdminPageSummary }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<CmsLanguage>("en");
   const [draft, setDraft] = useState<LocalizedContent | null>(null);
   const [savedContent, setSavedContent] = useState<LocalizedContent | null>(null);
   const [pageDraft, setPageDraft] = useState<PageDraft | null>(null);
@@ -285,7 +284,7 @@ function PageEditor({ page, summary }: { page: string; summary?: AdminPageSummar
         </div>
       </div>
 
-      <Tabs value={language} onValueChange={(value) => setLanguage(value as Language)}>
+      <Tabs value={language} onValueChange={(value) => setLanguage(value as CmsLanguage)}>
         <TabsList className="grid h-auto w-full grid-cols-3">
           {languages.map((item) => <TabsTrigger key={item} value={item}>{languageLabels[item]}</TabsTrigger>)}
         </TabsList>
@@ -343,7 +342,7 @@ function NewPageForm({ onCreated }: { onCreated: (page: string) => void }) {
   const [metaDescription, setMetaDescription] = useState<LocalizedText>(blankLocalizedText());
   const [content, setContent] = useState<LocalizedContent>(blankContent());
 
-  const update = (setter: (value: LocalizedText) => void, current: LocalizedText, language: Language, value: string) => setter({ ...current, [language]: value });
+  const update = (setter: (value: LocalizedText) => void, current: LocalizedText, language: CmsLanguage, value: string) => setter({ ...current, [language]: value });
   const submit = async () => {
     if (!page.trim() || !title.en.trim() || !slugs.en.trim() || !metaTitle.en.trim() || !metaDescription.en.trim()) {
       toast({ title: "Complete the English page fields first", variant: "destructive" });

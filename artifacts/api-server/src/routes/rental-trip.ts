@@ -310,7 +310,7 @@ router.post("/rental/my-bookings/:id/charges/acknowledge", async (req, res): Pro
     res.status(400).json({ error: parsed.success ? "Invalid reservation ID" : parsed.error.message });
     return;
   }
-  if (!email || session.rentalCustomerBookingId !== id.data) {
+  if (!email || (session.rentalCustomerBookingId != null && session.rentalCustomerBookingId !== id.data)) {
     res.status(401).json({ error: "Please look up this booking first" });
     return;
   }
@@ -1047,7 +1047,8 @@ router.get("/rental/inspection-evidence/:reservationId/:token", async (req, res)
   const allowedPartner = !!partnerStaff && !partnerStaff.operator.isPlatform &&
     !["suspended", "closed"].includes(partnerStaff.operator.status);
   const allowedAdmin = !!admin;
-  const allowedCustomer = !!customerEmail && session.rentalCustomerBookingId === id.data &&
+  const allowedCustomer = !!customerEmail &&
+    (session.rentalCustomerBookingId == null || session.rentalCustomerBookingId === id.data) &&
     !!reservation.primaryDriverId && (await db.select().from(rentalDriversTable).where(and(
       eq(rentalDriversTable.id, reservation.primaryDriverId), eq(rentalDriversTable.email, customerEmail),
     ))).length > 0;

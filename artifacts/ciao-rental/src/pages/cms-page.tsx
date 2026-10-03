@@ -32,16 +32,17 @@ function renderValue(value: unknown, label?: string): React.ReactNode {
 export function CmsPage() {
   const [, params] = useRoute("/:language/:slug");
   const { language } = useLanguage();
-  const routeLanguage = (params?.language === "ja" || params?.language === "zh-CN" || params?.language === "en" ? params.language : language) as Language;
+  const routeLanguage = (params?.language === "zh-CN" ? "zh-TW" : params?.language === "ja" || params?.language === "zh-TW" || params?.language === "en" ? params.language : language) as Language;
+  const storedLanguage = routeLanguage === "zh-TW" ? "zh-CN" : routeLanguage;
   const slug = params?.slug ?? "";
-  const { data, isLoading, isError } = useGetLocalizedPage(routeLanguage, slug);
+  const { data, isLoading, isError } = useGetLocalizedPage(storedLanguage, slug);
 
   useEffect(() => {
     if (!data) return;
     applySeoMeta({
       metaTitle: localizedText(data.seo.metaTitle, routeLanguage) || data.title,
       metaDescription: localizedText(data.seo.metaDescription, routeLanguage),
-      keywords: data.seo.keywords[routeLanguage].length ? data.seo.keywords[routeLanguage] : data.seo.keywords.en,
+      keywords: data.seo.keywords[storedLanguage].length ? data.seo.keywords[storedLanguage] : data.seo.keywords.en,
       ogTitle: localizedText(data.seo.ogTitle, routeLanguage) || data.title,
       ogDescription: localizedText(data.seo.ogDescription, routeLanguage),
       ogImage: data.seo.ogImage,

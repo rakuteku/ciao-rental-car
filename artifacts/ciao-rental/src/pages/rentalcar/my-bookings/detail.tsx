@@ -16,15 +16,22 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, FileCheck, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { localizedPath, useLanguage } from "@/lib/language";
+import { localizedPath, useLanguage, type Language } from "@/lib/language";
 import { Ledger, TripRecordSummary } from "@/components/rental/TripWorkflow";
 import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
 import { usesMarketplaceExceptions } from "@/lib/rental-exception-rollout.mjs";
+
+const copy = {
+  en: { loading: "Loading booking details...", missing: "Booking not found or the account does not match.", booking: "Booking", itinerary: "Itinerary details", pickup: "Pickup", return: "Return", payment: "Payment summary", base: "Base rate", addons: "Add-ons", taxes: "Insurance, taxes & fees", total: "Booking total", upload: "Upload ID", required: "Required before pickup.", documentType: "Document type", passport: "Passport", licence: "Driver's licence", internationalLicence: "International driving permit", driver: "Authorized driver", selectDriver: "Select driver", submit: "Submit document", cancel: "Cancel booking", cancellationFee: "Cancellation fees may apply.", trip: "Trip condition & receipt", tripNote: "Inspection evidence and ledger entries are shown as recorded. A provisional amount is not a collected payment.", provisional: "Provisional charges - not collected", operator: "Rental operator contact" },
+  ja: { loading: "予約詳細を読み込んでいます...", missing: "予約が見つからないか、アカウント情報が一致しません。", booking: "予約", itinerary: "ご利用内容", pickup: "貸出", return: "返却", payment: "料金明細", base: "基本料金", addons: "追加オプション", taxes: "保険・税金・手数料", total: "予約合計", upload: "本人確認書類", required: "貸出前に提出が必要です。", documentType: "書類の種類", passport: "パスポート", licence: "運転免許証", internationalLicence: "国際運転免許証", driver: "登録運転者", selectDriver: "運転者を選択", submit: "書類を提出", cancel: "予約をキャンセル", cancellationFee: "キャンセル料が発生する場合があります。", trip: "車両状態・ご利用明細", tripNote: "点検記録と明細を記録どおりに表示します。仮請求額は決済済みの金額ではありません。", provisional: "仮請求額（未決済）", operator: "レンタカー事業者連絡先" },
+  "zh-TW": { loading: "正在載入預訂詳情...", missing: "找不到預訂，或帳戶資料不符。", booking: "預訂", itinerary: "行程詳情", pickup: "取車", return: "還車", payment: "費用明細", base: "基本費用", addons: "加購項目", taxes: "保險、稅金與手續費", total: "預訂總額", upload: "上傳身分證明", required: "取車前必須提交。", documentType: "文件類型", passport: "護照", licence: "駕駛執照", internationalLicence: "國際駕駛許可證", driver: "登記駕駛人", selectDriver: "選擇駕駛人", submit: "提交文件", cancel: "取消預訂", cancellationFee: "可能需支付取消費用。", trip: "車況與收據", tripNote: "檢查證明與帳目會依記錄顯示。暫定金額並不代表已完成付款。", provisional: "暫定費用（尚未收取）", operator: "租車業者聯絡方式" },
+} satisfies Record<Language, Record<string, string>>;
 
 export function MyBookingDetail() {
   const params = useParams();
   const id = Number(params.id);
   const { language } = useLanguage();
+  const t = copy[language];
   
   const { data: res, isLoading } = useMyBookingDetail(id);
   const docMut = useSubmitBookingDocuments();
@@ -40,8 +47,8 @@ export function MyBookingDetail() {
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [chargeAcknowledgements, setChargeAcknowledgements] = useState<Record<string, boolean>>({});
 
-  if (isLoading) return <div className="p-8 text-center min-h-[60vh]">Loading booking details...</div>;
-  if (!res) return <div className="p-8 text-center text-destructive min-h-[60vh]">Booking not found or email doesn't match.</div>;
+  if (isLoading) return <div className="p-8 text-center min-h-[60vh]">{t.loading}</div>;
+  if (!res) return <div className="p-8 text-center text-destructive min-h-[60vh]">{t.missing}</div>;
   const authorizedDrivers = Array.isArray(res.drivers) && res.drivers.length > 0
     ? res.drivers
     : res.driver ? [res.driver] : [];
@@ -125,7 +132,7 @@ export function MyBookingDetail() {
         </Link>
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-serif font-bold text-primary">Booking #{res.id}</h1>
+            <h1 className="text-3xl font-serif font-bold text-primary">{t.booking} #{res.id}</h1>
             <Badge variant={res.status === 'confirmed' ? 'default' : res.status === 'cancelled' ? 'destructive' : 'secondary'} className="text-sm">
               {res.status.toUpperCase()}
             </Badge>
@@ -137,30 +144,30 @@ export function MyBookingDetail() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Itinerary Details</CardTitle>
+            <CardTitle>{t.itinerary}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Pickup</p>
+                <p className="text-sm text-muted-foreground mb-1">{t.pickup}</p>
                 <p className="font-medium text-lg">{new Date(res.pickupAt).toLocaleString()}</p>
                 <p className="text-sm">{res.pickupLocation}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Return</p>
+                <p className="text-sm text-muted-foreground mb-1">{t.return}</p>
                 <p className="font-medium text-lg">{new Date(res.returnAt).toLocaleString()}</p>
                 <p className="text-sm">{res.returnLocation}</p>
               </div>
             </div>
             
             <div className="pt-4 border-t">
-              <h3 className="font-semibold mb-2">Payment Summary</h3>
+              <h3 className="font-semibold mb-2">{t.payment}</h3>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span>Base Rate</span> <span>¥{Number(res.subtotal).toLocaleString()}</span></div>
-                {res.addonsTotal > 0 && <div className="flex justify-between"><span>Add-ons</span> <span>¥{res.addonsTotal.toLocaleString()}</span></div>}
-                <div className="flex justify-between"><span>Taxes & Fees</span> <span>¥{(Number(res.tax || 0) + Number(res.deliveryFee || 0)).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>{t.base}</span> <span>¥{Number(res.subtotal).toLocaleString()}</span></div>
+                {res.addonsTotal > 0 && <div className="flex justify-between"><span>{t.addons}</span> <span>¥{res.addonsTotal.toLocaleString()}</span></div>}
+                <div className="flex justify-between"><span>{t.taxes}</span> <span>¥{(Number(res.tax || 0) + Number(res.deliveryFee || 0)).toLocaleString()}</span></div>
                 <div className="flex justify-between font-bold text-base pt-2 mt-2 border-t">
-                  <span>Booking total</span>
+                  <span>{t.total}</span>
                   <span>¥{Number(res.finalTotal).toLocaleString()}</span>
                 </div>
               </div>
@@ -172,29 +179,29 @@ export function MyBookingDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-primary" /> Upload ID
+                <FileCheck className="w-5 h-5 text-primary" /> {t.upload}
               </CardTitle>
-              <CardDescription>Required before pickup.</CardDescription>
+              <CardDescription>{t.required}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Document Type</Label>
+                <Label>{t.documentType}</Label>
                 <Select
                   value={docType}
                   onValueChange={(value) => setDocType(value as typeof docType)}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="passport">Passport</SelectItem>
-                    <SelectItem value="drivers_license">Driver's License</SelectItem>
-                    <SelectItem value="international_license">Intl. License</SelectItem>
+                    <SelectItem value="passport">{t.passport}</SelectItem>
+                    <SelectItem value="drivers_license">{t.licence}</SelectItem>
+                    <SelectItem value="international_license">{t.internationalLicence}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               {marketplaceBookingEnabled && authorizedDrivers.length > 0 && <div className="space-y-2">
-                <Label htmlFor="booking-document-driver">Authorized driver</Label>
+                <Label htmlFor="booking-document-driver">{t.driver}</Label>
                 <Select value={String(uploadDriverId)} onValueChange={setSelectedDriverId}>
-                  <SelectTrigger id="booking-document-driver" data-testid="select-booking-document-driver"><SelectValue placeholder="Select driver" /></SelectTrigger>
+                  <SelectTrigger id="booking-document-driver" data-testid="select-booking-document-driver"><SelectValue placeholder={t.selectDriver} /></SelectTrigger>
                   <SelectContent>{authorizedDrivers.map((authorizedDriver: Record<string, any>) => <SelectItem key={authorizedDriver.id} value={String(authorizedDriver.id)}>{authorizedDriver.fullName || `Driver #${authorizedDriver.id}`}</SelectItem>)}</SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">Submit each driver’s documents under that authorized driver. Originals are still checked in person at pickup.</p>
@@ -226,7 +233,7 @@ export function MyBookingDetail() {
                 )}
               </div>
               <Button className="w-full" onClick={handleDocSubmit} disabled={docMut.isPending || privateDocMut.isPending || (isMarketplaceBooking && (isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig || !uploadDriverId))}>
-                Submit Document
+                {t.submit}
               </Button>
             </CardContent>
           </Card>
@@ -235,9 +242,9 @@ export function MyBookingDetail() {
             <Card className="border-destructive/20 bg-destructive/5">
               <CardContent className="pt-6">
                 <Button variant="destructive" className="w-full gap-2" onClick={handleCancelRequest} disabled={cancelMut.isPending}>
-                  <XCircle className="w-4 h-4" /> Cancel Booking
+                  <XCircle className="w-4 h-4" /> {t.cancel}
                 </Button>
-                <p className="text-xs text-center mt-2 text-muted-foreground">Cancellation fees may apply.</p>
+                <p className="text-xs text-center mt-2 text-muted-foreground">{t.cancellationFee}</p>
               </CardContent>
             </Card>
           )}
@@ -250,12 +257,12 @@ export function MyBookingDetail() {
 
       {res.trip && <section data-testid={`section-trip-receipt-${res.id}`} className="space-y-5 rounded-xl border bg-card p-5 shadow-sm">
         <div>
-          <h2 className="text-xl font-semibold">Trip condition & receipt</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Inspection evidence and ledger entries are shown as recorded. A provisional amount is not a collected payment.</p>
+          <h2 className="text-xl font-semibold">{t.trip}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t.tripNote}</p>
         </div>
         <TripRecordSummary trip={res.trip} />
         {Array.isArray(res.trip.provisionalCharges) && res.trip.provisionalCharges.length > 0 && <section className="rounded-lg border border-amber-300 bg-amber-50 p-4">
-          <h3 className="font-semibold text-amber-950">Provisional charges — not collected</h3>
+          <h3 className="font-semibold text-amber-950">{t.provisional}</h3>
           <p className="mt-1 text-sm text-amber-900">Acknowledging a claim confirms you reviewed the specific provisional amount. It does not approve payment or mean the amount was collected.</p>
           <ul className="mt-3 space-y-3 text-sm">{res.trip.provisionalCharges.map((charge: Record<string, any>, index: number) => <li key={charge.code ?? index} className="flex flex-wrap items-start justify-between gap-3 border-t border-amber-200 pt-3">
             <div>
@@ -271,7 +278,7 @@ export function MyBookingDetail() {
         </section>}
         <Ledger ledger={res.trip.ledger} />
         {res.trip.operatorContact && <div className="border-t pt-4 text-sm">
-          <h3 className="font-semibold">Rental operator contact</h3>
+          <h3 className="font-semibold">{t.operator}</h3>
           <p>{res.trip.operatorContact.name}</p>
           {res.trip.operatorContact.email && <p><a className="underline" href={`mailto:${res.trip.operatorContact.email}`}>{res.trip.operatorContact.email}</a></p>}
           {res.trip.operatorContact.phone && <p><a className="underline" href={`tel:${res.trip.operatorContact.phone}`}>{res.trip.operatorContact.phone}</a></p>}

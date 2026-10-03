@@ -22,6 +22,7 @@ import {
   X,
   UserCheck,
   Languages,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language";
@@ -38,6 +39,7 @@ const rentalCarSubItems: NavItem[] = [
   { href: "/admin/rental-cars", label: "Cars Fleet", labelJa: "車両管理", icon: Car },
   { href: "/admin/rental-cars/availability", label: "Availability", labelJa: "空車状況", icon: CalendarRange },
   { href: "/admin/rental-cars/reservations", label: "Reservations", labelJa: "予約", icon: ClipboardList },
+  { href: "/admin/rental-cars/customers", label: "Customers", labelJa: "顧客管理", icon: Users },
   { href: "/admin/rental-cars/maintenance", label: "Maintenance", labelJa: "整備", icon: Wrench },
   { href: "/admin/rental-cars/addons", label: "Add-ons", labelJa: "追加オプション", icon: Package },
   { href: "/admin/rental-cars/pricing", label: "Pricing Rules", labelJa: "料金ルール", icon: DollarSign },
