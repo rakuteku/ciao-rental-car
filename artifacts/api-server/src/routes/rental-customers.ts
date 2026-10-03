@@ -3,6 +3,7 @@ import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:cry
 import { promisify } from "node:util";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod/v4";
+import { OAuth2Client } from "google-auth-library";
 import {
   db,
   rentalCustomerAccountsTable,
@@ -24,6 +25,11 @@ const credentialsSchema = z.object({
 const registrationSchema = credentialsSchema.extend({
   fullName: z.string().trim().min(1).max(120),
   phone: z.string().trim().max(40).optional(),
+  preferredLanguage: z.enum(["en", "ja", "zh-TW"]).default("en"),
+});
+
+const googleSchema = z.object({
+  credential: z.string().min(1),
   preferredLanguage: z.enum(["en", "ja", "zh-TW"]).default("en"),
 });
 
@@ -112,6 +118,52 @@ router.post("/rental/account/login", async (req, res): Promise<void> => {
   session.rentalCustomerEmail = account.email;
   delete session.rentalCustomerBookingId;
   res.json({ account: publicAccount(updated), bookings: await bookingsForEmail(updated.email) });
+});
+
+router.get("/rental/account/google/config", (_req, res): void => {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  res.json({ enabled: Boolean(clientId), clientId: clientId || null });
+});
+
+router.post("/rental/account/google", async (req, res): Promise<void> => {
+  const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
+  if (!clientId) return void res.status(503).json({ error: "Google sign-in is not configured" });
+  const parsed = googleSchema.safeParse(req.body);
+  if (!parsed.success) return void res.status(400).json({ error: "Invalid Google sign-in response" });
+
+  const ticket = await new OAuth2Client(clientId).verifyIdToken({
+    idToken: parsed.data.credential,
+    audience: clientId,
+  }).catch(() => null);
+  const profile = ticket?.getPayload();
+  const email = profile?.email?.trim().toLowerCase();
+  if (!profile?.sub || !email || !profile.email_verified) {
+    return void res.status(401).json({ error: "Google could not verify this email address" });
+  }
+
+  let [account] = await db.select().from(rentalCustomerAccountsTable).where(eq(rentalCustomerAccountsTable.email, email));
+  if (!account) {
+    [account] = await db.insert(rentalCustomerAccountsTable).values({
+      email,
+      passwordHash: await hashPassword(randomBytes(32).toString("hex")),
+      fullName: profile.name?.trim() || email.split("@")[0],
+      preferredLanguage: parsed.data.preferredLanguage,
+      lastLoginAt: new Date(),
+    }).returning();
+  } else if (account.status !== "active") {
+    return void res.status(403).json({ error: "This customer account is not active" });
+  } else {
+    [account] = await db.update(rentalCustomerAccountsTable).set({
+      lastLoginAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(rentalCustomerAccountsTable.id, account.id)).returning();
+  }
+
+  const session = req.session as unknown as Record<string, unknown>;
+  session[customerSessionKey] = account.id;
+  session.rentalCustomerEmail = account.email;
+  delete session.rentalCustomerBookingId;
+  res.json({ account: publicAccount(account), bookings: await bookingsForEmail(account.email) });
 });
 
 router.post("/rental/account/logout", (req, res): void => {

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Check, ChevronRight, ArrowLeft, CreditCard, Car, Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -15,7 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 import { useCheckoutDraft } from "@/hooks/use-checkout-draft";
-import { useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
+import { useCustomerAccount, useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
 import { MarketplaceCheckout } from "./marketplace";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
@@ -46,18 +47,31 @@ const driverSchema = z.object({
 });
 
 export function CheckoutPage() {
+  const { language } = useLanguage();
+  const account = useCustomerAccount();
   const config = useRentalMarketplaceConfig();
-  if (config.isLoading) return <div className="container min-h-[60dvh] space-y-4 py-20"><div className="h-10 w-56 animate-pulse bg-muted" /><div className="h-48 max-w-3xl animate-pulse bg-muted" /></div>;
+  if (config.isLoading || account.isLoading) return <div className="container min-h-[60dvh] space-y-4 py-20"><div className="h-10 w-56 animate-pulse bg-muted" /><div className="h-48 max-w-3xl animate-pulse bg-muted" /></div>;
   if (config.isError || !config.data) return <div className="container min-h-[60dvh] py-20"><h1 className="font-serif text-2xl">Checkout temporarily unavailable</h1><p className="my-4 text-muted-foreground">We could not verify the booking mode. No booking was submitted.</p><Button onClick={() => config.refetch()}>Try again</Button></div>;
+  if (!account.data?.account) {
+    const gate = language === "ja"
+      ? { title: "予約にはログインが必要です", body: "ログインまたはアカウントを作成すると、この車両の予約を続けられます。", action: "ログイン・アカウント作成" }
+      : language === "zh-TW"
+        ? { title: "請先登入再預訂", body: "登入或建立帳戶後，即可繼續此車輛的預訂。", action: "登入或建立帳戶" }
+        : { title: "Sign in before booking", body: "Sign in or create an account to continue this vehicle booking.", action: "Sign in or create account" };
+    const next = localizedPath("/rentalcar/checkout", language);
+    return <div className="container grid min-h-[65dvh] place-items-center py-16"><Card className="w-full max-w-lg"><CardContent className="space-y-5 p-8 text-center"><h1 className="font-serif text-3xl font-bold">{gate.title}</h1><p className="text-muted-foreground">{gate.body}</p><Button asChild className="w-full"><Link href={`${localizedPath("/rentalcar/my-bookings", language)}?next=${encodeURIComponent(next)}`}>{gate.action}</Link></Button></CardContent></Card></div>;
+  }
   return config.data.enabled ? <MarketplaceCheckout /> : <LegacyCheckout />;
 }
 
 function LegacyCheckout() {
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { draft, updateDraft, clearDraft } = useCheckoutDraft();
   const { toast } = useToast();
   const { language } = useLanguage();
   const copy = rentalCopy(language);
+  const customer = useCustomerAccount().data?.account as { email?: string; fullName?: string; phone?: string } | undefined;
   const { data: configuredLocations } = useRentalLocations();
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
   const locationLabel = (value: string) => rentalLocationLabel(value, locations, language);
@@ -103,9 +117,9 @@ function LegacyCheckout() {
   const form = useForm<z.infer<typeof driverSchema>>({
     resolver: zodResolver(driverSchema),
     defaultValues: draft?.driver || {
-      fullName: "",
-      email: "",
-      phone: "",
+      fullName: customer?.fullName || "",
+      email: customer?.email || "",
+      phone: customer?.phone || "",
       romanizedName: "",
       nationality: "",
       flightNumber: "",
@@ -113,7 +127,7 @@ function LegacyCheckout() {
     },
   });
 
-  const { data: priceData, mutate: calculatePrice } = useCalculateRentalPrice();
+  const priceQuote = useCalculateRentalPrice();
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 1_000);
@@ -127,8 +141,14 @@ function LegacyCheckout() {
   }, [draft?.heldUntil, holdStatus?.expired, now]);
 
   useEffect(() => {
-    if (draft && step >= 5) {
-      calculatePrice({
+    if (customer?.email) form.setValue("email", customer.email);
+    if (customer?.fullName && !form.getValues("fullName")) form.setValue("fullName", customer.fullName);
+    if (customer?.phone && !form.getValues("phone")) form.setValue("phone", customer.phone);
+  }, [customer?.email, customer?.fullName, customer?.phone, form]);
+
+  useEffect(() => {
+    if (draft) {
+      priceQuote.mutate({
         data: {
           vehicleId: draft.vehicleId,
           pickupAt: draft.pickupAt,
@@ -141,7 +161,9 @@ function LegacyCheckout() {
         }
       });
     }
-  }, [step, draft, selectedAddons, calculatePrice]);
+  }, [draft?.vehicleId, draft?.pickupAt, draft?.returnAt, draft?.pickupLocation, draft?.returnLocation, JSON.stringify(selectedAddons)]);
+
+  const priceData = priceQuote.data;
 
   if (!draft) {
     return (
@@ -233,6 +255,7 @@ function LegacyCheckout() {
       }
     }, {
       onSuccess: (reservation) => {
+        queryClient.invalidateQueries({ queryKey: ["rental", "customer-account"] });
         window.sessionStorage.setItem("ciao_rental_confirmation", JSON.stringify({
           reservation,
            selectedRoom: draft.selectedRoom ?? null,
@@ -432,7 +455,7 @@ function LegacyCheckout() {
                             <FormItem><FormLabel>Romanized Name (if applicable)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="email" render={({ field }) => (
-                            <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" readOnly className="bg-muted" {...field} value={customer?.email || field.value} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="phone" render={({ field }) => (
                             <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
@@ -719,6 +742,11 @@ function LegacyCheckout() {
                         <span>¥{priceData.finalTotal.toLocaleString()}</span>
                       </div>
                     </>
+                  ) : priceQuote.isError ? (
+                    <div className="space-y-3 py-3 text-center text-sm text-destructive">
+                      <p>{language === "ja" ? "料金を計算できませんでした。" : language === "zh-TW" ? "無法計算價格。" : "We could not calculate the total."}</p>
+                      <Button variant="outline" size="sm" onClick={() => priceQuote.mutate({ data: { vehicleId: draft.vehicleId, pickupAt: draft.pickupAt, returnAt: draft.returnAt, pickupLocation: draft.pickupLocation, returnLocation: draft.returnLocation, addons: Object.entries(selectedAddons).filter(([, qty]) => qty > 0).map(([id, qty]) => ({ addonId: Number(id), qty })) } })}>{language === "ja" ? "再試行" : language === "zh-TW" ? "重試" : "Try again"}</Button>
+                    </div>
                   ) : (
                     <div className="text-center text-muted-foreground py-4">
                       {copy.calculating}

@@ -13,6 +13,7 @@ import {
   rentalReservationHoldsTable,
   rentalReservationsTable,
   rentalVehiclesTable,
+  rentalCustomerAccountsTable,
 } from "@workspace/db";
 import { z } from "zod/v4";
 import { calculatePrice } from "../lib/rental-pricing";
@@ -95,15 +96,21 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Internal server error";
 }
 
-function requestLocale(req: ExpressRequest): "en" | "ja" {
+function requestLocale(req: ExpressRequest): "en" | "ja" | "zh-TW" {
+  if (req.body?.locale === "zh-TW") return "zh-TW";
   return req.body?.locale === "ja" || (req.body?.locale !== "en" && req.get("accept-language")?.toLowerCase().startsWith("ja")) ? "ja" : "en";
+}
+
+function customerPanelUrl(req: ExpressRequest, locale: string) {
+  const base = (process.env.RENTAL_PUBLIC_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+  return `${base}/${locale === "en" ? "" : `${locale}/`}rentalcar/my-bookings`;
 }
 
 function notifyRequest(req: ExpressRequest, input: {
   email?: string | null;
   eventType: RentalNotificationEvent;
   bookingId: number;
-  locale?: "en" | "ja";
+  locale?: "en" | "ja" | "zh-TW";
   extra?: Record<string, unknown>;
 }) {
   void queueRentalNotification({ ...input, locale: input.locale ?? requestLocale(req) }).catch((error) => {
@@ -207,6 +214,16 @@ router.post("/rental/requests", async (req, res): Promise<void> => {
   const parsed = CreateRequestSchema.safeParse(req.body);
   if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
   const data = parsed.data;
+  const customerAccountId = Number((req.session as unknown as Record<string, unknown>).rentalCustomerAccountId);
+  const [customerAccount] = customerAccountId
+    ? await db.select().from(rentalCustomerAccountsTable).where(eq(rentalCustomerAccountsTable.id, customerAccountId))
+    : [];
+  if (!customerAccount || customerAccount.status !== "active") {
+    return void res.status(401).json({ error: "Sign in to your customer account before booking" });
+  }
+  if (data.driver.email.trim().toLowerCase() !== customerAccount.email) {
+    return void res.status(400).json({ error: "The booking email must match your signed-in account" });
+  }
   const [hold] = await db.select().from(rentalReservationHoldsTable).where(and(
     eq(rentalReservationHoldsTable.id, data.holdId),
     eq(rentalReservationHoldsTable.sessionToken, req.sessionID),
@@ -495,8 +512,8 @@ router.post("/rental/requests/:id/accept-offer", async (req, res): Promise<void>
         ? String((existing.driver as Record<string, unknown>).email) : null,
       eventType: "acceptance",
       bookingId: id,
-      locale: existing.locale === "ja" ? "ja" : "en",
-      extra: { paymentDeadline: reservation.deadline.toISOString() },
+      locale: existing.locale === "ja" ? "ja" : existing.locale === "zh-TW" ? "zh-TW" : "en",
+      extra: { paymentDeadline: reservation.deadline.toISOString(), panelUrl: customerPanelUrl(req, existing.locale) },
     });
     res.json({
       id,
@@ -651,8 +668,8 @@ router.post("/partner/rental/requests/:id/accept", authenticatePartner, async (r
         ? String((request.driver as Record<string, unknown>).email) : null,
       eventType: "acceptance",
       bookingId: request.id,
-      locale: request.locale === "ja" ? "ja" : "en",
-      extra: { paymentDeadline: deadline.toISOString() },
+      locale: request.locale === "ja" ? "ja" : request.locale === "zh-TW" ? "zh-TW" : "en",
+      extra: { paymentDeadline: deadline.toISOString(), panelUrl: customerPanelUrl(req, request.locale) },
     });
     res.json({ id: request.id, status: "awaiting_payment", reservationId: reservation.id, paymentDeadline: deadline.toISOString(), price: reservation.finalTotal });
   } catch (error) {

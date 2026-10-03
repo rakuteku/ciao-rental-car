@@ -97,11 +97,11 @@ export interface CreateRentalRequest {
   holdId: number; vehicleId: number; pickupLocation: string; returnLocation: string;
   driver: { fullName: string; email: string; phone: string; romanizedName?: string; nationality?: string; flightNumber?: string; accommodation?: string };
   additionalDrivers?: Array<{ fullName: string; email: string; phone: string }>;
-  travelNotes?: string; marketingConsent: boolean; locale?: "en" | "ja"; attribution?: Attribution;
+  travelNotes?: string; marketingConsent: boolean; locale?: "en" | "ja" | "zh-TW"; attribution?: Attribution;
   addons?: Array<{ addonId: number; qty: number }>;
 }
 
-async function rentalRequest<T>(path: string, body?: unknown, locale?: "en" | "ja"): Promise<T> {
+async function rentalRequest<T>(path: string, body?: unknown, locale?: "en" | "ja" | "zh-TW"): Promise<T> {
   const response = await fetch(path, {
     method: body === undefined ? "GET" : "POST", credentials: "include",
     headers: {
@@ -117,7 +117,7 @@ async function rentalRequest<T>(path: string, body?: unknown, locale?: "en" | "j
   return response.json() as Promise<T>;
 }
 
-export const createRentalRequest = (body: CreateRentalRequest, locale: "en" | "ja") => rentalRequest<RentalRequest>("/api/rental/requests", body, locale);
+export const createRentalRequest = (body: CreateRentalRequest, locale: "en" | "ja" | "zh-TW") => rentalRequest<RentalRequest>("/api/rental/requests", body, locale);
 export const getRentalRequest = (id: number, code: string) => rentalRequest<RentalRequest>(`/api/rental/requests/${encodeURIComponent(id)}?accessCode=${encodeURIComponent(code)}`);
 export const getRentalPaymentState = (id: number, code: string) => rentalRequest<RentalPaymentState>(`/api/rental/requests/${encodeURIComponent(id)}/payment?accessCode=${encodeURIComponent(code)}`);
 export const acceptRentalOffer = (id: number, code: string) => rentalRequest<RentalRequest>(`/api/rental/requests/${encodeURIComponent(id)}/accept-offer?accessCode=${encodeURIComponent(code)}`, {});

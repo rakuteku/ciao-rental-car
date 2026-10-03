@@ -117,4 +117,7 @@ Total = (price_per_day × days) + airport_pickup_fee (if pickup = airport) + air
 
 - `lib/api-zod/src/index.ts` must only export `./generated/api` (not `./generated/api.schemas` — orval adds it but the file doesn't exist)
 - Session secret is stored in `SESSION_SECRET` environment variable
+- Customer Google sign-in is enabled only when `GOOGLE_CLIENT_ID` contains a Google Web OAuth client ID. Add both the Replit app origin and the Cloudflare Pages production origin to that client's authorized JavaScript origins.
+- Reservation email delivery requires `SMTP_HOST`, `SMTP_FROM`, and `SMTP_PORT`; add matching `SMTP_USER` and `SMTP_PASSWORD` when the mail server requires authentication. `SMTP_SECURE=true` is used for implicit TLS, normally port 465.
+- `RENTAL_PUBLIC_BASE_URL` must point to the customer-facing production origin so reservation emails link to the correct customer panel.
 - `image_urls` is jsonb array in DB; `image_url` (text) is kept for backwards compat — always sync them

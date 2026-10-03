@@ -425,6 +425,21 @@ export const useCustomerRegister = () => {
   });
 };
 
+export const useGoogleCustomerConfig = () => useQuery({
+  queryKey: ["rental", "customer-google-config"],
+  queryFn: () => fetchWithAuth("/rental/account/google/config") as Promise<{ enabled: boolean; clientId: string | null }>,
+  staleTime: 60 * 60 * 1000,
+});
+
+export const useGoogleCustomerLogin = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { credential: string; preferredLanguage: "en" | "ja" | "zh-TW" }) =>
+      fetchWithAuth("/rental/account/google", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: (data) => queryClient.setQueryData(["rental", "customer-account"], data),
+  });
+};
+
 export const useCustomerLogout = () => {
   const queryClient = useQueryClient();
   return useMutation({

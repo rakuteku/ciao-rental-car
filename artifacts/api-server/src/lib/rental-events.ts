@@ -13,9 +13,9 @@ import { and, asc, eq, gt, inArray, isNotNull, isNull, lte, or } from "drizzle-o
 import { logger } from "./logger";
 
 type AuditValue = Record<string, unknown> | null | undefined;
-type Locale = "en" | "ja";
+type Locale = "en" | "ja" | "zh-TW";
 type Template = { subject: string; body: string };
-type TemplateFactory = (data: Record<string, unknown>) => Record<Locale, Template>;
+type TemplateFactory = (data: Record<string, unknown>) => Record<"en" | "ja", Template> & Partial<Record<Locale, Template>>;
 
 export async function logRentalAudit(input: {
   adminUser?: string | null;
@@ -41,8 +41,9 @@ const TEMPLATES = {
     ja: { subject: data.message ? `レンタルリクエスト #${data.bookingId} のお知らせ` : `レンタルリクエスト #${data.bookingId} を受け付けました`, body: data.message ? String(data.message) : `レンタルリクエスト #${data.bookingId} を受け付けました。事業者からの回答期限は ${data.respondBy ?? "リクエスト画面に表示された日時"} です。` },
   }),
   acceptance: (data) => ({
-    en: { subject: `Rental request #${data.bookingId} accepted`, body: `Your rental request #${data.bookingId} was accepted. Complete payment by ${data.paymentDeadline ?? "the payment deadline shown in your booking"}.` },
-    ja: { subject: `レンタルリクエスト #${data.bookingId} が承認されました`, body: `レンタルリクエスト #${data.bookingId} が承認されました。${data.paymentDeadline ?? "予約画面に表示された"} 支払期限までにお支払いください。` },
+    en: { subject: `Rental request #${data.bookingId} accepted`, body: `Your rental request #${data.bookingId} was accepted. Complete payment by ${data.paymentDeadline ?? "the payment deadline shown in your booking"}. Sign in to your customer panel: ${data.panelUrl ?? "Open the My bookings page on CIAO Rental Car"}.` },
+    ja: { subject: `レンタルリクエスト #${data.bookingId} が承認されました`, body: `レンタルリクエスト #${data.bookingId} が承認されました。${data.paymentDeadline ?? "予約画面に表示された"} 支払期限までにお支払いください。お客様パネルにログイン: ${data.panelUrl ?? "CIAOレンタカーの予約確認ページ"}。` },
+    "zh-TW": { subject: `租車申請 #${data.bookingId} 已接受`, body: `您的租車申請 #${data.bookingId} 已接受。請在 ${data.paymentDeadline ?? "預訂頁面顯示的付款期限"} 前完成付款。登入顧客面板: ${data.panelUrl ?? "CIAO 租車的我的預訂頁面"}。` },
   }),
   decline: (data) => ({
     en: { subject: `Rental request #${data.bookingId} declined`, body: `Your rental request #${data.bookingId} was declined.${data.reason ? ` Reason: ${data.reason}` : ""}` },
@@ -69,8 +70,9 @@ const TEMPLATES = {
     ja: { subject: `要対応：レンタルリクエスト #${data.bookingId}`, body: `レンタルリクエスト #${data.bookingId} の対応が必要です。${data.message ?? ""}` },
   }),
   new_booking: (data) => ({
-    en: { subject: `Booking #${data.bookingId} received`, body: `We received your CIAO Rental Car booking #${data.bookingId}. Your booking access code is: ${data.accessCode ?? "available in your booking confirmation"}.` },
-    ja: { subject: `予約 #${data.bookingId} を受け付けました`, body: `CIAOレンタカーの予約 #${data.bookingId} を受け付けました。予約アクセスコード: ${data.accessCode ?? "予約確認画面をご覧ください"}。` },
+    en: { subject: `Booking #${data.bookingId} received`, body: `We received your CIAO Rental Car booking #${data.bookingId}. Sign in to review it: ${data.panelUrl ?? "Open the My bookings page on CIAO Rental Car"}. Your booking access code is: ${data.accessCode ?? "available in your booking confirmation"}.` },
+    ja: { subject: `予約 #${data.bookingId} を受け付けました`, body: `CIAOレンタカーの予約 #${data.bookingId} を受け付けました。ログインして予約を確認してください: ${data.panelUrl ?? "CIAOレンタカーの予約確認ページ"}。予約アクセスコード: ${data.accessCode ?? "予約確認画面をご覧ください"}。` },
+    "zh-TW": { subject: `已收到預訂 #${data.bookingId}`, body: `我們已收到您的 CIAO 租車預訂 #${data.bookingId}。請登入查看預訂: ${data.panelUrl ?? "CIAO 租車的我的預訂頁面"}。預訂存取碼: ${data.accessCode ?? "請查看預訂確認頁面"}。` },
   }),
   booking_confirmed: (data) => ({
     en: { subject: `Booking #${data.bookingId} confirmed`, body: `Your CIAO Rental Car booking #${data.bookingId} is confirmed.` },
@@ -328,8 +330,9 @@ async function deliverClaimedNotification(notification: NotificationRow): Promis
     return "failed";
   }
   const payload = notification.payload ?? {};
-  const locale = payload.locale === "ja" ? "ja" : "en";
-  const rendered = (payload.localeTemplates as Partial<Record<Locale, Template>> | undefined)?.[locale];
+  const locale: Locale = payload.locale === "ja" ? "ja" : payload.locale === "zh-TW" ? "zh-TW" : "en";
+  const templates = payload.localeTemplates as Partial<Record<Locale, Template>> | undefined;
+  const rendered = templates?.[locale] ?? templates?.en;
   if (!rendered?.subject || !rendered.body) {
     await db.update(rentalNotificationsTable).set({
       deliveryStatus: "failed",

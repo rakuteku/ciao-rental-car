@@ -17,6 +17,7 @@ import {
   rentalDamagesTable,
   rentalVehiclePricingTable,
   rentalAvailabilityBlocksTable,
+  rentalCustomerAccountsTable,
 } from "@workspace/db";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { calculatePrice } from "../lib/rental-pricing";
@@ -246,6 +247,19 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
   const body = CreateReservationSchema.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const customerAccountId = Number((req.session as unknown as Record<string, unknown>).rentalCustomerAccountId);
+  const [customerAccount] = customerAccountId
+    ? await db.select().from(rentalCustomerAccountsTable).where(eq(rentalCustomerAccountsTable.id, customerAccountId))
+    : [];
+  if (!customerAccount || customerAccount.status !== "active") {
+    res.status(401).json({ error: "Sign in to your customer account before booking" });
+    return;
+  }
+  if (body.data.driver.email.trim().toLowerCase() !== customerAccount.email) {
+    res.status(400).json({ error: "The booking email must match your signed-in account" });
     return;
   }
 
@@ -480,10 +494,15 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
   }
   res.status(201).json({ ...serializeReservation(result.reservation), pricing });
   await queueRentalNotification({
-    email: body.data.driver.email,
+    email: customerAccount.email,
     eventType: "new_booking",
     bookingId: result.reservation.id,
-    extra: { accessCode: result.reservation.customerAccessToken },
+    locale: customerAccount.preferredLanguage === "ja" ? "ja" : customerAccount.preferredLanguage === "zh-TW" ? "zh-TW" : "en",
+    dedupeKey: `reservation:${result.reservation.id}:new_booking`,
+    extra: {
+      accessCode: result.reservation.customerAccessToken,
+      panelUrl: `${(process.env.RENTAL_PUBLIC_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "")}/${customerAccount.preferredLanguage === "en" ? "" : `${customerAccount.preferredLanguage}/`}rentalcar/my-bookings`,
+    },
   });
 });
 

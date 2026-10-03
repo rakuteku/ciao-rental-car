@@ -14,6 +14,7 @@ import { useLanguage, localizedPath } from "@/lib/language";
 import { localizeVehicle, localizeAddon } from "@/lib/rental-localization";
 import { captureRentalAttribution, createRentalRequest, formatTokyo } from "@/lib/rental-marketplace";
 import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
+import { useCustomerAccount } from "@/hooks/use-rental-operations";
 
 const schema = z.object({
   fullName: z.string().trim().min(2),
@@ -29,6 +30,7 @@ type Driver = z.infer<typeof schema>;
 export function MarketplaceCheckout() {
   const { language } = useLanguage();
   const ja = language === "ja";
+  const customer = useCustomerAccount().data?.account as { email?: string; fullName?: string; phone?: string } | undefined;
   const { data: configuredLocations } = useRentalLocations();
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
   const locationLabel = (value: string) => rentalLocationLabel(value, locations, language);
@@ -48,12 +50,17 @@ export function MarketplaceCheckout() {
   const calculate = useRef(quote.mutate);
   calculate.current = quote.mutate;
   const form = useForm<Driver>({ resolver: zodResolver(schema), defaultValues: {
-    fullName: draft?.driver.fullName || "", email: draft?.driver.email || "", phone: draft?.driver.phone || "",
+    fullName: draft?.driver.fullName || customer?.fullName || "", email: customer?.email || draft?.driver.email || "", phone: draft?.driver.phone || customer?.phone || "",
     romanizedName: draft?.driver.romanizedName || "", nationality: draft?.driver.nationality || "",
     flightNumber: draft?.driver.flightNumber || "", accommodation: draft?.driver.accommodation || "",
   } });
 
   useEffect(() => { captureRentalAttribution(); const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
+  useEffect(() => {
+    if (customer?.email) form.setValue("email", customer.email);
+    if (customer?.fullName && !form.getValues("fullName")) form.setValue("fullName", customer.fullName);
+    if (customer?.phone && !form.getValues("phone")) form.setValue("phone", customer.phone);
+  }, [customer?.email, customer?.fullName, customer?.phone, form]);
   const vehicleId = draft?.vehicleId, pickupAt = draft?.pickupAt, returnAt = draft?.returnAt;
   const pickupLocation = draft?.pickupLocation, returnLocation = draft?.returnLocation;
   const addonsKey = JSON.stringify(draft?.addons || []);
@@ -78,7 +85,7 @@ export function MarketplaceCheckout() {
         additionalDrivers: showExtra ? [extra] : undefined,
         travelNotes: notes.trim() || undefined, marketingConsent: consent,
         attribution: captureRentalAttribution(), addons: draft.addons,
-      }, ja ? "ja" : "en");
+      }, language);
       const request = "request" in result && result.request ? result.request as typeof result : result;
       const code = result.customerAccessToken || result.accessCode || request.customerAccessToken || request.accessCode;
       if (!request.id || !code) throw new Error(ja ? "受付番号を確認できません。サポートにお問い合わせください。" : "The request was received, but its access code is missing. Please contact support.");
@@ -107,12 +114,12 @@ export function MarketplaceCheckout() {
                 {([
                   ["fullName", ja ? "免許証記載の氏名" : "Name as shown on licence", "text"],
                   ["romanizedName", ja ? "ローマ字氏名（任意）" : "Romanized name (optional)", "text"],
-                  ["email", ja ? "メールアドレス" : "Email address", "email"],
+                  ["email", ja ? "メールアドレス" : language === "zh-TW" ? "電子郵件" : "Email address", "email"],
                   ["phone", ja ? "電話番号（国番号を含む）" : "Phone with country code", "tel"],
                   ["nationality", ja ? "国籍（任意）" : "Nationality (optional)", "text"],
                   ["flightNumber", ja ? "到着便（任意）" : "Arrival flight (optional)", "text"],
                   ["accommodation", ja ? "宿泊先（任意）" : "Accommodation (optional)", "text"],
-                ] as const).map(([name, label, type]) => <FormField key={name} control={form.control} name={name} render={({ field }) => <FormItem><FormLabel>{label}</FormLabel><FormControl><Input data-testid={`input-${name}`} type={type} className="h-11 bg-[#fffdf8]" {...field} /></FormControl><FormMessage /></FormItem>} />)}
+                ] as const).map(([name, label, type]) => <FormField key={name} control={form.control} name={name} render={({ field }) => <FormItem><FormLabel>{label}</FormLabel><FormControl><Input data-testid={`input-${name}`} type={type} readOnly={name === "email"} className={`h-11 ${name === "email" ? "bg-muted" : "bg-[#fffdf8]"}`} {...field} /></FormControl><FormMessage /></FormItem>} />)}
               </div>
               <div className="border-t pt-5">
                 <label className="flex items-center gap-3 text-sm"><Checkbox checked={showExtra} onCheckedChange={v => setShowExtra(v === true)} data-testid="checkbox-additional-driver" />{ja ? "追加運転者がいます" : "I have an additional driver"}</label>
