@@ -49,7 +49,7 @@ export function Footer() {
             <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{content.legal}</h4>
             <ul className="space-y-2.5 text-sm text-foreground/80">
               <li>{content.terms}</li>
-              <li>{content.privacy}</li>
+              <li><Link className="text-foreground/80 transition-colors hover:text-foreground" href={localizedPath("/privacy-policy", language)}>{content.privacy}</Link></li>
               <li>{content.insurance}</li>
             </ul>
           </div>
