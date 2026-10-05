@@ -33,7 +33,7 @@ const AddonSchema = z.object({
   descriptionJa: z.string().nullable().optional(),
   descriptionZhTw: z.string().nullable().optional(),
   image: z.string().nullable().optional(),
-  pricingType: z.enum(["flat", "per_day"]).optional(),
+  pricingType: z.enum(["per_started_24_hours", "per_rental", "per_handover", "included", "flat", "per_day"]).optional(),
   flatFee: z.coerce.number().optional(),
   perDayFee: z.coerce.number().optional(),
   maxQty: z.coerce.number().int().optional(),

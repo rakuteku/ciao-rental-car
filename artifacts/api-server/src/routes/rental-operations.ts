@@ -13,6 +13,7 @@ import {
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { logRentalAudit } from "../lib/rental-events";
 import { marketplacePolicy, marketplacePolicyKeys } from "../lib/marketplace-policy";
+import { calculatePrice } from "../lib/rental-pricing";
 
 const router: IRouter = Router();
 
@@ -111,11 +112,28 @@ const PricingRuleSchema = z.object({
   ruleType: z.enum(["multiplier", "fixed"]).default("multiplier"),
   multiplier: z.coerce.number().nullable().optional(),
   fixedPrice: z.coerce.number().nullable().optional(),
+  rate6Hours: z.coerce.number().int().nonnegative().nullable().optional(),
+  rate12Hours: z.coerce.number().int().positive().nullable().optional(),
+  rate24Hours: z.coerce.number().int().positive().nullable().optional(),
+  additional24Hours: z.coerce.number().int().positive().nullable().optional(),
+  additionalHour: z.coerce.number().int().positive().nullable().optional(),
+  specialPeakOverlap: z.boolean().default(false),
   priority: z.coerce.number().int().default(0),
   isActive: z.boolean().default(true),
 }).refine((rule) => Boolean((rule.startDate && rule.endDate) || (rule.daysOfWeek && rule.daysOfWeek.length)), {
   message: "Pricing rules need a date range or at least one day of week",
+}).refine((rule) => !rule.rate12Hours || !rule.rate24Hours || rule.rate12Hours <= rule.rate24Hours, {
+  message: "The 12-hour rate cannot be higher than the 24-hour rate",
+  path: ["rate12Hours"],
 });
+
+async function hasUnprioritizedSeasonOverlap(candidate: z.infer<typeof PricingRuleSchema>, excludeId?: number) {
+  if (!candidate.startDate || !candidate.endDate || !candidate.isActive) return false;
+  const rows = await db.select().from(rentalSeasonalPricingRulesTable);
+  return rows.some((row) => row.id !== excludeId && row.isActive && row.priority === candidate.priority &&
+    row.appliesTo === candidate.appliesTo && row.vehicleClass === (candidate.vehicleClass ?? null) && row.vehicleId === (candidate.vehicleId ?? null) &&
+    Boolean(row.startDate && row.endDate && candidate.startDate! <= row.endDate! && candidate.endDate! >= row.startDate!));
+}
 
 router.get("/admin/rental/pricing-rules", requireAdminAuth, async (_req, res): Promise<void> => {
   const rules = await db.select().from(rentalSeasonalPricingRulesTable).orderBy(asc(rentalSeasonalPricingRulesTable.priority));
@@ -124,6 +142,7 @@ router.get("/admin/rental/pricing-rules", requireAdminAuth, async (_req, res): P
 router.post("/admin/rental/pricing-rules", requireAdminAuth, async (req, res): Promise<void> => {
   const parsed = PricingRuleSchema.safeParse(req.body);
   if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  if (await hasUnprioritizedSeasonOverlap(parsed.data)) return void res.status(409).json({ error: "Seasonal date ranges overlap. Give one period a different priority before publishing." });
   const [rule] = await db.insert(rentalSeasonalPricingRulesTable).values(parsed.data).returning();
   await logRentalAudit({ adminUser: adminName(req), action: "pricing_rule_created", recordType: "pricing_rule", recordId: rule.id, newValue: { name: rule.name, priority: rule.priority } });
   res.status(201).json(serializeDates(rule));
@@ -132,6 +151,11 @@ router.put("/admin/rental/pricing-rules/:id", requireAdminAuth, async (req, res)
   const id = Number(req.params.id);
   const parsed = PricingRuleSchema.partial().safeParse(req.body);
   if (!Number.isInteger(id) || !parsed.success) return void res.status(400).json({ error: parsed.success ? "Invalid pricing rule ID" : parsed.error.message });
+  const [existingRule] = await db.select().from(rentalSeasonalPricingRulesTable).where(eq(rentalSeasonalPricingRulesTable.id, id));
+  if (!existingRule) return void res.status(404).json({ error: "Pricing rule not found" });
+  const merged = PricingRuleSchema.safeParse({ ...existingRule, ...parsed.data });
+  if (!merged.success) return void res.status(400).json({ error: merged.error.message });
+  if (await hasUnprioritizedSeasonOverlap(merged.data, id)) return void res.status(409).json({ error: "Seasonal date ranges overlap. Give one period a different priority before publishing." });
   const [rule] = await db.update(rentalSeasonalPricingRulesTable).set({ ...parsed.data, updatedAt: new Date() }).where(eq(rentalSeasonalPricingRulesTable.id, id)).returning();
   if (!rule) return void res.status(404).json({ error: "Pricing rule not found" });
   await logRentalAudit({ adminUser: adminName(req), action: "pricing_rule_updated", recordType: "pricing_rule", recordId: id, newValue: { name: rule.name, priority: rule.priority } });
@@ -145,6 +169,30 @@ router.delete("/admin/rental/pricing-rules/:id", requireAdminAuth, async (req, r
   res.json({ message: "Pricing rule deleted" });
 });
 
+router.post("/admin/rental/pricing/simulate", requireAdminAuth, async (req, res): Promise<void> => {
+  const parsed = z.object({
+    vehicleId: z.coerce.number().int().positive(),
+    pickupAt: z.string(),
+    returnAt: z.string(),
+    pickupLocation: z.string().optional(),
+    returnLocation: z.string().optional(),
+    addons: z.array(z.object({ addonId: z.coerce.number().int(), qty: z.coerce.number().int().positive().default(1) })).optional(),
+  }).safeParse(req.body);
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  const pickupAt = new Date(parsed.data.pickupAt);
+  const returnAt = new Date(parsed.data.returnAt);
+  if (!Number.isFinite(pickupAt.getTime()) || !Number.isFinite(returnAt.getTime()) || returnAt <= pickupAt) {
+    return void res.status(400).json({ error: "Return must be after pickup" });
+  }
+  try {
+    const quote = await calculatePrice({ ...parsed.data, pickupAt, returnAt });
+    res.json({ ...quote, quoteEngineMatch: true });
+  } catch (error) {
+    const status = (error as { status?: number }).status ?? 400;
+    res.status(status).json({ error: error instanceof Error ? error.message : "Price could not be calculated" });
+  }
+});
+
 const DEFAULT_SETTINGS = {
   cleaningBufferMinutes: 120,
   preparationBufferMinutes: 60,
@@ -155,10 +203,12 @@ const DEFAULT_SETTINGS = {
   cancellationPolicy: [{ daysBefore: 7, refundPercent: 100 }, { daysBefore: 3, refundPercent: 50 }, { daysBefore: 0, refundPercent: 0 }],
   requiredDocuments: ["drivers_license", "passport"],
   bookingLocations: [
-    { value: "Sapporo Station", labelEn: "Sapporo Station", labelJa: "札幌駅", labelZhTw: "札幌站" },
-    { value: "New Chitose Airport", labelEn: "New Chitose Airport", labelJa: "新千歳空港", labelZhTw: "新千歲機場" },
-    { value: "Sapporo City Center", labelEn: "Sapporo City Center", labelJa: "札幌市中心部", labelZhTw: "札幌市中心" },
+    { value: "CIAO property", labelEn: "CIAO property", labelJa: "CIAO施設", labelZhTw: "CIAO住宿", pickupFee: 2200, returnFee: 2200 },
+    { value: "Sapporo Station", labelEn: "Sapporo Station", labelJa: "札幌駅", labelZhTw: "札幌站", pickupFee: 2200, returnFee: 2200 },
+    { value: "New Chitose Airport", labelEn: "New Chitose Airport", labelJa: "新千歳空港", labelZhTw: "新千歲機場", pickupFee: 6600, returnFee: 6600 },
+    { value: "Okadama Airport", labelEn: "Okadama Airport", labelJa: "丘珠空港", labelZhTw: "丘珠機場", pickupFee: 2200, returnFee: 2200 },
   ],
+  oneWayFees: [{ pickupLocation: "CIAO property", returnLocation: "New Chitose Airport", fee: 8800, active: true }],
 };
 
 router.get("/rental/locations", async (_req, res): Promise<void> => {
@@ -183,6 +233,16 @@ router.get("/admin/rental/settings", requireAdminAuth, async (_req, res): Promis
   res.json(result);
 });
 router.put("/admin/rental/settings", requireAdminAuth, async (req, res): Promise<void> => {
+  const bookingLocations = Array.isArray(req.body.bookingLocations) ? req.body.bookingLocations : [];
+  const oneWayFees = Array.isArray(req.body.oneWayFees) ? req.body.oneWayFees : [];
+  if (bookingLocations.some((location: { pickupFee?: unknown; returnFee?: unknown }) =>
+    !Number.isInteger(Number(location.pickupFee ?? 0)) || Number(location.pickupFee ?? 0) < 0 ||
+    !Number.isInteger(Number(location.returnFee ?? 0)) || Number(location.returnFee ?? 0) < 0)) {
+    return void res.status(400).json({ error: "Pickup and return fees must be non-negative whole yen amounts" });
+  }
+  if (oneWayFees.some((fee: { fee?: unknown }) => !Number.isInteger(Number(fee.fee ?? 0)) || Number(fee.fee ?? 0) < 0)) {
+    return void res.status(400).json({ error: "One-way fees must be non-negative whole yen amounts" });
+  }
   const allowed = Object.keys(DEFAULT_SETTINGS);
   const entries = Object.entries(req.body as Record<string, unknown>).filter(([key]) => allowed.includes(key));
   for (const [key, value] of entries) {

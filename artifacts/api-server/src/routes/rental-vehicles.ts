@@ -718,6 +718,21 @@ router.get("/admin/rental/vehicles/:id/pricing", requireAdminAuth, async (req, r
 
 const UpdatePricingSchema = z.object({
   basePrice: z.coerce.number().optional(),
+  ratePlanName: z.string().trim().min(1).optional(),
+  currency: z.literal("JPY").optional(),
+  effectiveStartDate: z.string().nullable().optional(),
+  effectiveEndDate: z.string().nullable().optional(),
+  rateStatus: z.enum(["active", "draft", "inactive"]).optional(),
+  rate6Hours: z.coerce.number().int().nonnegative().nullable().optional(),
+  rate12Hours: z.coerce.number().int().positive().optional(),
+  rate24Hours: z.coerce.number().int().positive().optional(),
+  additional24Hours: z.coerce.number().int().positive().optional(),
+  additionalHour: z.coerce.number().int().positive().optional(),
+  gracePeriodMinutes: z.coerce.number().int().min(0).max(60).optional(),
+  cheapestRateEnabled: z.boolean().optional(),
+  additionalDayCapEnabled: z.boolean().optional(),
+  lateReturnRequiresApproval: z.boolean().optional(),
+  earlyReturnRefund: z.boolean().optional(),
   weekendPrice: z.coerce.number().nullable().optional(),
   holidayPrice: z.coerce.number().nullable().optional(),
   highSeasonPrice: z.coerce.number().nullable().optional(),
@@ -742,6 +757,13 @@ const UpdatePricingSchema = z.object({
   airportDropoffFee: z.coerce.number().optional(),
   manualPriceOverride: z.boolean().optional(),
   manualPriceValue: z.coerce.number().nullable().optional(),
+}).superRefine((pricing, context) => {
+  if (pricing.rate12Hours != null && pricing.rate24Hours != null && pricing.rate12Hours > pricing.rate24Hours) {
+    context.addIssue({ code: "custom", path: ["rate12Hours"], message: "The 12-hour rate cannot be higher than the 24-hour rate" });
+  }
+  if (pricing.effectiveStartDate && pricing.effectiveEndDate && pricing.effectiveStartDate > pricing.effectiveEndDate) {
+    context.addIssue({ code: "custom", path: ["effectiveEndDate"], message: "Effective end date must be after the start date" });
+  }
 });
 
 router.put("/admin/rental/vehicles/:id/pricing", requireAdminAuth, async (req, res): Promise<void> => {
@@ -756,6 +778,14 @@ router.put("/admin/rental/vehicles/:id/pricing", requireAdminAuth, async (req, r
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
     return;
+  }
+
+  if (body.data.rateStatus === "active") {
+    const required = [body.data.rate12Hours, body.data.rate24Hours, body.data.additional24Hours, body.data.additionalHour];
+    if (required.some((value) => value == null || value <= 0)) {
+      res.status(400).json({ error: "Active rate plans require 12-hour, 24-hour, additional-24-hour and additional-hour prices" });
+      return;
+    }
   }
 
   const existing = await db

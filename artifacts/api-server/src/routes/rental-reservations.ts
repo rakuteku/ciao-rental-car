@@ -1101,7 +1101,7 @@ router.post("/rental/pricing/calculate", async (req, res): Promise<void> => {
     });
   } catch (error) {
     if ((error as { status?: number }).status === 400) {
-      res.status(400).json({ error: "Add-on not available for this vehicle" });
+      res.status(400).json({ error: error instanceof Error ? error.message : "Price could not be calculated" });
       return;
     }
     throw error;
