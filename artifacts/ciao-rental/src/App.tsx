@@ -114,6 +114,7 @@ function Router() {
       <Route path="/admin/rental-cars/maintenance" component={() => <AdminLayout><AdminMaintenance /></AdminLayout>} />
       <Route path="/admin/rental-cars/addons" component={() => <AdminLayout><AdminAddons /></AdminLayout>} />
       <Route path="/admin/rental-cars/pricing" component={() => <AdminLayout><AdminPricingRules /></AdminLayout>} />
+      <Route path="/admin/pricing" component={() => <AdminLayout><AdminPricingRules /></AdminLayout>} />
       <Route path="/admin/rental-cars/settings" component={() => <AdminLayout><AdminSettings /></AdminLayout>} />
       <Route path="/admin/rental-cars/audit" component={() => <AdminLayout><AdminAudit /></AdminLayout>} />
       <Route path="/admin/rental-cars/partners" component={() => <AdminLayout><AdminRentalPartners /></AdminLayout>} />
