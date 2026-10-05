@@ -6,12 +6,15 @@ export type RentalLocation = {
   labelEn: string;
   labelJa: string;
   labelZhTw: string;
+  pickupFee: number;
+  returnFee: number;
 };
 
 export const DEFAULT_RENTAL_LOCATIONS: RentalLocation[] = [
-  { value: "Sapporo Station", labelEn: "Sapporo Station", labelJa: "札幌駅", labelZhTw: "札幌站" },
-  { value: "New Chitose Airport", labelEn: "New Chitose Airport", labelJa: "新千歳空港", labelZhTw: "新千歲機場" },
-  { value: "Sapporo City Center", labelEn: "Sapporo City Center", labelJa: "札幌市中心部", labelZhTw: "札幌市中心" },
+  { value: "CIAO property", labelEn: "CIAO property", labelJa: "CIAO施設", labelZhTw: "CIAO住宿", pickupFee: 2200, returnFee: 2200 },
+  { value: "Sapporo Station", labelEn: "Sapporo Station", labelJa: "札幌駅", labelZhTw: "札幌站", pickupFee: 2200, returnFee: 2200 },
+  { value: "New Chitose Airport", labelEn: "New Chitose Airport", labelJa: "新千歳空港", labelZhTw: "新千歲機場", pickupFee: 6600, returnFee: 6600 },
+  { value: "Okadama Airport", labelEn: "Okadama Airport", labelJa: "丘珠空港", labelZhTw: "丘珠機場", pickupFee: 2200, returnFee: 2200 },
 ];
 
 function isRentalLocation(value: unknown): value is RentalLocation {
@@ -28,6 +31,8 @@ export function normalizeRentalLocations(value: unknown): RentalLocation[] {
     labelEn: location.labelEn.trim(),
     labelJa: location.labelJa?.trim() || location.labelEn.trim(),
     labelZhTw: location.labelZhTw?.trim() || location.labelEn.trim(),
+    pickupFee: Number.isInteger(Number(location.pickupFee)) && Number(location.pickupFee) >= 0 ? Number(location.pickupFee) : 0,
+    returnFee: Number.isInteger(Number(location.returnFee)) && Number(location.returnFee) >= 0 ? Number(location.returnFee) : 0,
   }));
   return locations.length ? locations : DEFAULT_RENTAL_LOCATIONS;
 }

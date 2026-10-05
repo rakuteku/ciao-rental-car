@@ -137,6 +137,21 @@ type VehicleFormData = {
 
 type PricingFormData = {
   basePrice: number;
+  ratePlanName: string;
+  currency: "JPY";
+  effectiveStartDate: string;
+  effectiveEndDate: string;
+  rateStatus: "active" | "draft" | "inactive";
+  rate6Hours: number | null;
+  rate12Hours: number;
+  rate24Hours: number;
+  additional24Hours: number;
+  additionalHour: number;
+  gracePeriodMinutes: number;
+  cheapestRateEnabled: boolean;
+  additionalDayCapEnabled: boolean;
+  lateReturnRequiresApproval: boolean;
+  earlyReturnRefund: boolean;
   weekendPrice: number | null;
   holidayPrice: number | null;
   highSeasonPrice: number | null;
@@ -244,6 +259,21 @@ const defaultVehicle: VehicleFormData = {
 
 const defaultPricing: PricingFormData = {
   basePrice: 0,
+  ratePlanName: "Standard rate",
+  currency: "JPY",
+  effectiveStartDate: "",
+  effectiveEndDate: "",
+  rateStatus: "active",
+  rate6Hours: null,
+  rate12Hours: 0,
+  rate24Hours: 0,
+  additional24Hours: 0,
+  additionalHour: 0,
+  gracePeriodMinutes: 0,
+  cheapestRateEnabled: true,
+  additionalDayCapEnabled: true,
+  lateReturnRequiresApproval: true,
+  earlyReturnRefund: false,
   weekendPrice: null,
   holidayPrice: null,
   highSeasonPrice: null,
@@ -351,9 +381,28 @@ function vehicleToForm(v: RentalVehicle): VehicleFormData {
   };
 }
 
-function pricingToForm(p: RentalVehiclePricing): PricingFormData {
+type TimeBasedPricingFields = Pick<PricingFormData, "ratePlanName" | "currency" | "rateStatus" | "rate6Hours" | "rate12Hours" | "rate24Hours" | "additional24Hours" | "additionalHour" | "gracePeriodMinutes" | "cheapestRateEnabled" | "additionalDayCapEnabled" | "lateReturnRequiresApproval" | "earlyReturnRefund"> & { effectiveStartDate?: string | null; effectiveEndDate?: string | null };
+
+function pricingToForm(source: RentalVehiclePricing): PricingFormData {
+  const p = source as RentalVehiclePricing & Partial<TimeBasedPricingFields>;
+  const legacy = Math.round(p.basePrice ?? 0);
   return {
     basePrice: p.basePrice,
+    ratePlanName: p.ratePlanName ?? "Standard rate",
+    currency: "JPY",
+    effectiveStartDate: p.effectiveStartDate ?? "",
+    effectiveEndDate: p.effectiveEndDate ?? "",
+    rateStatus: (p.rateStatus as PricingFormData["rateStatus"]) ?? "active",
+    rate6Hours: p.rate6Hours ?? null,
+    rate12Hours: p.rate12Hours || legacy,
+    rate24Hours: p.rate24Hours || legacy,
+    additional24Hours: p.additional24Hours || legacy,
+    additionalHour: p.additionalHour || Math.ceil(legacy / 24),
+    gracePeriodMinutes: p.gracePeriodMinutes ?? 0,
+    cheapestRateEnabled: p.cheapestRateEnabled ?? true,
+    additionalDayCapEnabled: p.additionalDayCapEnabled ?? true,
+    lateReturnRequiresApproval: p.lateReturnRequiresApproval ?? true,
+    earlyReturnRefund: p.earlyReturnRefund ?? false,
     weekendPrice: p.weekendPrice ?? null,
     holidayPrice: p.holidayPrice ?? null,
     highSeasonPrice: p.highSeasonPrice ?? null,
@@ -740,7 +789,13 @@ function getRequiredFieldErrors(form: VehicleFormData): string[] {
 
 function getPricingFieldErrors(pricing: PricingFormData): string[] {
   const errs: string[] = [];
-  if (pricing.basePrice <= 0) errs.push("Base daily price is required");
+  if (!pricing.ratePlanName.trim()) errs.push("Rate plan name is required");
+  if (pricing.rate12Hours <= 0) errs.push("12-hour price is required");
+  if (pricing.rate24Hours <= 0) errs.push("24-hour price is required");
+  if (pricing.additional24Hours <= 0) errs.push("Additional 24-hour price is required");
+  if (pricing.additionalHour <= 0) errs.push("Additional-hour price is required");
+  if (pricing.rate12Hours > pricing.rate24Hours) errs.push("12-hour price cannot exceed the 24-hour price");
+  if ([pricing.rate6Hours, pricing.rate12Hours, pricing.rate24Hours, pricing.additional24Hours, pricing.additionalHour].some(value => value != null && (!Number.isInteger(value) || value < 0))) errs.push("Prices must be non-negative whole yen amounts");
   if (pricing.billablePeriodHours < 1) errs.push("Price validity hours are required");
   if (!pricing.pickupWindowStart || !pricing.pickupWindowEnd) errs.push("Pickup time range is required");
   if (pricing.pickupWindowStart >= pricing.pickupWindowEnd) errs.push("Pickup end time must be later than its start time");
@@ -748,6 +803,16 @@ function getPricingFieldErrors(pricing: PricingFormData): string[] {
   if (pricing.returnWindowStart >= pricing.returnWindowEnd) errs.push("Return end time must be later than its start time");
   if (pricing.lateReturnFee < 0) errs.push("Late return fee is required");
   return errs;
+}
+
+function projectedPrice(pricing: PricingFormData, hours: number) {
+  if (hours <= 12) return pricing.rate12Hours;
+  if (hours <= 24) return pricing.rate24Hours;
+  const extension = hours - 24;
+  const fullDays = Math.floor(extension / 24);
+  const remainder = extension % 24;
+  const remainderPrice = remainder === 0 ? 0 : Math.min(remainder * pricing.additionalHour, pricing.additional24Hours);
+  return pricing.rate24Hours + fullDays * pricing.additional24Hours + remainderPrice;
 }
 
 interface EditPageProps {
@@ -830,6 +895,8 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
 
   const vehicleValidationErrors = getRequiredFieldErrors(form);
   const pricingValidationErrors = getPricingFieldErrors(pricing);
+  if (form.status === "published" && pricing.rateStatus !== "active") pricingValidationErrors.push("Published vehicles must use an active rate plan");
+  if (form.status === "published" && pricing.effectiveEndDate && pricing.effectiveEndDate < new Date().toISOString().slice(0, 10)) pricingValidationErrors.push("An expired rate plan cannot be assigned to a published vehicle");
   const validationErrors = [...vehicleValidationErrors, ...pricingValidationErrors];
 
   async function handleSave(asDraft = false, continueEditing = false) {
@@ -941,7 +1008,22 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
           {
             id: savedId,
             data: {
-              basePrice: pricing.basePrice,
+              basePrice: pricing.rate24Hours,
+              ratePlanName: pricing.ratePlanName,
+              currency: pricing.currency,
+              effectiveStartDate: pricing.effectiveStartDate || null,
+              effectiveEndDate: pricing.effectiveEndDate || null,
+              rateStatus: asDraft ? "draft" : pricing.rateStatus,
+              rate6Hours: pricing.rate6Hours,
+              rate12Hours: pricing.rate12Hours,
+              rate24Hours: pricing.rate24Hours,
+              additional24Hours: pricing.additional24Hours,
+              additionalHour: pricing.additionalHour,
+              gracePeriodMinutes: pricing.gracePeriodMinutes,
+              cheapestRateEnabled: pricing.cheapestRateEnabled,
+              additionalDayCapEnabled: pricing.additionalDayCapEnabled,
+              lateReturnRequiresApproval: pricing.lateReturnRequiresApproval,
+              earlyReturnRefund: pricing.earlyReturnRefund,
               weekendPrice: pricing.weekendPrice ?? undefined,
               holidayPrice: pricing.holidayPrice ?? undefined,
               highSeasonPrice: pricing.highSeasonPrice ?? undefined,
@@ -966,7 +1048,7 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
               airportDropoffFee: pricing.airportDropoffFee,
               manualPriceOverride: pricing.manualPriceOverride,
               manualPriceValue: pricing.manualPriceOverride ? (pricing.manualPriceValue ?? undefined) : undefined,
-            },
+            } as any,
           },
           { onSuccess: () => resolve(), onError: reject }
         );
@@ -1349,15 +1431,47 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
         </TabsContent>
 
         <TabsContent value="pricing" className="space-y-5 pt-4">
-          <FieldSection title="Base Pricing (¥/day)" />
-          <div className="grid grid-cols-3 gap-4">
-            <NumberInput label="Base Daily Price *" value={pricing.basePrice} onChange={(v) => setP("basePrice", v ?? 0)} prefix="¥" step={100} />
-            <NumberInput label="Weekend Price" value={pricing.weekendPrice} onChange={(v) => setP("weekendPrice", v)} prefix="¥" step={100} nullable hint="Leave blank to use base price" />
-            <NumberInput label="Holiday Price" value={pricing.holidayPrice} onChange={(v) => setP("holidayPrice", v)} prefix="¥" step={100} nullable hint="Leave blank to use base price" />
+          <div className="rounded-md border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+            Prices are calculated from elapsed rental time. The applicable seasonal rate is determined by the scheduled pickup date unless a special peak period is configured to apply on overlap.
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <NumberInput label="High Season Price" value={pricing.highSeasonPrice} onChange={(v) => setP("highSeasonPrice", v)} prefix="¥" step={100} nullable hint="e.g. Golden Week, summer" />
-            <NumberInput label="Winter Season Price" value={pricing.winterSeasonPrice} onChange={(v) => setP("winterSeasonPrice", v)} prefix="¥" step={100} nullable hint="Ski season premium" />
+
+          <FieldSection title="Rate Plan Information" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-1.5"><Label>Rate plan name *</Label><Input value={pricing.ratePlanName} onChange={(e) => setP("ratePlanName", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Currency</Label><Input value="JPY" disabled /></div>
+            <div className="space-y-1.5"><Label>Effective from</Label><Input type="date" value={pricing.effectiveStartDate} onChange={(e) => setP("effectiveStartDate", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Effective until</Label><Input type="date" value={pricing.effectiveEndDate} onChange={(e) => setP("effectiveEndDate", e.target.value)} /></div>
+            <div className="space-y-1.5"><Label>Status</Label><Select value={pricing.rateStatus} onValueChange={(value) => setP("rateStatus", value as PricingFormData["rateStatus"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="draft">Draft</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select></div>
+            <div className="space-y-1.5"><Label>Tax</Label><Input value={pricing.taxIncluded ? "Tax included" : "Tax added at checkout"} disabled /></div>
+          </div>
+
+          <FieldSection title="Core Rental Rates" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <NumberInput label="Up to 6 hours" value={pricing.rate6Hours} onChange={(v) => setP("rate6Hours", v)} prefix="¥" step={100} nullable hint="Optional" />
+            <NumberInput label="Up to 12 hours *" value={pricing.rate12Hours} onChange={(v) => setP("rate12Hours", v ?? 0)} prefix="¥" step={100} />
+            <NumberInput label="Up to 24 hours *" value={pricing.rate24Hours} onChange={(v) => setP("rate24Hours", v ?? 0)} prefix="¥" step={100} />
+            <NumberInput label="Each additional 24 hours *" value={pricing.additional24Hours} onChange={(v) => setP("additional24Hours", v ?? 0)} prefix="¥" step={100} />
+            <NumberInput label="Each additional hour *" value={pricing.additionalHour} onChange={(v) => setP("additionalHour", v ?? 0)} prefix="¥" step={100} />
+          </div>
+          {pricing.additionalHour * 2 > pricing.additional24Hours && pricing.additional24Hours > 0 && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">Warning: two additional hours already exceed the additional 24-hour rate. Hourly pricing will reach its cap very quickly.</div>
+          )}
+
+          <FieldSection title="Calculated Rates (Read Only)" />
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[[48, "Up to 48 hours"], [72, "Up to 72 hours"], [96, "Up to 96 hours"], [168, "Seven days"]].map(([hours, label]) => (
+              <div key={hours} className="rounded-md border bg-muted/30 p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-lg font-semibold tabular-nums">¥{projectedPrice(pricing, Number(hours)).toLocaleString()}</p></div>
+            ))}
+          </div>
+
+          <FieldSection title="Calculation Rules" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center justify-between rounded-md border p-4"><div><Label>Cheapest-rate calculation</Label><p className="text-xs text-muted-foreground">Compare hourly extension with another 24-hour block.</p></div><Switch checked={pricing.cheapestRateEnabled} onCheckedChange={(v) => setP("cheapestRateEnabled", v)} /></div>
+            <div className="flex items-center justify-between rounded-md border p-4"><div><Label>Additional-day price cap</Label><p className="text-xs text-muted-foreground">Never charge more than the next 24-hour rate.</p></div><Switch checked={pricing.additionalDayCapEnabled} onCheckedChange={(v) => setP("additionalDayCapEnabled", v)} /></div>
+            <div className="flex items-center justify-between rounded-md border p-4"><div><Label>Late return requires approval</Label></div><Switch checked={pricing.lateReturnRequiresApproval} onCheckedChange={(v) => setP("lateReturnRequiresApproval", v)} /></div>
+            <div className="flex items-center justify-between rounded-md border p-4"><div><Label>Early-return refund</Label><p className="text-xs text-muted-foreground">Disabled by default.</p></div><Switch checked={pricing.earlyReturnRefund} onCheckedChange={(v) => setP("earlyReturnRefund", v)} /></div>
+            <div className="space-y-1.5"><Label>Grace period</Label><Select value={String(pricing.gracePeriodMinutes)} onValueChange={(value) => setP("gracePeriodMinutes", Number(value))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="0">0 minutes</SelectItem><SelectItem value="15">15 minutes</SelectItem></SelectContent></Select></div>
+            <div className="space-y-1.5"><Label>Charging method</Label><Input value="Elapsed rental time · 1 day = 24 hours · partial hours round up" disabled /></div>
           </div>
 
           <FieldSection title="Discounts" />

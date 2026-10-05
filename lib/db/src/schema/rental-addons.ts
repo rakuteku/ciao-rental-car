@@ -19,6 +19,10 @@ export const rentalAddonPricingTypeEnum = pgEnum("rental_addon_pricing_type", [
   "flat",
   "per_day",
   "per_unit",
+  "per_started_24_hours",
+  "per_rental",
+  "per_handover",
+  "included",
 ]);
 
 export const rentalAddonsTable = pgTable(

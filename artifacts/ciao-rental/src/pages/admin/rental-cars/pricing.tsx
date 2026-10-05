@@ -1,140 +1,82 @@
-import { useAdminPricingRules, useCreateAdminPricingRule, useUpdateAdminPricingRule, useDeleteAdminPricingRule } from "@/hooks/use-rental-operations";
 import { useState } from "react";
+import { Link } from "wouter";
+import { useGetAdminRentalVehicles } from "@workspace/api-client-react";
+import { useAdminAddons, useAdminPriceSimulator, useAdminPricingRules, useAdminSettings, useCreateAdminPricingRule, useDeleteAdminPricingRule, useUpdateAdminPricingRule } from "@/hooks/use-rental-operations";
+import { useLanguage } from "@/lib/language";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Calculator, CheckCircle2, Edit3, Plus, Trash2 } from "lucide-react";
+
+type SeasonForm = { name: string; appliesTo: "all" | "class"; vehicleClass: string; startDate: string; endDate: string; priority: string; rate6Hours: string; rate12Hours: string; rate24Hours: string; additional24Hours: string; additionalHour: string; specialPeakOverlap: boolean; isActive: boolean };
+const emptySeason: SeasonForm = { name: "", appliesTo: "all", vehicleClass: "", startDate: "", endDate: "", priority: "0", rate6Hours: "", rate12Hours: "", rate24Hours: "", additional24Hours: "", additionalHour: "", specialPeakOverlap: false, isActive: true };
+const money = (value: number) => `¥${Math.round(value || 0).toLocaleString()}`;
 
 export function AdminPricingRules() {
-  const { data: rules = [], isLoading } = useAdminPricingRules();
-  const createMut = useCreateAdminPricingRule();
-  const updateMut = useUpdateAdminPricingRule();
-  const deleteMut = useDeleteAdminPricingRule();
+  const { language } = useLanguage();
+  const ja = language === "ja";
+  const t = (en: string, jp: string) => ja ? jp : en;
   const { toast } = useToast();
-
-  const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: "", appliesTo: "all", vehicleClass: "", multiplier: "1.0", startDate: "", endDate: "", isActive: true });
+  const { data: rules = [], isLoading } = useAdminPricingRules();
+  const { data: vehicleData } = useGetAdminRentalVehicles();
+  const { data: settings } = useAdminSettings();
+  const { data: addons = [] } = useAdminAddons();
+  const createRule = useCreateAdminPricingRule();
+  const updateRule = useUpdateAdminPricingRule();
+  const deleteRule = useDeleteAdminPricingRule();
+  const simulator = useAdminPriceSimulator();
+  const vehicles = Array.isArray(vehicleData) ? vehicleData : (vehicleData as any)?.items ?? [];
+  const locations = settings?.bookingLocations ?? [];
+  const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [season, setSeason] = useState<SeasonForm>(emptySeason);
+  const [selectedAddons, setSelectedAddons] = useState<number[]>([]);
+  const [test, setTest] = useState({ vehicleId: "", pickupAt: "", returnAt: "", pickupLocation: "", returnLocation: "" });
 
-  const openForm = (rule?: any) => {
-    if (rule) {
-      setEditId(rule.id);
-      setFormData({ name: rule.name, appliesTo: rule.appliesTo || "all", vehicleClass: rule.vehicleClass || "", multiplier: String(rule.multiplier || 1.0), startDate: rule.startDate || "", endDate: rule.endDate || "", isActive: rule.isActive });
-    } else {
-      setEditId(null);
-      setFormData({ name: "", appliesTo: "all", vehicleClass: "", multiplier: "1.0", startDate: "", endDate: "", isActive: true });
-    }
-    setIsOpen(true);
+  const openSeason = (rule?: any) => {
+    setEditId(rule?.id ?? null);
+    setSeason(rule ? { name: rule.name ?? "", appliesTo: rule.appliesTo === "class" ? "class" : "all", vehicleClass: rule.vehicleClass ?? "", startDate: rule.startDate ?? "", endDate: rule.endDate ?? "", priority: String(rule.priority ?? 0), rate6Hours: rule.rate6Hours == null ? "" : String(rule.rate6Hours), rate12Hours: String(rule.rate12Hours ?? ""), rate24Hours: String(rule.rate24Hours ?? ""), additional24Hours: String(rule.additional24Hours ?? ""), additionalHour: String(rule.additionalHour ?? ""), specialPeakOverlap: Boolean(rule.specialPeakOverlap), isActive: rule.isActive !== false } : emptySeason);
+    setOpen(true);
   };
-
-  const handleSave = () => {
-    const payload = {
-      name: formData.name,
-      appliesTo: formData.appliesTo,
-      vehicleClass: formData.appliesTo === "class" ? formData.vehicleClass : null,
-      startDate: formData.startDate,
-      endDate: formData.endDate,
-      multiplier: Number(formData.multiplier),
-      isActive: formData.isActive,
-    };
-    if (editId) {
-      updateMut.mutate({ id: editId, data: payload }, {
-        onSuccess: () => { toast({ title: "Updated Rule" }); setIsOpen(false); }
-      });
-    } else {
-      createMut.mutate(payload, {
-        onSuccess: () => { toast({ title: "Created Rule" }); setIsOpen(false); }
-      });
-    }
+  const saveSeason = () => {
+    const payload = { name: season.name, appliesTo: season.appliesTo, vehicleClass: season.appliesTo === "class" ? season.vehicleClass : null, startDate: season.startDate, endDate: season.endDate, priority: Number(season.priority), isActive: season.isActive, ruleType: "fixed", rate6Hours: season.rate6Hours ? Number(season.rate6Hours) : null, rate12Hours: Number(season.rate12Hours), rate24Hours: Number(season.rate24Hours), additional24Hours: Number(season.additional24Hours), additionalHour: Number(season.additionalHour), fixedPrice: Number(season.rate24Hours), specialPeakOverlap: season.specialPeakOverlap };
+    const mutation = editId ? updateRule : createRule;
+    mutation.mutate((editId ? { id: editId, data: payload } : payload) as any, { onSuccess: () => { setOpen(false); toast({ title: t("Seasonal period saved", "シーズン料金を保存しました") }); }, onError: (error: any) => toast({ title: t("Could not save", "保存できませんでした"), description: error.message, variant: "destructive" }) });
   };
+  const runTest = () => simulator.mutate({ vehicleId: Number(test.vehicleId), pickupAt: new Date(test.pickupAt).toISOString(), returnAt: new Date(test.returnAt).toISOString(), pickupLocation: test.pickupLocation, returnLocation: test.returnLocation, addons: selectedAddons.map(addonId => ({ addonId, qty: 1 })) }, { onError: (error: any) => toast({ title: t("Calculation failed", "計算できませんでした"), description: error.message, variant: "destructive" }) });
+  const preview = (hours: number) => Number(season.rate24Hours || 0) + Math.max(0, hours / 24 - 1) * Number(season.additional24Hours || 0);
 
-  const handleDelete = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm("Delete this rule?")) {
-      deleteMut.mutate(id, {
-        onSuccess: () => toast({ title: "Deleted rule" })
-      });
-    }
-  };
-
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-serif font-bold">Pricing Rules</h1>
-          <p className="text-muted-foreground">Dynamic multipliers and seasonal adjustments.</p>
-        </div>
-        <Button onClick={() => openForm()}>Add Rule</Button>
-      </div>
-
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editId ? "Edit" : "Add"} Pricing Rule</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>Rule Name</Label>
-              <Input value={formData.name} onChange={e => setFormData(s => ({...s, name: e.target.value}))} />
-            </div>
-            <div>
-              <Label>Applies to</Label>
-              <select className="w-full h-10 rounded-md border bg-background px-3" value={formData.appliesTo} onChange={e => setFormData(s => ({...s, appliesTo: e.target.value}))}>
-                <option value="all">All vehicles</option>
-                <option value="class">Vehicle class</option>
-              </select>
-            </div>
-            {formData.appliesTo === "class" && <div>
-              <Label>Vehicle class</Label>
-              <Input value={formData.vehicleClass} onChange={e => setFormData(s => ({...s, vehicleClass: e.target.value}))} placeholder="compact, SUV, minivan..." />
-            </div>}
-            <div>
-              <Label>Start date</Label>
-              <Input type="date" value={formData.startDate} onChange={e => setFormData(s => ({...s, startDate: e.target.value}))} />
-            </div>
-            <div>
-              <Label>End date</Label>
-              <Input type="date" value={formData.endDate} onChange={e => setFormData(s => ({...s, endDate: e.target.value}))} />
-            </div>
-            <div>
-              <Label>Multiplier (e.g. 1.2 = +20%)</Label>
-              <Input type="number" step="0.1" value={formData.multiplier} onChange={e => setFormData(s => ({...s, multiplier: e.target.value}))} />
-            </div>
-            <Button className="w-full" onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>Save</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <div className="bg-card border rounded-lg overflow-x-auto shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Rule Name</TableHead>
-              <TableHead>Target Class</TableHead>
-              <TableHead>Multiplier</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="text-center py-8">Loading...</TableCell></TableRow>
-            ) : rules.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No rules found.</TableCell></TableRow>
-            ) : (
-              rules.map((r: any) => (
-                <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openForm(r)}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell>{r.appliesTo === "all" ? "All vehicles" : r.vehicleClass || `Vehicle #${r.vehicleId}`}</TableCell>
-                  <TableCell>{r.multiplier}x</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="text-destructive" onClick={e => handleDelete(r.id, e)}>Delete</Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
+  return <div className="mx-auto max-w-[1500px] space-y-6 p-6">
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-3xl font-serif font-bold">{t("Rental Pricing", "レンタル料金")}</h1><p className="text-muted-foreground">{t("One elapsed-time quote engine for the public site, checkout and simulator.", "公開サイト・決済・シミュレーターで同じ時間制料金計算を使用します。")}</p></div><Button onClick={() => openSeason()}><Plus className="mr-2 h-4 w-4" />{t("Add seasonal period", "シーズンを追加")}</Button></div>
+    <div className="rounded-md border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">{t("The applicable seasonal rate is determined by the scheduled pickup date. Special peak periods can apply when any part of a reservation overlaps the period.", "適用シーズン料金は予約された受取日で決まります。特別ピーク期間は予約の一部が重なる場合にも適用できます。")}</div>
+    <Tabs defaultValue="plans"><TabsList className="h-auto flex-wrap justify-start"><TabsTrigger value="plans">{t("Vehicle Rate Plans", "車両料金プラン")}</TabsTrigger><TabsTrigger value="seasons">{t("Seasonal Periods", "シーズン期間")}</TabsTrigger><TabsTrigger value="extras">{t("Insurance & Equipment", "補償・オプション")}</TabsTrigger><TabsTrigger value="locations">{t("Locations & One-Way", "場所・乗り捨て")}</TabsTrigger><TabsTrigger value="discounts">{t("Discounts", "割引")}</TabsTrigger></TabsList>
+      <TabsContent value="plans" className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{vehicles.map((vehicle: any) => <Card key={vehicle.id}><CardHeader><div className="flex justify-between gap-3"><div><CardTitle className="text-lg">{vehicle.publicTitle}</CardTitle><p className="text-sm text-muted-foreground">{vehicle.vehicleClass}</p></div><Badge variant={vehicle.status === "published" ? "default" : "secondary"}>{vehicle.status}</Badge></div></CardHeader><CardContent><p className="text-sm text-muted-foreground">{t("Edit five core elapsed-time prices. Multi-day prices are generated automatically.", "5つの基本時間料金を設定します。複数日料金は自動計算されます。")}</p><Button asChild variant="outline" className="mt-4 w-full"><Link href={`/admin/rental-cars/${vehicle.id}/edit`}><Edit3 className="mr-2 h-4 w-4" />{t("Edit rate plan", "料金プランを編集")}</Link></Button></CardContent></Card>)}</TabsContent>
+      <TabsContent value="seasons" className="mt-5 space-y-3">{isLoading ? <p>{t("Loading...", "読み込み中...")}</p> : rules.length === 0 ? <Card><CardContent className="py-10 text-center text-muted-foreground">{t("No seasonal periods yet.", "シーズン期間はまだありません。")}</CardContent></Card> : rules.map((rule: any) => <Card key={rule.id}><CardContent className="flex flex-wrap items-center justify-between gap-4 py-4"><div><div className="flex items-center gap-2"><p className="font-semibold">{rule.name}</p>{rule.specialPeakOverlap && <Badge variant="outline">Special peak</Badge>}{!rule.isActive && <Badge variant="secondary">Draft</Badge>}</div><p className="text-sm text-muted-foreground">{rule.startDate} – {rule.endDate} · Priority {rule.priority}</p><p className="mt-1 text-sm">12h {money(rule.rate12Hours)} · 24h {money(rule.rate24Hours)} · +24h {money(rule.additional24Hours)} · +1h {money(rule.additionalHour)}</p></div><div className="flex gap-2"><Button variant="outline" size="icon" onClick={() => openSeason(rule)} aria-label="Edit"><Edit3 className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => confirm("Delete this seasonal period?") && deleteRule.mutate(rule.id)} aria-label="Delete"><Trash2 className="h-4 w-4" /></Button></div></CardContent></Card>)}</TabsContent>
+      <TabsContent value="extras" className="mt-5"><Section title={t("Insurance, Protection & Optional Equipment", "補償・オプション装備")} text={t("Keep these charges separate. Per-started-24-hour items are charged twice for a 25-hour rental.", "車両料金とは別に設定します。24時間ごとの項目は25時間レンタルで2期間分となります。")} href="/admin/rental-cars/addons" button={t("Manage add-ons", "オプションを管理")} /></TabsContent>
+      <TabsContent value="locations" className="mt-5"><Section title={t("Pickup, Return & One-Way Fees", "受取・返却・乗り捨て料金")} text={t("A one-way override replaces both normal location fees.", "乗り捨て特別料金は通常の受取・返却料金の両方を置き換えます。")} href="/admin/rental-cars/settings" button={t("Manage locations", "場所料金を管理")} /></TabsContent>
+      <TabsContent value="discounts" className="mt-5"><Section title={t("Discounts & Promotions", "割引・プロモーション")} text={t("Weekly and monthly discounts remain available per vehicle and apply after the elapsed-time charge.", "週・月割引は車両ごとに設定でき、時間制料金の計算後に適用されます。")} /></TabsContent>
+    </Tabs>
+    <div className="grid gap-6 xl:grid-cols-[1fr_420px]"><Card><CardHeader><CardTitle>{t("Validation", "検証")}</CardTitle></CardHeader><CardContent className="grid gap-3 md:grid-cols-2"><Check text={t("Whole-yen prices only", "円単位のみ")} /><Check text={t("12-hour rate cannot exceed 24-hour rate", "12時間料金は24時間料金以下")} /><Check text={t("Overlapping seasons require priority", "重複期間は優先度が必要")} /><Check text={t("Simulator uses the checkout quote engine", "決済と同じ見積エンジン")} /></CardContent></Card>
+      <Card><CardHeader><CardTitle className="flex items-center gap-2"><Calculator className="h-5 w-5" />{t("Test Calculation", "料金テスト")}</CardTitle></CardHeader><CardContent className="space-y-4"><SelectField label={t("Vehicle", "車両")} value={test.vehicleId} setValue={value => setTest(s => ({ ...s, vehicleId: value }))} options={vehicles.map((v: any) => ({ value: String(v.id), label: v.publicTitle }))} /><DateField label={t("Pickup", "受取")} value={test.pickupAt} setValue={value => setTest(s => ({ ...s, pickupAt: value }))} /><DateField label={t("Return", "返却")} value={test.returnAt} setValue={value => setTest(s => ({ ...s, returnAt: value }))} /><SelectField label={t("Pickup location", "受取場所")} value={test.pickupLocation} setValue={value => setTest(s => ({ ...s, pickupLocation: value }))} options={locations.map((l: any) => ({ value: l.value, label: ja ? l.labelJa : l.labelEn }))} /><SelectField label={t("Return location", "返却場所")} value={test.returnLocation} setValue={value => setTest(s => ({ ...s, returnLocation: value }))} options={locations.map((l: any) => ({ value: l.value, label: ja ? l.labelJa : l.labelEn }))} />
+        <div className="space-y-2"><Label>{t("Insurance & equipment", "補償・オプション")}</Label>{addons.map((addon: any) => <label key={addon.id} className="flex items-center justify-between gap-3 rounded border p-2 text-sm"><span>{ja ? addon.nameJa || addon.name : addon.name}</span><input type="checkbox" checked={selectedAddons.includes(addon.id)} onChange={e => setSelectedAddons(current => e.target.checked ? [...current, addon.id] : current.filter(id => id !== addon.id))} /></label>)}</div>
+        <Button className="w-full" disabled={!test.vehicleId || !test.pickupAt || !test.returnAt || simulator.isPending} onClick={runTest}>{simulator.isPending ? t("Calculating...", "計算中...") : t("Calculate", "計算する")}</Button>
+        {simulator.data && <div className="space-y-2 border-t pt-4 text-sm"><Line label={t("Rental duration", "利用時間")} value={`${simulator.data.billedHours} hours`} /><Line label={simulator.data.rateTier === "extended" ? t("First 24 hours", "最初の24時間") : simulator.data.ratePlanName} value={money(simulator.data.baseRentalAmount)} />{simulator.data.fullAdditionalDays > 0 && <Line label={`${t("Additional 24 hours", "追加24時間")} × ${simulator.data.fullAdditionalDays}`} value={money(simulator.data.fullAdditionalDaysAmount)} />}{simulator.data.additionalHours > 0 && <Line label={`${t("Additional hours", "追加時間")} (${simulator.data.additionalHours}h, capped when cheaper)`} value={money(simulator.data.additionalHoursAmount)} />}{simulator.data.addons?.map((a: any) => <Line key={a.addonId} label={a.name} value={money(a.totalPrice)} />)}{simulator.data.pickupLocationFee > 0 && <Line label="Pickup fee" value={money(simulator.data.pickupLocationFee)} />}{simulator.data.returnLocationFee > 0 && <Line label="Return fee" value={money(simulator.data.returnLocationFee)} />}{simulator.data.oneWayFee > 0 && <Line label="One-way fee" value={money(simulator.data.oneWayFee)} />}<div className="flex justify-between border-t pt-2 text-base"><strong>Total</strong><strong>{money(simulator.data.finalTotal)}</strong></div><p className="flex items-center gap-1 text-xs text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" />{t("Matches public quote engine", "公開見積と一致")}</p></div>}
+      </CardContent></Card></div>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto"><DialogHeader><DialogTitle>{editId ? t("Edit seasonal period", "シーズン料金を編集") : t("Add seasonal period", "シーズン料金を追加")}</DialogTitle></DialogHeader><div className="grid gap-4 py-2 md:grid-cols-2"><TextField label={t("Period name", "期間名")} value={season.name} setValue={value => setSeason(s => ({ ...s, name: value }))} wide /><DateOnly label={t("Start date", "開始日")} value={season.startDate} setValue={value => setSeason(s => ({ ...s, startDate: value }))} /><DateOnly label={t("End date", "終了日")} value={season.endDate} setValue={value => setSeason(s => ({ ...s, endDate: value }))} /><TextField label={t("Vehicle class (blank = all)", "車両クラス（空欄＝全車両）")} value={season.vehicleClass} setValue={value => setSeason(s => ({ ...s, vehicleClass: value, appliesTo: value ? "class" : "all" }))} /><TextField label={t("Priority", "優先度")} value={season.priority} setValue={value => setSeason(s => ({ ...s, priority: value }))} type="number" />{(["rate6Hours", "rate12Hours", "rate24Hours", "additional24Hours", "additionalHour"] as const).map((key, i) => <TextField key={key} label={["Up to 6 hours (optional)", "Up to 12 hours", "Up to 24 hours", "Each additional 24 hours", "Each additional hour"][i]} value={season[key]} setValue={value => setSeason(s => ({ ...s, [key]: value }))} type="number" />)}<div className="rounded-md border p-3 md:col-span-2"><p className="mb-2 text-sm font-medium">{t("Calculated preview", "自動計算プレビュー")}</p><div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4"><span>48h {money(preview(48))}</span><span>72h {money(preview(72))}</span><span>96h {money(preview(96))}</span><span>7 days {money(preview(168))}</span></div></div><label className="flex items-center justify-between rounded border p-3 md:col-span-2"><span className="text-sm">{t("Apply special peak when any part overlaps", "一部でも重なる場合に特別ピークを適用")}</span><Switch checked={season.specialPeakOverlap} onCheckedChange={value => setSeason(s => ({ ...s, specialPeakOverlap: value }))} /></label><Button className="md:col-span-2" onClick={saveSeason} disabled={!season.name || !season.startDate || !season.endDate || !season.rate12Hours || !season.rate24Hours || !season.additional24Hours || !season.additionalHour}>{t("Save period", "期間を保存")}</Button></div></DialogContent></Dialog>
+  </div>;
 }
+
+function Section({ title, text, href, button }: { title: string; text: string; href?: string; button?: string }) { return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">{text}</p>{href && <Button asChild className="mt-4"><Link href={href}>{button}</Link></Button>}</CardContent></Card>; }
+function Check({ text }: { text: string }) { return <div className="flex items-center gap-2 rounded border p-3 text-sm"><CheckCircle2 className="h-4 w-4 text-emerald-600" />{text}</div>; }
+function Line({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-3"><span>{label}</span><strong>{value}</strong></div>; }
+function SelectField({ label, value, setValue, options }: { label: string; value: string; setValue: (v: string) => void; options: Array<{ value: string; label: string }> }) { return <div className="space-y-1.5"><Label>{label}</Label><Select value={value} onValueChange={setValue}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></div>; }
+function DateField({ label, value, setValue }: { label: string; value: string; setValue: (v: string) => void }) { return <div className="space-y-1.5"><Label>{label}</Label><Input type="datetime-local" value={value} onChange={e => setValue(e.target.value)} /></div>; }
+function DateOnly({ label, value, setValue }: { label: string; value: string; setValue: (v: string) => void }) { return <div className="space-y-1.5"><Label>{label}</Label><Input type="date" value={value} onChange={e => setValue(e.target.value)} /></div>; }
+function TextField({ label, value, setValue, type = "text", wide = false }: { label: string; value: string; setValue: (v: string) => void; type?: string; wide?: boolean }) { return <div className={`space-y-1.5 ${wide ? "md:col-span-2" : ""}`}><Label>{label}</Label><Input type={type} min={type === "number" ? 0 : undefined} step={type === "number" ? 1 : undefined} value={value} onChange={e => setValue(e.target.value)} /></div>; }

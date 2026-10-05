@@ -736,6 +736,9 @@ function LegacyCheckout() {
                           <span>¥{priceData.airportDropoffFee.toLocaleString()}</span>
                         </div>
                       )}
+                      {(priceData as any).pickupLocationFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Pickup Location Fee</span><span>¥{(priceData as any).pickupLocationFee.toLocaleString()}</span></div>}
+                      {(priceData as any).returnLocationFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Return Location Fee</span><span>¥{(priceData as any).returnLocationFee.toLocaleString()}</span></div>}
+                      {(priceData as any).oneWayFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">One-way Fee</span><span>¥{(priceData as any).oneWayFee.toLocaleString()}</span></div>}
                       <Separator className="my-2" />
                       <div className="flex justify-between font-bold text-lg">
                         <span>{copy.total}</span>

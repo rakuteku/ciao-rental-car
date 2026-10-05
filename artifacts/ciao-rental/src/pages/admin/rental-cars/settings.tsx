@@ -284,6 +284,7 @@ export function AdminSettings() {
     lateNightReturnBufferMinutes: number;
     holdExpiryMinutes: number;
     bookingLocations: RentalLocation[];
+    oneWayFees: Array<{ pickupLocation: string; returnLocation: string; fee: number; active: boolean }>;
   }>({
     cleaningBufferMinutes: 120,
     preparationBufferMinutes: 60,
@@ -291,6 +292,7 @@ export function AdminSettings() {
     lateNightReturnBufferMinutes: 30,
     holdExpiryMinutes: 30,
     bookingLocations: DEFAULT_RENTAL_LOCATIONS,
+    oneWayFees: [],
   });
 
   useEffect(() => {
@@ -302,6 +304,7 @@ export function AdminSettings() {
         lateNightReturnBufferMinutes: settings.lateNightReturnBufferMinutes ?? 30,
         holdExpiryMinutes: settings.holdExpiryMinutes ?? 30,
         bookingLocations: normalizeRentalLocations(settings.bookingLocations),
+        oneWayFees: Array.isArray(settings.oneWayFees) ? settings.oneWayFees : [],
       });
     }
   }, [settings]);
@@ -369,18 +372,31 @@ export function AdminSettings() {
               ...current,
               bookingLocations: current.bookingLocations.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item),
             }));
-            return <div key={`${location.value}-${index}`} className="grid gap-3 rounded-md border p-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+            return <div key={`${location.value}-${index}`} className="grid gap-3 rounded-md border p-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_140px_140px_auto]">
               <div className="space-y-1.5"><Label>{t("Booking value", "予約値")}</Label><Input value={location.value} onChange={event => updateLocation("value", event.target.value)} placeholder="Sapporo Station" /></div>
               <div className="space-y-1.5"><Label>{t("English label", "英語表示")}</Label><Input value={location.labelEn} onChange={event => updateLocation("labelEn", event.target.value)} /></div>
               <div className="space-y-1.5"><Label>{t("Japanese label", "日本語表示")}</Label><Input value={location.labelJa} onChange={event => updateLocation("labelJa", event.target.value)} /></div>
               <div className="space-y-1.5"><Label>{t("Traditional Chinese label", "繁体字表示")}</Label><Input value={location.labelZhTw} onChange={event => updateLocation("labelZhTw", event.target.value)} /></div>
+              <div className="space-y-1.5"><Label>{t("Pickup fee (JPY)", "受取料金（円）")}</Label><Input type="number" min="0" step="1" value={location.pickupFee} onChange={event => setFormData(current => ({ ...current, bookingLocations: current.bookingLocations.map((item, itemIndex) => itemIndex === index ? { ...item, pickupFee: Number(event.target.value) } : item) }))} /></div>
+              <div className="space-y-1.5"><Label>{t("Return fee (JPY)", "返却料金（円）")}</Label><Input type="number" min="0" step="1" value={location.returnFee} onChange={event => setFormData(current => ({ ...current, bookingLocations: current.bookingLocations.map((item, itemIndex) => itemIndex === index ? { ...item, returnFee: Number(event.target.value) } : item) }))} /></div>
               <Button type="button" variant="ghost" size="icon" className="self-end" aria-label={t("Remove location", "場所を削除")} disabled={formData.bookingLocations.length === 1}
                 onClick={() => setFormData(current => ({ ...current, bookingLocations: current.bookingLocations.filter((_, itemIndex) => itemIndex !== index) }))}><Trash2 className="h-4 w-4" /></Button>
             </div>;
           })}
           <div className="flex flex-wrap gap-3">
-            <Button type="button" variant="outline" onClick={() => setFormData(current => ({ ...current, bookingLocations: [...current.bookingLocations, { value: "", labelEn: "", labelJa: "", labelZhTw: "" }] }))}><Plus className="mr-2 h-4 w-4" />{t("Add location", "場所を追加")}</Button>
+            <Button type="button" variant="outline" onClick={() => setFormData(current => ({ ...current, bookingLocations: [...current.bookingLocations, { value: "", labelEn: "", labelJa: "", labelZhTw: "", pickupFee: 0, returnFee: 0 }] }))}><Plus className="mr-2 h-4 w-4" />{t("Add location", "場所を追加")}</Button>
             <Button type="button" onClick={handleSave} disabled={updateMut.isPending}>{updateMut.isPending ? t("Saving...", "保存中...") : t("Save locations", "場所を保存")}</Button>
+          </div>
+          <div className="space-y-3 border-t pt-5">
+            <div><h3 className="font-semibold">{t("One-way fee overrides", "乗り捨て特別料金")}</h3><p className="text-sm text-muted-foreground">{t("An active override replaces both normal location fees.", "有効な特別料金は通常の受取・返却料金の両方を置き換えます。")}</p></div>
+            {formData.oneWayFees.map((fee, index) => <div key={index} className="grid gap-3 rounded-md border p-4 md:grid-cols-[1fr_1fr_160px_auto_auto]">
+              <div className="space-y-1.5"><Label>{t("Pickup", "受取")}</Label><select className="h-10 w-full rounded-md border bg-background px-3" value={fee.pickupLocation} onChange={event => setFormData(current => ({ ...current, oneWayFees: current.oneWayFees.map((item, i) => i === index ? { ...item, pickupLocation: event.target.value } : item) }))}>{formData.bookingLocations.map(location => <option key={location.value} value={location.value}>{location.labelEn}</option>)}</select></div>
+              <div className="space-y-1.5"><Label>{t("Return", "返却")}</Label><select className="h-10 w-full rounded-md border bg-background px-3" value={fee.returnLocation} onChange={event => setFormData(current => ({ ...current, oneWayFees: current.oneWayFees.map((item, i) => i === index ? { ...item, returnLocation: event.target.value } : item) }))}>{formData.bookingLocations.map(location => <option key={location.value} value={location.value}>{location.labelEn}</option>)}</select></div>
+              <div className="space-y-1.5"><Label>{t("Override fee (JPY)", "特別料金（円）")}</Label><Input type="number" min="0" step="1" value={fee.fee} onChange={event => setFormData(current => ({ ...current, oneWayFees: current.oneWayFees.map((item, i) => i === index ? { ...item, fee: Number(event.target.value) } : item) }))} /></div>
+              <div className="flex items-end pb-2"><Switch checked={fee.active} onCheckedChange={active => setFormData(current => ({ ...current, oneWayFees: current.oneWayFees.map((item, i) => i === index ? { ...item, active } : item) }))} /></div>
+              <Button type="button" variant="ghost" size="icon" className="self-end" onClick={() => setFormData(current => ({ ...current, oneWayFees: current.oneWayFees.filter((_, i) => i !== index) }))}><Trash2 className="h-4 w-4" /></Button>
+            </div>)}
+            <Button type="button" variant="outline" onClick={() => setFormData(current => ({ ...current, oneWayFees: [...current.oneWayFees, { pickupLocation: current.bookingLocations[0]?.value ?? "", returnLocation: current.bookingLocations[1]?.value ?? current.bookingLocations[0]?.value ?? "", fee: 0, active: true }] }))}><Plus className="mr-2 h-4 w-4" />{t("Add one-way fee", "乗り捨て料金を追加")}</Button>
           </div>
         </CardContent>
       </Card>

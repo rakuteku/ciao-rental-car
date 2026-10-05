@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminAddons, useCreateAdminAddon, useDeleteAdminAddon, useUpdateAdminAddon } from "@/hooks/use-rental-operations";
 
-type PricingType = "flat" | "per_day";
+type PricingType = "per_started_24_hours" | "per_rental" | "per_handover" | "included";
 type AddonFormData = {
   name: string;
   nameJa: string;
@@ -28,7 +28,7 @@ const emptyForm = (): AddonFormData => ({
   description: "",
   descriptionJa: "",
   descriptionZhTw: "",
-  pricingType: "per_day",
+  pricingType: "per_started_24_hours",
   price: "0",
 });
 
@@ -48,7 +48,7 @@ export function AdminAddons() {
 
   const openForm = (addon?: any) => {
     if (addon) {
-      const pricingType: PricingType = addon.pricingType === "per_day" ? "per_day" : "flat";
+      const pricingType: PricingType = addon.pricingType === "per_day" ? "per_started_24_hours" : addon.pricingType === "flat" ? "per_rental" : addon.pricingType;
       setEditId(addon.id);
       setFormData({
         name: addon.name,
@@ -58,7 +58,7 @@ export function AdminAddons() {
         descriptionJa: addon.descriptionJa || "",
         descriptionZhTw: addon.descriptionZhTw || "",
         pricingType,
-        price: String(pricingType === "per_day" ? addon.perDayFee || 0 : addon.flatFee || 0),
+        price: String(pricingType === "per_started_24_hours" ? addon.perDayFee || 0 : addon.flatFee || 0),
       });
     } else {
       setEditId(null);
@@ -81,8 +81,8 @@ export function AdminAddons() {
       descriptionJa: formData.descriptionJa.trim() || null,
       descriptionZhTw: formData.descriptionZhTw.trim() || null,
       pricingType: formData.pricingType,
-      flatFee: formData.pricingType === "flat" ? price : 0,
-      perDayFee: formData.pricingType === "per_day" ? price : 0,
+      flatFee: ["per_rental", "per_handover"].includes(formData.pricingType) ? price : 0,
+      perDayFee: formData.pricingType === "per_started_24_hours" ? price : 0,
       published: true,
     };
     const options = { onSuccess: () => { toast({ title: editId ? "Add-on updated" : "Add-on created" }); setIsOpen(false); } };
@@ -117,13 +117,13 @@ export function AdminAddons() {
                 <Label>Pricing method</Label>
                 <Select value={formData.pricingType} onValueChange={(value: PricingType) => setFormData((current) => ({ ...current, pricingType: value }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="per_day">Per day</SelectItem><SelectItem value="flat">Flat fee per booking</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="per_started_24_hours">Per started 24 hours</SelectItem><SelectItem value="per_rental">Per rental</SelectItem><SelectItem value="per_handover">Per handover</SelectItem><SelectItem value="included">Included</SelectItem></SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Price (¥)</Label>
                 <Input type="number" min="0" step="1" value={formData.price} onChange={(event) => setFormData((current) => ({ ...current, price: event.target.value }))} />
-                <p className="text-xs text-muted-foreground">{formData.pricingType === "per_day" ? "Multiplied by the rental days." : "Charged once for the booking."}</p>
+                <p className="text-xs text-muted-foreground">{formData.pricingType === "per_started_24_hours" ? "A 25-hour rental uses two periods." : formData.pricingType === "included" ? "Shown as included with no charge." : formData.pricingType === "per_handover" ? "Charged once for the selected handover service." : "Charged once per booking."}</p>
               </div>
             </div>
             <Button className="w-full" onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>Save</Button>
@@ -135,8 +135,9 @@ export function AdminAddons() {
           <TableHeader><TableRow><TableHead>English</TableHead><TableHead>Japanese</TableHead><TableHead>Traditional Chinese</TableHead><TableHead>Pricing</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
           <TableBody>
             {isLoading ? <TableRow><TableCell colSpan={5} className="py-8 text-center">Loading...</TableCell></TableRow> : addons.length === 0 ? <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">No add-ons found.</TableCell></TableRow> : addons.map((addon: any) => {
-              const isPerDay = addon.pricingType === "per_day";
-              return <TableRow key={addon.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openForm(addon)}><TableCell className="font-medium">{addon.name}</TableCell><TableCell>{addon.nameJa || "—"}</TableCell><TableCell>{addon.nameZhTw || "—"}</TableCell><TableCell>{formatYen(isPerDay ? addon.perDayFee : addon.flatFee)} {isPerDay ? "/ day" : "/ booking"}</TableCell><TableCell className="text-right"><Button variant="ghost" size="sm" className="text-destructive" onClick={(event) => handleDelete(addon.id, event)}>Delete</Button></TableCell></TableRow>;
+              const isPerPeriod = addon.pricingType === "per_day" || addon.pricingType === "per_started_24_hours";
+              const unit = isPerPeriod ? "/ started 24h" : addon.pricingType === "per_handover" ? "/ handover" : addon.pricingType === "included" ? "included" : "/ rental";
+              return <TableRow key={addon.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openForm(addon)}><TableCell className="font-medium">{addon.name}</TableCell><TableCell>{addon.nameJa || "—"}</TableCell><TableCell>{addon.nameZhTw || "—"}</TableCell><TableCell>{addon.pricingType === "included" ? "Included" : formatYen(isPerPeriod ? addon.perDayFee : addon.flatFee)} {unit}</TableCell><TableCell className="text-right"><Button variant="ghost" size="sm" className="text-destructive" onClick={(event) => handleDelete(addon.id, event)}>Delete</Button></TableCell></TableRow>;
             })}
           </TableBody>
         </Table>

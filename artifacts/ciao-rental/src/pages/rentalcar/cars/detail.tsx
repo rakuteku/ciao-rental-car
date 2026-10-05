@@ -436,15 +436,19 @@ export function CarDetailPage() {
                       <div className="flex items-center justify-between"><h3 className="font-semibold">{copy.addons}</h3><span className="text-xs text-muted-foreground">{copy.optional}</span></div>
                       {addons?.map((addon) => {
                         const qty = selectedAddons[addon.id] ?? 0;
-                        const displayedPrice = addon.pricingType === "per_day" ? addon.perDayFee : addon.flatFee;
+                        const pricingType = String(addon.pricingType);
+                        const perStarted24Hours = pricingType === "per_day" || pricingType === "per_started_24_hours";
+                        const displayedPrice = perStarted24Hours ? addon.perDayFee : addon.flatFee;
+                        const startedPeriodLabel = language === "ja" ? "24時間ごと（25時間は2期間）" : language === "zh-TW" ? "每開始24小時（25小時為2期）" : "per started 24 hours (25 hours = 2 periods)";
+                        const unitLabel = perStarted24Hours ? startedPeriodLabel : pricingType === "per_handover" ? (language === "ja" ? "引渡しごと" : language === "zh-TW" ? "每次交車" : "per handover") : pricingType === "included" ? copy.included : copy.perBooking;
                         const localizedAddon = localizeAddon(addon, language);
                         return (
                           <div key={addon.id} className="flex items-center justify-between gap-2 text-xs">
-                            <div><p className="font-medium">{localizedAddon.name}</p><p className="text-muted-foreground">{localizedAddon.description}</p><p className="text-muted-foreground">¥{displayedPrice.toLocaleString()} {addon.pricingType === "per_day" ? copy.perDay : copy.perBooking}</p></div>
+                            <div><p className="font-medium">{localizedAddon.name}</p><p className="text-muted-foreground">{localizedAddon.description}</p><p className="text-muted-foreground">{pricingType === "included" ? unitLabel : `¥${displayedPrice.toLocaleString()} ${unitLabel}`}</p></div>
                             <div className="flex items-center gap-1">
                               <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.max(0, qty - 1) }))}>−</Button>
                               <span className="w-4 text-center">{qty}</span>
-                              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.min(addon.pricingType === "flat" ? 1 : addon.maxQty, qty + 1) }))}>+</Button>
+                              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.min(perStarted24Hours ? addon.maxQty : 1, qty + 1) }))}>+</Button>
                             </div>
                           </div>
                         );
@@ -486,6 +490,9 @@ export function CarDetailPage() {
                               <span className="tabular-nums">¥{priceData.airportDropoffFee.toLocaleString()}</span>
                             </div>
                           )}
+                          {(priceData as any).pickupLocationFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Pickup Location Fee</span><span className="tabular-nums">¥{(priceData as any).pickupLocationFee.toLocaleString()}</span></div>}
+                          {(priceData as any).returnLocationFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Return Location Fee</span><span className="tabular-nums">¥{(priceData as any).returnLocationFee.toLocaleString()}</span></div>}
+                          {(priceData as any).oneWayFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">One-way Fee</span><span className="tabular-nums">¥{(priceData as any).oneWayFee.toLocaleString()}</span></div>}
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">{copy.insurance}</span>
                             <span>{copy.included}</span>

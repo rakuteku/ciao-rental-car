@@ -570,6 +570,21 @@ export interface RentalVehiclePricing {
   id: number;
   vehicleId: number;
   basePrice: number;
+  ratePlanName: string;
+  currency: string;
+  effectiveStartDate?: string | null;
+  effectiveEndDate?: string | null;
+  rateStatus: string;
+  rate6Hours?: number | null;
+  rate12Hours: number;
+  rate24Hours: number;
+  additional24Hours: number;
+  additionalHour: number;
+  gracePeriodMinutes: number;
+  cheapestRateEnabled: boolean;
+  additionalDayCapEnabled: boolean;
+  lateReturnRequiresApproval: boolean;
+  earlyReturnRefund: boolean;
   /** @nullable */
   weekendPrice?: number | null;
   /** @nullable */
@@ -630,6 +645,9 @@ export interface RentalPriceBreakdown {
   deliveryFee: number;
   airportPickupFee: number;
   airportDropoffFee: number;
+  pickupLocationFee: number;
+  returnLocationFee: number;
+  oneWayFee: number;
   addons: RentalAddonLineItem[];
   addonsTotal: number;
   discount: number;
@@ -638,6 +656,16 @@ export interface RentalPriceBreakdown {
   finalTotal: number;
   taxIncluded: boolean;
   currency: string;
+  durationMinutes: number;
+  billedHours: number;
+  ratePlanName: string;
+  rateTier: string;
+  baseRentalAmount: number;
+  extensionAmount: number;
+  fullAdditionalDays: number;
+  additionalHours: number;
+  fullAdditionalDaysAmount: number;
+  additionalHoursAmount: number;
 }
 
 export type RentalVehicleSearchItem = RentalVehicle & {
@@ -1003,6 +1031,21 @@ export interface UpdateRentalVehicleBody {
 
 export interface UpdateVehiclePricingBody {
   basePrice?: number;
+  ratePlanName?: string;
+  currency?: "JPY";
+  effectiveStartDate?: string | null;
+  effectiveEndDate?: string | null;
+  rateStatus?: "active" | "draft" | "inactive";
+  rate6Hours?: number | null;
+  rate12Hours?: number;
+  rate24Hours?: number;
+  additional24Hours?: number;
+  additionalHour?: number;
+  gracePeriodMinutes?: number;
+  cheapestRateEnabled?: boolean;
+  additionalDayCapEnabled?: boolean;
+  lateReturnRequiresApproval?: boolean;
+  earlyReturnRefund?: boolean;
   weekendPrice?: number;
   holidayPrice?: number;
   highSeasonPrice?: number;
