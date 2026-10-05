@@ -4,9 +4,11 @@ import {
   rentalVehiclesTable,
   rentalSeasonalPricingRulesTable,
   rentalAddonsTable,
+  rentalSettingsTable,
 } from "@workspace/db";
 import { eq, and, isNull, or, inArray } from "drizzle-orm";
 import { isMarketplaceEnabled, marketplaceBillablePeriodCount, matchesMarketplaceSeason, tokyoRentalDate } from "./rental-request-policy.mjs";
+import { calculateTimeBasedRate, validateTimeBasedRates, type TimeBasedRates } from "./time-based-rate";
 
 export interface PricingInput {
   vehicleId: number;
@@ -40,6 +42,9 @@ export interface PriceBreakdown {
   deliveryFee: number;
   airportPickupFee: number;
   airportDropoffFee: number;
+  pickupLocationFee: number;
+  returnLocationFee: number;
+  oneWayFee: number;
   addons: AddonLineItem[];
   addonsTotal: number;
   discount: number;
@@ -48,6 +53,16 @@ export interface PriceBreakdown {
   finalTotal: number;
   taxIncluded: boolean;
   currency: string;
+  durationMinutes: number;
+  billedHours: number;
+  ratePlanName: string;
+  rateTier: string;
+  baseRentalAmount: number;
+  extensionAmount: number;
+  fullAdditionalDays: number;
+  additionalHours: number;
+  fullAdditionalDaysAmount: number;
+  additionalHoursAmount: number;
 }
 
 const AIRPORT_LOCATION = "New Chitose Airport";
@@ -126,69 +141,41 @@ export async function calculatePrice(
       ),
     );
 
-  const basePrice = pricing?.basePrice ?? 0;
-  const days = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
-    ? getMarketplaceBillablePeriods(input.pickupAt, input.returnAt, pricing?.billablePeriodHours ?? 24)
-    : getDaysBetween(input.pickupAt, input.returnAt);
-  const numDays = Math.max(1, days.length);
+  const pickupDate = formatDate(input.pickupAt);
+  const returnDate = formatDate(input.returnAt);
+  const sortedRules = [...seasonalRules].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+  const selectedSeason = sortedRules.find((rule) => {
+    if (!rule.startDate || !rule.endDate) return false;
+    if (rule.specialPeakOverlap) return pickupDate <= rule.endDate && returnDate >= rule.startDate;
+    return pickupDate >= rule.startDate && pickupDate <= rule.endDate;
+  });
+  const legacyBase = Math.round(pricing?.basePrice ?? 0);
+  const rates: TimeBasedRates = {
+    rate6Hours: selectedSeason?.rate6Hours ?? pricing?.rate6Hours,
+    rate12Hours: (selectedSeason?.rate12Hours ?? pricing?.rate12Hours) || legacyBase,
+    rate24Hours: (selectedSeason?.rate24Hours ?? pricing?.rate24Hours) || legacyBase,
+    additional24Hours: (selectedSeason?.additional24Hours ?? pricing?.additional24Hours) || legacyBase,
+    additionalHour: (selectedSeason?.additionalHour ?? pricing?.additionalHour) || Math.ceil(legacyBase / 24),
+    gracePeriodMinutes: pricing?.gracePeriodMinutes ?? 0,
+    cheapestRateEnabled: pricing?.cheapestRateEnabled ?? true,
+    additionalDayCapEnabled: pricing?.additionalDayCapEnabled ?? true,
+  };
+  const rateErrors = validateTimeBasedRates(rates);
+  if (rateErrors.length) throw Object.assign(new Error(rateErrors.join(" ")), { status: 400 });
+  if (pricing?.rateStatus && pricing.rateStatus !== "active") throw Object.assign(new Error("This vehicle does not have an active rate plan"), { status: 400 });
+  if (pricing?.effectiveStartDate && pickupDate < pricing.effectiveStartDate) throw Object.assign(new Error("The rate plan is not active for the pickup date"), { status: 400 });
+  if (pricing?.effectiveEndDate && pickupDate > pricing.effectiveEndDate) throw Object.assign(new Error("The rate plan has expired"), { status: 400 });
+  const timedRate = calculateTimeBasedRate(input.pickupAt, input.returnAt, rates);
+  const basePrice = rates.rate24Hours;
+  const numDays = Math.max(1, Math.ceil(timedRate.durationMinutes / (24 * 60)));
   if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) &&
       (numDays < (pricing?.minDays ?? 1) ||
        (pricing?.maxDays != null && numDays > pricing.maxDays))) {
     throw Object.assign(new Error("Rental duration is outside this operator's configured billable period limits"), { status: 400 });
   }
 
-  const dayRates: DayRate[] = days.map((day) => {
-    const dateStr = formatDate(day);
-    let appliedRate = basePrice;
-    let ruleApplied: string | undefined;
-
-    if (isWeekend(day) && pricing?.weekendPrice != null) {
-      appliedRate = pricing.weekendPrice;
-      ruleApplied = "weekend";
-    }
-
-    const sortedRules = [...seasonalRules].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
-    for (const rule of sortedRules) {
-      let matches = false;
-
-      if (rule.daysOfWeek && rule.daysOfWeek.length > 0) {
-        const weekdayDate = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
-          ? new Date(`${formatDate(day)}T00:00:00Z`)
-          : day;
-        const dayName = weekdayDate.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" }).toLowerCase();
-        const weekdayNumber = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
-          ? weekdayDate.getUTCDay()
-          : day.getDay();
-        if (rule.daysOfWeek.includes(dayName) || rule.daysOfWeek.includes(String(weekdayNumber))) {
-          matches = true;
-        }
-      }
-
-      if (rule.startDate && rule.endDate) {
-        const inRange = isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
-          ? matchesMarketplaceSeason(day, rule.startDate, rule.endDate)
-          : day >= parseDateStr(rule.startDate) && day <= parseDateStr(rule.endDate);
-        if (inRange) {
-          matches = true;
-        }
-      }
-
-      if (matches) {
-        if (rule.ruleType === "fixed" && rule.fixedPrice != null) {
-          appliedRate = rule.fixedPrice;
-          ruleApplied = rule.name;
-        } else if (rule.ruleType === "multiplier" && rule.multiplier != null) {
-          appliedRate = basePrice * rule.multiplier;
-          ruleApplied = rule.name;
-        }
-        break;
-      }
-    }
-
-    return { date: dateStr, baseRate: basePrice, appliedRate, ruleApplied };
-  });
-
-  let subtotal = dayRates.reduce((sum, d) => sum + d.appliedRate, 0);
+  const dayRates: DayRate[] = [{ date: pickupDate, baseRate: basePrice, appliedRate: timedRate.total, ruleApplied: selectedSeason?.name }];
+  let subtotal = timedRate.total;
 
   let discount = 0;
   if (numDays >= 30 && pricing?.monthlyDiscountPct) {
@@ -197,11 +184,19 @@ export async function calculatePrice(
     discount = subtotal * (pricing.weeklyDiscountPct / 100);
   }
 
-  const airportPickupFee =
-    input.pickupLocation === AIRPORT_LOCATION ? (pricing?.airportPickupFee ?? 0) : 0;
-  const airportDropoffFee =
-    input.returnLocation === AIRPORT_LOCATION ? (pricing?.airportDropoffFee ?? 0) : 0;
-  const deliveryFee = pricing?.deliveryFee ?? 0;
+  const settingsRows = await client.select().from(rentalSettingsTable);
+  const settings = Object.fromEntries(settingsRows.map((row: { key: string; value: string }) => {
+    try { return [row.key, JSON.parse(row.value)]; } catch { return [row.key, row.value]; }
+  }));
+  const locations = Array.isArray(settings.bookingLocations) ? settings.bookingLocations as Array<{ value: string; pickupFee?: number; returnFee?: number }> : [];
+  const oneWayFees = Array.isArray(settings.oneWayFees) ? settings.oneWayFees as Array<{ pickupLocation: string; returnLocation: string; fee: number; active?: boolean }> : [];
+  const override = oneWayFees.find((fee) => fee.active !== false && fee.pickupLocation === input.pickupLocation && fee.returnLocation === input.returnLocation);
+  const pickupLocationFee = override ? 0 : Math.max(0, locations.find((location) => location.value === input.pickupLocation)?.pickupFee ?? 0);
+  const returnLocationFee = override ? 0 : Math.max(0, locations.find((location) => location.value === input.returnLocation)?.returnFee ?? 0);
+  const oneWayFee = override ? Math.max(0, override.fee) : 0;
+  const airportPickupFee = locations.length === 0 && input.pickupLocation === AIRPORT_LOCATION ? (pricing?.airportPickupFee ?? 0) : 0;
+  const airportDropoffFee = locations.length === 0 && input.returnLocation === AIRPORT_LOCATION ? (pricing?.airportDropoffFee ?? 0) : 0;
+  const deliveryFee = 0;
 
   const addonLineItems: AddonLineItem[] = [];
   if (input.addons && input.addons.length > 0) {
@@ -231,15 +226,18 @@ export async function calculatePrice(
       }
 
       let unitPrice = 0;
-      if (addon.pricingType === "flat") {
+      const pricingType = String(addon.pricingType);
+      if (pricingType === "flat" || pricingType === "per_rental" || pricingType === "per_handover") {
         unitPrice = addon.flatFee;
-      } else if (addon.pricingType === "per_day") {
+      } else if (pricingType === "per_day" || pricingType === "per_started_24_hours") {
         unitPrice = addon.perDayFee * numDays;
-      } else if (addon.pricingType === "per_unit") {
+      } else if (pricingType === "per_unit") {
         unitPrice = addon.perUnitFee;
+      } else if (pricingType === "included") {
+        unitPrice = 0;
       }
 
-      const qty = addon.pricingType === "per_day" ? Math.min(req.qty, addon.maxQty) : Math.min(req.qty, 1);
+      const qty = pricingType === "per_day" || pricingType === "per_started_24_hours" ? Math.min(req.qty, addon.maxQty) : Math.min(req.qty, 1);
       const totalPrice = unitPrice * qty;
 
       addonLineItems.push({
@@ -248,7 +246,7 @@ export async function calculatePrice(
         qty,
         unitPrice,
         totalPrice,
-        pricingType: addon.pricingType,
+        pricingType,
       });
     }
   }
@@ -259,7 +257,7 @@ export async function calculatePrice(
   const taxRate = pricing?.taxRate ?? 0;
   const taxIncluded = pricing?.taxIncluded ?? true;
 
-  const preTaxTotal = subtotal - discount + airportPickupFee + airportDropoffFee + deliveryFee + addonsTotal;
+  const preTaxTotal = subtotal - discount + airportPickupFee + airportDropoffFee + pickupLocationFee + returnLocationFee + oneWayFee + deliveryFee + addonsTotal;
   const tax = taxIncluded ? 0 : preTaxTotal * (taxRate / 100);
   const finalTotal = preTaxTotal + tax;
 
@@ -270,6 +268,9 @@ export async function calculatePrice(
     deliveryFee,
     airportPickupFee,
     airportDropoffFee,
+    pickupLocationFee,
+    returnLocationFee,
+    oneWayFee,
     addons: addonLineItems,
     addonsTotal,
     discount,
@@ -277,6 +278,16 @@ export async function calculatePrice(
     securityDeposit,
     finalTotal,
     taxIncluded,
-    currency: "JPY",
+    currency: pricing?.currency ?? "JPY",
+    durationMinutes: timedRate.durationMinutes,
+    billedHours: timedRate.billedHours,
+    ratePlanName: selectedSeason?.name ?? pricing?.ratePlanName ?? "Standard rate",
+    rateTier: timedRate.tier,
+    baseRentalAmount: timedRate.baseAmount,
+    extensionAmount: timedRate.extensionAmount,
+    fullAdditionalDays: timedRate.fullAdditionalDays,
+    additionalHours: timedRate.additionalHours,
+    fullAdditionalDaysAmount: timedRate.fullAdditionalDaysAmount,
+    additionalHoursAmount: timedRate.additionalHoursAmount,
   };
 }
