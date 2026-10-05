@@ -425,6 +425,20 @@ export const useCustomerRegister = () => {
   });
 };
 
+export const useAdminPriceSimulator = () => useMutation({
+  mutationFn: (data: {
+    vehicleId: number;
+    pickupAt: string;
+    returnAt: string;
+    pickupLocation?: string;
+    returnLocation?: string;
+    addons?: Array<{ addonId: number; qty: number }>;
+  }) => fetchWithAuth(`/admin/rental/pricing/simulate`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+});
+
 export const useGoogleCustomerConfig = () => useQuery({
   queryKey: ["rental", "customer-google-config"],
   queryFn: () => fetchWithAuth("/rental/account/google/config") as Promise<{ enabled: boolean; clientId: string | null }>,
