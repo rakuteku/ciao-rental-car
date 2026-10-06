@@ -4,7 +4,7 @@ import { format, differenceInDays, addDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { CalendarIcon, Users, CreditCard, Shield, MapPin, CheckCircle2, Fuel, AlertTriangle, Luggage, Snowflake } from "lucide-react";
+import { CalendarIcon, Users, CreditCard, Shield, MapPin, CheckCircle2, Fuel, AlertTriangle, Snowflake, ArrowRight } from "lucide-react";
 
 import {
   useGetRentalVehicle,
@@ -118,6 +118,7 @@ export function CarDetailPage() {
   );
 
   const calculateRef = useRef(calculatePrice.mutate);
+  const bookingCardRef = useRef<HTMLDivElement>(null);
   calculateRef.current = calculatePrice.mutate;
 
   useEffect(() => {
@@ -199,7 +200,7 @@ export function CarDetailPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-muted/20 py-12">
+    <div className="min-h-[100dvh] bg-muted/20 pb-48 pt-6 sm:py-12 lg:pb-12">
       <div className="container max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -326,7 +327,7 @@ export function CarDetailPage() {
           </div>
 
           <div className="space-y-6">
-            <Card className="sticky top-24 shadow-lg border-primary/10">
+            <Card ref={bookingCardRef} className="sticky top-24 shadow-lg border-primary/10">
               <CardHeader>
             <CardTitle className="font-serif">{copy.reserve}</CardTitle>
                 <CardDescription>{copy.reserveHelp}</CardDescription>
@@ -519,6 +520,26 @@ export function CarDetailPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/97 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_32px_rgba(15,23,42,0.14)] backdrop-blur-xl lg:hidden">
+        <div className="mx-auto max-w-xl space-y-2.5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold">{localizedCar?.title || car.model}</p>
+              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{car.brand} · {car.seats} {copy.passengers} · {car.fuelType}</p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground">{priceData ? copy.total : copy.estimatedTotal}</p>
+              <p className="text-base font-bold tabular-nums">¥{(priceData?.finalTotal ?? car.pricing?.basePrice ?? 0).toLocaleString()}</p>
+            </div>
+          </div>
+          <button type="button" onClick={() => bookingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })} className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-md border bg-muted/45 px-3 py-2 text-left">
+            <span className="min-w-0"><span className="block text-[9px] font-semibold uppercase text-muted-foreground">{copy.pickupDate}</span><span className="block truncate text-xs font-semibold">{pickupDate ? `${format(pickupDate, "MMM d")} · ${pickupTime}` : "—"}</span></span>
+            <ArrowRight className="size-4 text-primary" aria-hidden="true" />
+            <span className="min-w-0 text-right"><span className="block text-[9px] font-semibold uppercase text-muted-foreground">{copy.returnDate}</span><span className="block truncate text-xs font-semibold">{returnDate ? `${format(returnDate, "MMM d")} · ${returnTime}` : "—"}</span></span>
+          </button>
+          <Button type="button" className="h-10 w-full" onClick={() => bookingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}>{copy.reserve}<ArrowRight className="ml-2 size-4" /></Button>
         </div>
       </div>
     </div>

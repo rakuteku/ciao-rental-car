@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Car as CarIcon, MapPin, Shield, CreditCard, ChevronRight } from "lucide-react";
+import { CalendarIcon, Car as CarIcon, MapPin, Shield, CreditCard, ChevronRight, Clock3, Hotel, BookOpenCheck, ArrowRight } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useGetPageContent, useGetRentalAddons, useGetRentalVehicles } from "@workspace/api-client-react";
@@ -44,9 +44,9 @@ interface RentalCarContent {
 }
 
 const SEARCH_COPY = {
-  en: { pickupDate: "Pickup Date", returnDate: "Return Date", pickupLocation: "Pickup Location", returnLocation: "Return Location", pickupTime: "Pickup Time", returnTime: "Return Time", pickDate: "Pick a date", selectLocation: "Select location", adults: "Adults", children: "Children", babies: "Babies", largeLuggage: "Large luggage", smallLuggage: "Small luggage", optionalFilters: "Optional filters", vehicleClass: "Vehicle class", anyClass: "Any class", searchVehicles: "Search Vehicles", minDailyPrice: "Minimum daily price", maxDailyPrice: "Maximum daily price", priceRangeTo: "to", perDay: "/day", compact: "Compact", suv: "SUV", minivan: "Minivan", fourWheelDrive: "4WD", winterTires: "Winter tires", childSeat: "Child seat", airportDelivery: "Airport delivery", skiLuggage: "Ski luggage", passengersLuggage: "Passengers & luggage", dailyPrice: "Daily price", timeNote: "Dates and times are Japan Standard Time (Asia/Tokyo). Airport and hotel delivery require operator confirmation.", returnAfterPickup: "Return must be after pickup" },
-  ja: { pickupDate: "受取日", returnDate: "返却日", pickupLocation: "受取場所", returnLocation: "返却場所", pickupTime: "受取時間", returnTime: "返却時間", pickDate: "日付を選択", selectLocation: "場所を選択", adults: "大人", children: "子ども", babies: "乳幼児", largeLuggage: "大型荷物", smallLuggage: "小型荷物", optionalFilters: "詳細条件", vehicleClass: "車両クラス", anyClass: "すべてのクラス", searchVehicles: "空車を検索", minDailyPrice: "最低日額料金", maxDailyPrice: "最高日額料金", priceRangeTo: "から", perDay: "/日", compact: "コンパクト", suv: "SUV", minivan: "ミニバン", fourWheelDrive: "4WD", winterTires: "冬用タイヤ", childSeat: "チャイルドシート", airportDelivery: "空港配車", skiLuggage: "スキー用荷物", passengersLuggage: "乗車人数・荷物", dailyPrice: "日額料金", timeNote: "日時は日本標準時（Asia/Tokyo）で指定します。空港・ホテルへの配車は事業者の確認が必要です。", returnAfterPickup: "返却日時は受取日時より後にしてください" },
-  "zh-TW": { pickupDate: "取車日期", returnDate: "還車日期", pickupLocation: "取車地點", returnLocation: "還車地點", pickupTime: "取車時間", returnTime: "還車時間", pickDate: "選擇日期", selectLocation: "選擇地點", adults: "成人", children: "兒童", babies: "嬰幼兒", largeLuggage: "大型行李", smallLuggage: "小型行李", optionalFilters: "更多條件", vehicleClass: "車輛類別", anyClass: "所有類別", searchVehicles: "搜尋車輛", minDailyPrice: "最低每日價格", maxDailyPrice: "最高每日價格", priceRangeTo: "至", perDay: "/天", compact: "小型車", suv: "SUV", minivan: "廂型車", fourWheelDrive: "四輪驅動", winterTires: "冬季輪胎", childSeat: "兒童座椅", airportDelivery: "機場送車", skiLuggage: "滑雪行李", passengersLuggage: "乘客與行李", dailyPrice: "每日價格", timeNote: "日期與時間均為日本標準時間（Asia/Tokyo）。機場與飯店送車須由租車業者確認。", returnAfterPickup: "還車時間必須晚於取車時間" },
+  en: { pickupDate: "Pickup Date", returnDate: "Return Date", pickupLocation: "Pickup Location", returnLocation: "Return Location", pickupTime: "Pickup Time", returnTime: "Return Time", pickupTrip: "Pickup", returnTrip: "Return", pickDate: "Pick a date", selectLocation: "Select location", selectTime: "Select time", adults: "Adults", children: "Children", babies: "Babies", largeLuggage: "Large luggage", smallLuggage: "Small luggage", optionalFilters: "Optional filters", vehicleClass: "Vehicle class", anyClass: "Any class", searchVehicles: "Search Vehicles", minDailyPrice: "Minimum daily price", maxDailyPrice: "Maximum daily price", priceRangeTo: "to", perDay: "/day", compact: "Compact", suv: "SUV", minivan: "Minivan", fourWheelDrive: "4WD", winterTires: "Winter tires", childSeat: "Child seat", airportDelivery: "Airport delivery", skiLuggage: "Ski luggage", passengersLuggage: "Passengers & luggage", dailyPrice: "Daily price", timeNote: "Dates and times are Japan Standard Time (Asia/Tokyo). Airport and hotel delivery require operator confirmation.", returnAfterPickup: "Return must be after pickup", editSearch: "Edit search", lodging: "Lodging", myBookings: "My bookings" },
+  ja: { pickupDate: "受取日", returnDate: "返却日", pickupLocation: "受取場所", returnLocation: "返却場所", pickupTime: "受取時間", returnTime: "返却時間", pickupTrip: "受取", returnTrip: "返却", pickDate: "日付を選択", selectLocation: "場所を選択", selectTime: "時間を選択", adults: "大人", children: "子ども", babies: "乳幼児", largeLuggage: "大型荷物", smallLuggage: "小型荷物", optionalFilters: "詳細条件", vehicleClass: "車両クラス", anyClass: "すべてのクラス", searchVehicles: "空車を検索", minDailyPrice: "最低日額料金", maxDailyPrice: "最高日額料金", priceRangeTo: "から", perDay: "/日", compact: "コンパクト", suv: "SUV", minivan: "ミニバン", fourWheelDrive: "4WD", winterTires: "冬用タイヤ", childSeat: "チャイルドシート", airportDelivery: "空港配車", skiLuggage: "スキー用荷物", passengersLuggage: "乗車人数・荷物", dailyPrice: "日額料金", timeNote: "日時は日本標準時（Asia/Tokyo）で指定します。空港・ホテルへの配車は事業者の確認が必要です。", returnAfterPickup: "返却日時は受取日時より後にしてください", editSearch: "検索を編集", lodging: "宿泊", myBookings: "予約確認" },
+  "zh-TW": { pickupDate: "取車日期", returnDate: "還車日期", pickupLocation: "取車地點", returnLocation: "還車地點", pickupTime: "取車時間", returnTime: "還車時間", pickupTrip: "取車", returnTrip: "還車", pickDate: "選擇日期", selectLocation: "選擇地點", selectTime: "選擇時間", adults: "成人", children: "兒童", babies: "嬰幼兒", largeLuggage: "大型行李", smallLuggage: "小型行李", optionalFilters: "更多條件", vehicleClass: "車輛類別", anyClass: "所有類別", searchVehicles: "搜尋車輛", minDailyPrice: "最低每日價格", maxDailyPrice: "最高每日價格", priceRangeTo: "至", perDay: "/天", compact: "小型車", suv: "SUV", minivan: "廂型車", fourWheelDrive: "四輪驅動", winterTires: "冬季輪胎", childSeat: "兒童座椅", airportDelivery: "機場送車", skiLuggage: "滑雪行李", passengersLuggage: "乘客與行李", dailyPrice: "每日價格", timeNote: "日期與時間均為日本標準時間（Asia/Tokyo）。機場與飯店送車須由租車業者確認。", returnAfterPickup: "還車時間必須晚於取車時間", editSearch: "修改搜尋", lodging: "住宿", myBookings: "我的預訂" },
 } as const;
 
 const searchSchema = z.object({
@@ -89,14 +89,16 @@ export function RentalCarHome() {
     if (typeof value === "string" && value.trim()) search[key] = value;
   });
   useSeoMeta("rentalcar");
+  const searchCardRef = useRef<HTMLDivElement>(null);
+  const [showDesktopSearchBar, setShowDesktopSearchBar] = useState(false);
 
   const form = useForm<z.infer<typeof searchSchema>>({
     resolver: zodResolver(searchSchema),
     defaultValues: {
-      pickupLocation: DEFAULT_RENTAL_LOCATIONS[0].value,
-      returnLocation: DEFAULT_RENTAL_LOCATIONS[0].value,
-      pickupTime: "10:00",
-      returnTime: "10:00",
+      pickupLocation: "",
+      returnLocation: "",
+      pickupTime: "",
+      returnTime: "",
       adults: 2,
       children: 0,
       babies: 0,
@@ -106,6 +108,25 @@ export function RentalCarHome() {
       maxPrice: 100000,
     },
   });
+
+  const pickupDate = form.watch("pickupDate");
+  const pickupTime = form.watch("pickupTime");
+  const pickupLocation = form.watch("pickupLocation");
+  const returnDate = form.watch("returnDate");
+  const returnTime = form.watch("returnTime");
+  const returnLocation = form.watch("returnLocation");
+  const tripReady = Boolean(pickupDate && pickupTime && pickupLocation && returnDate && returnTime && returnLocation);
+
+  useEffect(() => {
+    const target = searchCardRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver(([entry]) => setShowDesktopSearchBar(!entry.isIntersecting && entry.boundingClientRect.top < 88), {
+      rootMargin: "-88px 0px 0px 0px",
+      threshold: 0.05,
+    });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
 
   function onSubmit(data: z.infer<typeof searchSchema>) {
     captureRentalAttribution();
@@ -140,7 +161,43 @@ export function RentalCarHome() {
   }
 
   return (
-    <div className="flex flex-col min-h-[100dvh]">
+    <div className="flex min-h-[100dvh] flex-col pb-20 md:pb-0">
+      <div className="sticky top-[4.5rem] z-40 border-b border-border/70 bg-background/95 px-4 py-2 shadow-sm backdrop-blur-xl md:hidden">
+        <button
+          type="button"
+          className="mx-auto grid w-full max-w-xl grid-cols-[1fr_auto_1fr] items-center gap-3 text-left"
+          onClick={() => searchCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+        >
+          <span className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase text-muted-foreground">{search.pickupTrip}</span>
+            <span className="block truncate text-xs font-semibold">{pickupDate ? `${format(pickupDate, "MMM d")} · ${pickupTime || search.selectTime}` : search.pickDate}</span>
+          </span>
+          <ArrowRight className="size-4 text-primary" aria-hidden="true" />
+          <span className="min-w-0 text-right">
+            <span className="block text-[10px] font-semibold uppercase text-muted-foreground">{search.returnTrip}</span>
+            <span className="block truncate text-xs font-semibold">{returnDate ? `${format(returnDate, "MMM d")} · ${returnTime || search.selectTime}` : search.pickDate}</span>
+          </span>
+        </button>
+      </div>
+
+      <div className={cn("fixed inset-x-0 top-[4.5rem] z-40 hidden border-b border-border/70 bg-background/95 shadow-md backdrop-blur-xl transition-all duration-200 lg:block", showDesktopSearchBar ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0")}>
+        <div className="container flex h-[4.75rem] items-center gap-6">
+          <button type="button" className="flex min-w-0 flex-1 items-center gap-5 text-left" onClick={() => searchCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}>
+            <span className="flex min-w-0 items-center gap-3">
+              <CalendarIcon className="size-4 shrink-0 text-primary" />
+              <span className="min-w-0"><span className="block text-[10px] font-semibold uppercase text-muted-foreground">{search.pickupTrip}</span><span className="block truncate text-sm font-semibold">{pickupDate ? format(pickupDate, "MMM d, yyyy") : search.pickDate}{pickupTime ? ` · ${pickupTime}` : ""}</span></span>
+            </span>
+            <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+            <span className="flex min-w-0 items-center gap-3">
+              <CalendarIcon className="size-4 shrink-0 text-primary" />
+              <span className="min-w-0"><span className="block text-[10px] font-semibold uppercase text-muted-foreground">{search.returnTrip}</span><span className="block truncate text-sm font-semibold">{returnDate ? format(returnDate, "MMM d, yyyy") : search.pickDate}{returnTime ? ` · ${returnTime}` : ""}</span></span>
+            </span>
+          </button>
+          <Button type="button" variant="outline" onClick={() => searchCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}>{search.editSearch}</Button>
+          <Button type="button" disabled={!tripReady} onClick={form.handleSubmit(onSubmit)}>{search.searchVehicles}</Button>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <section className="relative flex min-h-[720px] w-full items-center overflow-hidden sm:min-h-[760px] lg:min-h-[calc(100svh-8rem)]">
         <div className="absolute inset-0">
@@ -163,146 +220,45 @@ export function RentalCarHome() {
               </p>
             </div>
 
-          <Card className="mx-auto max-w-5xl border border-white/70 bg-background/95 p-4 text-foreground shadow-xl sm:p-5">
+          <Card ref={searchCardRef} className="mx-auto max-w-6xl border border-white/70 bg-background/95 p-4 text-foreground shadow-xl sm:p-5">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 items-end gap-3 sm:gap-4 lg:grid-cols-5">
-                {/* 1. Pickup Date */}
-                <FormField
-                  control={form.control}
-                  name="pickupDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>{search.pickupDate}</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              data-testid="button-pickup-date"
-                              className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}
-                            >
-                               {field.value ? format(field.value, "MMM d, yyyy") : <span>{search.pickDate}</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                             disabled={(date) => format(date, "yyyy-MM-dd") < tokyoParts(new Date().toISOString()).date}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {/* 2. Pickup Location */}
-                <FormField
-                  control={form.control}
-                  name="pickupLocation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{search.pickupLocation}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-pickup-location" className="h-11 md:h-10">
-                             <SelectValue placeholder={search.selectLocation} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {locations.map(loc => (
-                            <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {/* 3. Return Date */}
-                <FormField
-                  control={form.control}
-                  name="returnDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>{search.returnDate}</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              data-testid="button-return-date"
-                              className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}
-                            >
-                               {field.value ? format(field.value, "MMM d, yyyy") : <span>{search.pickDate}</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                             disabled={(date) => format(date, "yyyy-MM-dd") < format(form.watch("pickupDate") || new Date(`${tokyoParts(new Date().toISOString()).date}T12:00:00`), "yyyy-MM-dd")}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {/* 4. Return Location */}
-                <FormField
-                  control={form.control}
-                  name="returnLocation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{search.returnLocation}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-return-location" className="h-11 md:h-10">
-                             <SelectValue placeholder={search.selectLocation} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {locations.map(loc => (
-                            <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="pickupTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{search.pickupTime}</FormLabel>
-                      <FormControl><Input type="time" className="h-11 md:h-10" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="returnTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{search.returnTime}</FormLabel>
-                      <FormControl><Input type="time" className="h-11 md:h-10" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <details className="col-span-2 border-t pt-3 lg:col-span-5">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <fieldset className="grid min-w-0 gap-3 rounded-md border bg-card p-4 sm:grid-cols-3">
+                    <legend className="px-2 text-xs font-semibold uppercase text-primary">1 · {search.pickupTrip}</legend>
+                    <FormField control={form.control} name="pickupDate" render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>{search.pickupDate}</FormLabel>
+                        <Popover><PopoverTrigger asChild><FormControl><Button variant="outline" data-testid="button-pickup-date" className={cn("h-11 w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          {field.value ? format(field.value, "MMM d, yyyy") : <span>{search.pickDate}</span>}<CalendarIcon className="ml-auto size-4 opacity-50" />
+                        </Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(date) => { field.onChange(date); form.resetField("pickupTime", { defaultValue: "" }); form.resetField("pickupLocation", { defaultValue: "" }); form.resetField("returnDate"); form.resetField("returnTime", { defaultValue: "" }); form.resetField("returnLocation", { defaultValue: "" }); }} disabled={(date) => format(date, "yyyy-MM-dd") < tokyoParts(new Date().toISOString()).date} initialFocus /></PopoverContent></Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    {pickupDate && <FormField control={form.control} name="pickupTime" render={({ field }) => (
+                      <FormItem className="animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.pickupTime}</FormLabel><FormControl><div className="relative"><Clock3 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input type="time" className="h-11 pl-9" {...field} onChange={(event) => { field.onChange(event); form.resetField("pickupLocation", { defaultValue: "" }); form.resetField("returnDate"); form.resetField("returnTime", { defaultValue: "" }); form.resetField("returnLocation", { defaultValue: "" }); }} /></div></FormControl><FormMessage /></FormItem>
+                    )} />}
+                    {pickupDate && pickupTime && <FormField control={form.control} name="pickupLocation" render={({ field }) => (
+                      <FormItem className="animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.pickupLocation}</FormLabel><Select onValueChange={(value) => { field.onChange(value); form.resetField("returnDate"); form.resetField("returnTime", { defaultValue: "" }); form.resetField("returnLocation", { defaultValue: "" }); }} value={field.value}><FormControl><SelectTrigger data-testid="select-pickup-location" className="h-11"><SelectValue placeholder={search.selectLocation} /></SelectTrigger></FormControl><SelectContent>{locations.map(loc => <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    )} />}
+                  </fieldset>
+
+                  <fieldset className={cn("grid min-w-0 gap-3 rounded-md border bg-card p-4 transition-opacity sm:grid-cols-3", !pickupLocation && "pointer-events-none opacity-45")}>
+                    <legend className="px-2 text-xs font-semibold uppercase text-primary">2 · {search.returnTrip}</legend>
+                    {pickupLocation ? <FormField control={form.control} name="returnDate" render={({ field }) => (
+                      <FormItem className="flex flex-col animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.returnDate}</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" data-testid="button-return-date" className={cn("h-11 w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "MMM d, yyyy") : <span>{search.pickDate}</span>}<CalendarIcon className="ml-auto size-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(date) => { field.onChange(date); form.resetField("returnTime", { defaultValue: "" }); form.resetField("returnLocation", { defaultValue: "" }); }} disabled={(date) => format(date, "yyyy-MM-dd") < format(pickupDate || new Date(`${tokyoParts(new Date().toISOString()).date}T12:00:00`), "yyyy-MM-dd")} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
+                    )} /> : <p className="col-span-3 py-3 text-xs text-muted-foreground">{search.pickupLocation}</p>}
+                    {returnDate && <FormField control={form.control} name="returnTime" render={({ field }) => (
+                      <FormItem className="animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.returnTime}</FormLabel><FormControl><div className="relative"><Clock3 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input type="time" className="h-11 pl-9" {...field} onChange={(event) => { field.onChange(event); form.resetField("returnLocation", { defaultValue: "" }); }} /></div></FormControl><FormMessage /></FormItem>
+                    )} />}
+                    {returnDate && returnTime && <FormField control={form.control} name="returnLocation" render={({ field }) => (
+                      <FormItem className="animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.returnLocation}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger data-testid="select-return-location" className="h-11"><SelectValue placeholder={search.selectLocation} /></SelectTrigger></FormControl><SelectContent>{locations.map(loc => <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    )} />}
+                  </fieldset>
+                </div>
+
+                {tripReady && <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                <details className="border-t pt-3">
                   <summary className="cursor-pointer text-xs font-semibold text-foreground">
                     {search.passengersLuggage}
                   </summary>
@@ -325,7 +281,7 @@ export function RentalCarHome() {
                   ))}
                   </div>
                 </details>
-                <details className="col-span-2 border-t pt-3 lg:col-span-5">
+                <details className="border-t pt-3">
                   <summary className="cursor-pointer text-xs font-semibold text-foreground">
                     {search.optionalFilters}
                   </summary>
@@ -372,8 +328,9 @@ export function RentalCarHome() {
                   </div>
                   </div>
                 </details>
-                 <p className="col-span-2 text-xs text-muted-foreground lg:col-span-5">{search.timeNote}</p>
-                 <Button type="submit" data-testid="button-search" className="col-span-2 w-full lg:col-span-5" size="lg">{search.searchVehicles}</Button>
+                 <p className="mt-3 text-xs text-muted-foreground">{search.timeNote}</p>
+                 <Button type="submit" data-testid="button-search" className="mt-4 w-full" size="lg">{search.searchVehicles}</Button>
+                </div>}
               </form>
             </Form>
           </Card>
@@ -512,6 +469,11 @@ export function RentalCarHome() {
           </div>
         </div>
       </section>
+
+      <nav className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-2 border-t border-border bg-background/95 shadow-[0_-8px_24px_rgba(15,23,42,0.10)] backdrop-blur-xl md:hidden" aria-label="Rental shortcuts">
+        <Link href={localizedPath("/lodging", language)} className="flex items-center justify-center gap-2 border-r border-border text-xs font-semibold"><Hotel className="size-4 text-primary" />{search.lodging}</Link>
+        <Link href={localizedPath("/rentalcar/my-bookings", language)} className="flex items-center justify-center gap-2 text-xs font-semibold"><BookOpenCheck className="size-4 text-primary" />{search.myBookings}</Link>
+      </nav>
     </div>
   );
 }
