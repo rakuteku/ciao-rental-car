@@ -1,4 +1,5 @@
 import { useParams, useLocation, useSearch } from "wouter";
+import { AddonSelector } from "@/components/rental/AddonSelector";
 import { useEffect, useRef, useState } from "react";
 import { format, differenceInDays, addDays } from "date-fns";
 import { useForm } from "react-hook-form";
@@ -435,25 +436,7 @@ export function CarDetailPage() {
                     </div>
                     <div className="space-y-3 border-t pt-4">
                       <div className="flex items-center justify-between"><h3 className="font-semibold">{copy.addons}</h3><span className="text-xs text-muted-foreground">{copy.optional}</span></div>
-                      {addons?.map((addon) => {
-                        const qty = selectedAddons[addon.id] ?? 0;
-                        const pricingType = String(addon.pricingType);
-                        const perStarted24Hours = pricingType === "per_day" || pricingType === "per_started_24_hours";
-                        const displayedPrice = perStarted24Hours ? addon.perDayFee : addon.flatFee;
-                        const startedPeriodLabel = language === "ja" ? "24時間ごと（25時間は2期間）" : language === "zh-TW" ? "每開始24小時（25小時為2期）" : "per started 24 hours (25 hours = 2 periods)";
-                        const unitLabel = perStarted24Hours ? startedPeriodLabel : pricingType === "per_handover" ? (language === "ja" ? "引渡しごと" : language === "zh-TW" ? "每次交車" : "per handover") : pricingType === "included" ? copy.included : copy.perBooking;
-                        const localizedAddon = localizeAddon(addon, language);
-                        return (
-                          <div key={addon.id} className="flex items-center justify-between gap-2 text-xs">
-                            <div><p className="font-medium">{localizedAddon.name}</p><p className="text-muted-foreground">{localizedAddon.description}</p><p className="text-muted-foreground">{pricingType === "included" ? unitLabel : `¥${displayedPrice.toLocaleString()} ${unitLabel}`}</p></div>
-                            <div className="flex items-center gap-1">
-                              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.max(0, qty - 1) }))}>−</Button>
-                              <span className="w-4 text-center">{qty}</span>
-                              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => setSelectedAddons((current) => ({ ...current, [addon.id]: Math.min(perStarted24Hours ? addon.maxQty : 1, qty + 1) }))}>+</Button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      <AddonSelector addons={addons ?? []} selected={selectedAddons} onChange={setSelectedAddons} />
                     </div>
 
                     <div className="bg-muted p-4 rounded-lg mt-6 space-y-2 text-sm">

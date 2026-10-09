@@ -31,6 +31,8 @@ export const rentalAddonsTable = pgTable(
     id: serial("id").primaryKey(),
     operatorId: integer("operator_id").references(() => rentalOperatorsTable.id),
     name: text("name").notNull(),
+    category: text("category").notNull().default("equipment"),
+    insuranceKind: text("insurance_kind"),
     nameJa: text("name_ja"),
     nameZhTw: text("name_zh_tw"),
     description: text("description").notNull().default(""),

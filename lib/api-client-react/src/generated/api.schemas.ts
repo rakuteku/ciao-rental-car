@@ -360,6 +360,9 @@ export interface LocalizedPage {
 }
 
 export interface Room {
+  externalUrl?: string;
+  externalNofollow?: boolean;
+  externalNewTab?: boolean;
   id: number;
   slug: string;
   title: string;
@@ -389,6 +392,9 @@ export interface Room {
 }
 
 export interface CreateRoomBody {
+  externalUrl?: string;
+  externalNofollow?: boolean;
+  externalNewTab?: boolean;
   slug?: string;
   title: string;
   roomType?: string;
@@ -414,6 +420,9 @@ export interface CreateRoomBody {
 }
 
 export interface UpdateRoomBody {
+  externalUrl?: string;
+  externalNofollow?: boolean;
+  externalNewTab?: boolean;
   slug?: string;
   title?: string;
   roomType?: string;
@@ -567,14 +576,14 @@ export interface RentalVehicle {
 }
 
 export interface RentalVehiclePricing {
-  id: number;
-  vehicleId: number;
-  basePrice: number;
   ratePlanName: string;
   currency: string;
+  /** @nullable */
   effectiveStartDate?: string | null;
+  /** @nullable */
   effectiveEndDate?: string | null;
   rateStatus: string;
+  /** @nullable */
   rate6Hours?: number | null;
   rate12Hours: number;
   rate24Hours: number;
@@ -585,6 +594,9 @@ export interface RentalVehiclePricing {
   additionalDayCapEnabled: boolean;
   lateReturnRequiresApproval: boolean;
   earlyReturnRefund: boolean;
+  id: number;
+  vehicleId: number;
+  basePrice: number;
   /** @nullable */
   weekendPrice?: number | null;
   /** @nullable */
@@ -639,23 +651,9 @@ export interface RentalAddonLineItem {
 }
 
 export interface RentalPriceBreakdown {
-  days: number;
-  dayRates: DayRate[];
-  subtotal: number;
-  deliveryFee: number;
-  airportPickupFee: number;
-  airportDropoffFee: number;
   pickupLocationFee: number;
   returnLocationFee: number;
   oneWayFee: number;
-  addons: RentalAddonLineItem[];
-  addonsTotal: number;
-  discount: number;
-  tax: number;
-  securityDeposit: number;
-  finalTotal: number;
-  taxIncluded: boolean;
-  currency: string;
   durationMinutes: number;
   billedHours: number;
   ratePlanName: string;
@@ -666,6 +664,20 @@ export interface RentalPriceBreakdown {
   additionalHours: number;
   fullAdditionalDaysAmount: number;
   additionalHoursAmount: number;
+  days: number;
+  dayRates: DayRate[];
+  subtotal: number;
+  deliveryFee: number;
+  airportPickupFee: number;
+  airportDropoffFee: number;
+  addons: RentalAddonLineItem[];
+  addonsTotal: number;
+  discount: number;
+  tax: number;
+  securityDeposit: number;
+  finalTotal: number;
+  taxIncluded: boolean;
+  currency: string;
 }
 
 export type RentalVehicleSearchItem = RentalVehicle & {
@@ -680,15 +692,45 @@ export interface RentalVehicleSearchResult {
   unavailable: RentalVehicleSearchItem[];
 }
 
+export type RentalAddonCategory =
+  (typeof RentalAddonCategory)[keyof typeof RentalAddonCategory];
+
+export const RentalAddonCategory = {
+  equipment: "equipment",
+  insurance: "insurance",
+  winter_tires: "winter_tires",
+} as const;
+
+/**
+ * @nullable
+ */
+export type RentalAddonInsuranceKind =
+  | (typeof RentalAddonInsuranceKind)[keyof typeof RentalAddonInsuranceKind]
+  | null;
+
+export const RentalAddonInsuranceKind = {
+  basic: "basic",
+  cdw: "cdw",
+  noc: "noc",
+  full: "full",
+} as const;
+
 export type RentalAddonPricingType =
   (typeof RentalAddonPricingType)[keyof typeof RentalAddonPricingType];
 
 export const RentalAddonPricingType = {
   flat: "flat",
   per_day: "per_day",
+  per_started_24_hours: "per_started_24_hours",
+  per_rental: "per_rental",
+  per_handover: "per_handover",
+  included: "included",
 } as const;
 
 export interface RentalAddon {
+  category?: RentalAddonCategory;
+  /** @nullable */
+  insuranceKind?: RentalAddonInsuranceKind;
   id: number;
   name: string;
   /** @nullable */
@@ -1029,13 +1071,31 @@ export interface UpdateRentalVehicleBody {
   ogImage?: string;
 }
 
+export type UpdateVehiclePricingBodyCurrency =
+  (typeof UpdateVehiclePricingBodyCurrency)[keyof typeof UpdateVehiclePricingBodyCurrency];
+
+export const UpdateVehiclePricingBodyCurrency = {
+  JPY: "JPY",
+} as const;
+
+export type UpdateVehiclePricingBodyRateStatus =
+  (typeof UpdateVehiclePricingBodyRateStatus)[keyof typeof UpdateVehiclePricingBodyRateStatus];
+
+export const UpdateVehiclePricingBodyRateStatus = {
+  active: "active",
+  draft: "draft",
+  inactive: "inactive",
+} as const;
+
 export interface UpdateVehiclePricingBody {
-  basePrice?: number;
   ratePlanName?: string;
-  currency?: "JPY";
+  currency?: UpdateVehiclePricingBodyCurrency;
+  /** @nullable */
   effectiveStartDate?: string | null;
+  /** @nullable */
   effectiveEndDate?: string | null;
-  rateStatus?: "active" | "draft" | "inactive";
+  rateStatus?: UpdateVehiclePricingBodyRateStatus;
+  /** @nullable */
   rate6Hours?: number | null;
   rate12Hours?: number;
   rate24Hours?: number;
@@ -1046,6 +1106,7 @@ export interface UpdateVehiclePricingBody {
   additionalDayCapEnabled?: boolean;
   lateReturnRequiresApproval?: boolean;
   earlyReturnRefund?: boolean;
+  basePrice?: number;
   weekendPrice?: number;
   holidayPrice?: number;
   highSeasonPrice?: number;
@@ -1106,7 +1167,33 @@ export interface UpdateReservationBody {
   refundAmount?: number;
 }
 
+export type CreateAddonBodyCategory =
+  (typeof CreateAddonBodyCategory)[keyof typeof CreateAddonBodyCategory];
+
+export const CreateAddonBodyCategory = {
+  equipment: "equipment",
+  insurance: "insurance",
+  winter_tires: "winter_tires",
+} as const;
+
+/**
+ * @nullable
+ */
+export type CreateAddonBodyInsuranceKind =
+  | (typeof CreateAddonBodyInsuranceKind)[keyof typeof CreateAddonBodyInsuranceKind]
+  | null;
+
+export const CreateAddonBodyInsuranceKind = {
+  basic: "basic",
+  cdw: "cdw",
+  noc: "noc",
+  full: "full",
+} as const;
+
 export interface CreateAddonBody {
+  category?: CreateAddonBodyCategory;
+  /** @nullable */
+  insuranceKind?: CreateAddonBodyInsuranceKind;
   name: string;
   nameJa?: string;
   nameZhTw?: string;

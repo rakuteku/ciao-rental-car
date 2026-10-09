@@ -77,6 +77,7 @@ const TEMPLATES = {
   booking_confirmed: (data) => ({
     en: { subject: `Booking #${data.bookingId} confirmed`, body: `Your CIAO Rental Car booking #${data.bookingId} is confirmed.` },
     ja: { subject: `予約 #${data.bookingId} が確定しました`, body: `CIAOレンタカーの予約 #${data.bookingId} が確定しました。` },
+    "zh-TW": { subject: `預訂 #${data.bookingId} 已確認`, body: `您的 CIAO 租車預訂 #${data.bookingId} 已確認。` },
   }),
   document_approved: (data) => ({
     en: { subject: `Documents approved for booking #${data.bookingId}`, body: `Your documents for booking #${data.bookingId} were approved.` },
@@ -99,8 +100,9 @@ const TEMPLATES = {
     ja: { subject: `レンタル #${data.bookingId} の返却期限超過`, body: `レンタル #${data.bookingId} の返却期限を過ぎています。至急ご連絡ください。` },
   }),
   cancellation_confirmed: (data) => ({
-    en: { subject: `Cancellation recorded for booking #${data.bookingId}`, body: `Your cancellation request for booking #${data.bookingId} has been recorded.` },
-    ja: { subject: `予約 #${data.bookingId} のキャンセルを受け付けました`, body: `予約 #${data.bookingId} のキャンセル申請を受け付けました。` },
+    en: { subject: `Booking #${data.bookingId} cancelled`, body: `Your booking #${data.bookingId} has been cancelled. Any applicable refund is processed separately.` },
+    ja: { subject: `予約 #${data.bookingId} がキャンセルされました`, body: `予約 #${data.bookingId} がキャンセルされました。返金が適用される場合は別途処理されます。` },
+    "zh-TW": { subject: `預訂 #${data.bookingId} 已取消`, body: `您的預訂 #${data.bookingId} 已取消。如適用退款，將另行處理。` },
   }),
   refund_processed: (data) => ({
     en: { subject: `Refund update for booking #${data.bookingId}`, body: `A refund was recorded for booking #${data.bookingId}.` },
@@ -415,10 +417,10 @@ export async function queueRentalNotification(input: {
   dedupeKey?: string;
   dispatch?: boolean;
   extra?: Record<string, unknown>;
-}) {
+}, client: Pick<typeof db, "insert" | "select"> = db) {
   const data = { bookingId: input.bookingId, ...input.extra };
   const localeTemplates = TEMPLATES[input.eventType](data);
-  const [inserted] = await db.insert(rentalNotificationsTable).values({
+  const [inserted] = await client.insert(rentalNotificationsTable).values({
     email: input.email?.trim() || null,
     eventType: input.eventType,
     payload: {
@@ -432,11 +434,11 @@ export async function queueRentalNotification(input: {
     dedupeKey: input.dedupeKey ?? null,
   }).onConflictDoNothing({ target: rentalNotificationsTable.dedupeKey }).returning();
   const notification = inserted ?? (input.dedupeKey
-    ? (await db.select().from(rentalNotificationsTable)
+    ? (await client.select().from(rentalNotificationsTable)
       .where(eq(rentalNotificationsTable.dedupeKey, input.dedupeKey)))[0]
     : undefined);
   if (!notification) throw new Error("Rental notification could not be queued");
-  if (inserted && input.dispatch !== false) await processRentalNotificationQueue(1, notification.id);
+  if (inserted && input.dispatch !== false && client === db) await processRentalNotificationQueue(1, notification.id);
   return notification;
 }
 

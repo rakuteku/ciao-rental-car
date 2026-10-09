@@ -206,9 +206,9 @@ export function LodgingDetailPage() {
               <Button size="lg" className="w-full" onClick={handleAddRentalCar}>
                 Add a Rental Car
               </Button>
-              <a href={CONTACT_MAILTO}>
+              <a href={room.externalUrl || CONTACT_MAILTO} target={room.externalUrl && room.externalNewTab ? "_blank" : undefined} rel={room.externalUrl ? [room.externalNofollow ? "nofollow" : "", room.externalNewTab ? "noopener noreferrer" : ""].filter(Boolean).join(" ") || undefined : undefined}>
                 <Button size="lg" className="w-full">
-                  Contact to Book
+                  {language === "ja" ? "宿泊を予約" : language === "zh-TW" ? "預訂住宿" : "Book lodging"}
                 </Button>
               </a>
             </div>

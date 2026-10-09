@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AddonSelector } from "@/components/rental/AddonSelector";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -95,6 +96,13 @@ function LegacyCheckout() {
   const [agreedTerms, setAgreedTerms] = useState(false);
   
   const { data: addons } = useGetRentalAddons();
+  useEffect(() => {
+    if (!addons) return;
+    const available = new Set(addons.map(addon => addon.id));
+    setSelectedAddons(current => Object.keys(current).some(id => !available.has(Number(id)))
+      ? Object.fromEntries(Object.entries(current).filter(([id]) => available.has(Number(id))))
+      : current);
+  }, [addons]);
   const { data: marketplaceConfig, isLoading: isMarketplaceConfigLoading, isError: isMarketplaceConfigError } = useRentalMarketplaceConfig();
   const { data: car } = useGetRentalVehicle(draft?.vehicleSlug || "", {
     query: { enabled: !!draft?.vehicleSlug, queryKey: getGetRentalVehicleQueryKey(draft?.vehicleSlug || "") }
@@ -384,49 +392,7 @@ function LegacyCheckout() {
                   <p className="text-muted-foreground">{copy.enhanceTripHelp}</p>
                 </div>
                 <div className="space-y-4">
-                  {addons?.map(addon => {
-                    const qty = selectedAddons[addon.id] || 0;
-                    const localizedAddon = localizeAddon(addon, language);
-                    return (
-                      <Card key={addon.id} className={qty > 0 ? "border-primary" : ""}>
-                        <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                          <div className="flex items-center gap-4 flex-1">
-                            {addon.image && (
-                              <div className="w-16 h-16 bg-muted rounded shrink-0 overflow-hidden">
-                                <img src={addon.image} alt={localizedAddon.name} className="w-full h-full object-cover" />
-                              </div>
-                            )}
-                            <div>
-                              <h4 className="font-bold">{localizedAddon.name}</h4>
-                              <p className="text-sm text-muted-foreground line-clamp-2">{localizedAddon.description}</p>
-                              <p className="text-sm font-semibold mt-1">
-                                {addon.pricingType === "per_day" ? `¥${addon.perDayFee.toLocaleString()}${copy.perDay}` : `¥${addon.flatFee.toLocaleString()} ${copy.flatFee}`}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 shrink-0 bg-muted/50 rounded-lg p-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => setSelectedAddons(prev => ({ ...prev, [addon.id]: Math.max(0, (prev[addon.id] || 0) - 1) }))}
-                            >
-                              -
-                            </Button>
-                            <span className="w-4 text-center font-medium">{qty}</span>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => setSelectedAddons(prev => ({ ...prev, [addon.id]: Math.min(addon.pricingType === "flat" ? 1 : (addon.maxQty || 10), (prev[addon.id] || 0) + 1) }))}
-                            >
-                              +
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                  <AddonSelector addons={addons ?? []} selected={selectedAddons} onChange={setSelectedAddons} />
                   {!addons?.length && (
                     <div className="p-8 text-center bg-white border rounded-xl text-muted-foreground">
                       {copy.noAddons}

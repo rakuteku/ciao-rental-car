@@ -105,7 +105,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/dashboard", label: t("Dashboard", "ダッシュボード"), icon: LayoutDashboard },
     { href: "/admin/fleet", label: t("Fleet (Legacy)", "旧車両管理"), icon: Car },
     { href: "/admin/lodging", label: t("Lodging", "宿泊施設"), icon: Building2 },
-    { href: "/admin/bookings", label: t("Bookings", "予約"), icon: Calendar },
     { href: "/admin/content", label: t("Page Content", "ページ内容"), icon: FileText },
   ];
 

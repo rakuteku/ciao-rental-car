@@ -18,6 +18,9 @@ export const roomsTable = pgTable(
     amenities: jsonb("amenities").notNull().$type<string[]>().default([]),
     images: jsonb("images").notNull().$type<string[]>().default([]),
     coverImage: text("cover_image").notNull().default(""),
+    externalUrl: text("external_url").notNull().default(""),
+    externalNofollow: boolean("external_nofollow").notNull().default(true),
+    externalNewTab: boolean("external_new_tab").notNull().default(true),
     houseRules: text("house_rules").notNull().default(""),
     checkInTime: text("check_in_time").notNull().default("15:00"),
     checkOutTime: text("check_out_time").notNull().default("10:00"),
@@ -38,3 +41,10 @@ export const roomsTable = pgTable(
 export const insertRoomSchema = createInsertSchema(roomsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Room = typeof roomsTable.$inferSelect;
+
+export const lodgingImagesTable = pgTable("lodging_images", {
+  id: text("id").primaryKey(),
+  mimeType: text("mime_type").notNull(),
+  data: text("data").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

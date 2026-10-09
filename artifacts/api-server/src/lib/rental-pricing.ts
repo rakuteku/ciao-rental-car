@@ -9,6 +9,7 @@ import {
 import { eq, and, isNull, or, inArray } from "drizzle-orm";
 import { isMarketplaceEnabled, marketplaceBillablePeriodCount, matchesMarketplaceSeason, tokyoRentalDate } from "./rental-request-policy.mjs";
 import { calculateTimeBasedRate, validateTimeBasedRates, type TimeBasedRates } from "./time-based-rate";
+import { addonCategory, validateProtectionSelection } from "./rental-addon-policy.mjs";
 
 export interface PricingInput {
   vehicleId: number;
@@ -215,9 +216,13 @@ export async function calculatePrice(
       );
 
     const addonMap = new Map(addonRecords.map((a) => [a.id, a]));
+    validateProtectionSelection(input.addons.filter(a => a.qty > 0).map(a => addonMap.get(a.addonId)).filter((a): a is typeof rentalAddonsTable.$inferSelect => Boolean(a)));
 
     for (const req of input.addons) {
       const addon = addonMap.get(req.addonId);
+      if (addon && addonCategory(addon) === "winter_tires") {
+        throw Object.assign(new Error("Winter tires are included and cannot be purchased as an extra"), { status: 400 });
+      }
       if (!addon) {
         if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)) {
           throw Object.assign(new Error("Add-on not available for this vehicle"), { status: 400 });
@@ -237,7 +242,7 @@ export async function calculatePrice(
         unitPrice = 0;
       }
 
-      const qty = pricingType === "per_day" || pricingType === "per_started_24_hours" ? Math.min(req.qty, addon.maxQty) : Math.min(req.qty, 1);
+      const qty = addonCategory(addon) === "insurance" ? Math.min(req.qty, 1) : pricingType === "per_day" || pricingType === "per_started_24_hours" ? Math.min(req.qty, addon.maxQty) : Math.min(req.qty, 1);
       const totalPrice = unitPrice * qty;
 
       addonLineItems.push({

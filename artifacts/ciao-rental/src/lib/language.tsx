@@ -22,10 +22,16 @@ function initialLanguage(): Language {
   if (typeof window === "undefined") return "en";
   const pathLanguage = languageFromPath(window.location.pathname);
   if (pathLanguage) return pathLanguage;
-  const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  if (SUPPORTED_LANGUAGES.includes(saved as Language)) return saved as Language;
-  if (navigator.language.toLowerCase().startsWith("ja")) return "ja";
-  if (navigator.language.toLowerCase().startsWith("zh")) return "zh-TW";
+  try {
+    const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (SUPPORTED_LANGUAGES.includes(saved as Language)) return saved as Language;
+  } catch { /* Language switching also works when browser storage is unavailable. */ }
+  for (const preferred of navigator.languages?.length ? navigator.languages : [navigator.language]) {
+    const base = preferred.toLowerCase().split("-")[0];
+    if (base === "ja") return "ja";
+    if (base === "zh") return "zh-TW";
+    if (base === "en") return "en";
+  }
   return "en";
 }
 
@@ -42,7 +48,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(initialLanguage);
 
   const setLanguage = (nextLanguage: Language) => {
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage);
+    try { window.localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLanguage); } catch { /* Keep the in-memory selection. */ }
     const currentPath = `${stripLanguagePrefix(window.location.pathname)}${window.location.search}${window.location.hash}`;
     const nextPath = currentPath.startsWith("/admin") ? currentPath : localizedPath(currentPath, nextLanguage);
     if (nextPath !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {

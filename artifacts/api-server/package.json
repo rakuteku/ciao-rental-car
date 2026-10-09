@@ -8,6 +8,7 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "test:admin-session": "pnpm run build && node --test ./test/admin-session.test.mjs",
+    "test:reservation-notifications": "node --test ./test/reservation-notifications.test.mjs ./src/lib/rental-addon-policy.test.mjs",
     "test:rental-catalog": "pnpm run build && node --test ./test/rental-catalog.test.mjs",
     "test:rental-requests": "node --test ./test/rental-requests.test.mjs ./test/marketplace-api-flow.test.mjs ./test/payment-boundaries.test.mjs",
     "test:rental-trip": "node --test ./test/rental-trip-contract.test.mjs ./test/rental-trip-settlement.test.mjs ./test/rental-trip-close.integration.test.mjs",

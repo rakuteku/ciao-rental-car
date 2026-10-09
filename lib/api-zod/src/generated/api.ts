@@ -16,6 +16,9 @@ export const GetRoomsQueryParams = zod.object({
 });
 
 export const GetRoomsResponseItem = zod.object({
+  externalUrl: zod.string().optional(),
+  externalNofollow: zod.boolean().optional(),
+  externalNewTab: zod.boolean().optional(),
   id: zod.number(),
   slug: zod.string(),
   title: zod.string(),
@@ -53,6 +56,9 @@ export const GetRoomParams = zod.object({
 });
 
 export const GetRoomResponse = zod.object({
+  externalUrl: zod.string().optional(),
+  externalNofollow: zod.boolean().optional(),
+  externalNewTab: zod.boolean().optional(),
   id: zod.number(),
   slug: zod.string(),
   title: zod.string(),
@@ -85,6 +91,9 @@ export const GetRoomResponse = zod.object({
  * @summary List all rooms (admin, incl. drafts)
  */
 export const GetAdminRoomsResponseItem = zod.object({
+  externalUrl: zod.string().optional(),
+  externalNofollow: zod.boolean().optional(),
+  externalNewTab: zod.boolean().optional(),
   id: zod.number(),
   slug: zod.string(),
   title: zod.string(),
@@ -118,6 +127,9 @@ export const GetAdminRoomsResponse = zod.array(GetAdminRoomsResponseItem);
  * @summary Create a new room
  */
 export const CreateAdminRoomBody = zod.object({
+  externalUrl: zod.string().optional(),
+  externalNofollow: zod.boolean().optional(),
+  externalNewTab: zod.boolean().optional(),
   slug: zod.string().optional(),
   title: zod.string(),
   roomType: zod.string().optional(),
@@ -161,6 +173,9 @@ export const UpdateAdminRoomParams = zod.object({
 });
 
 export const UpdateAdminRoomBody = zod.object({
+  externalUrl: zod.string().optional(),
+  externalNofollow: zod.boolean().optional(),
+  externalNewTab: zod.boolean().optional(),
   slug: zod.string().optional(),
   title: zod.string().optional(),
   roomType: zod.string().optional(),
@@ -186,6 +201,9 @@ export const UpdateAdminRoomBody = zod.object({
 });
 
 export const UpdateAdminRoomResponse = zod.object({
+  externalUrl: zod.string().optional(),
+  externalNofollow: zod.boolean().optional(),
+  externalNewTab: zod.boolean().optional(),
   id: zod.number(),
   slug: zod.string(),
   title: zod.string(),
@@ -1068,6 +1086,19 @@ export const SearchRentalVehiclesResponse = zod.object({
           priceBreakdown: zod
             .union([
               zod.object({
+                pickupLocationFee: zod.number(),
+                returnLocationFee: zod.number(),
+                oneWayFee: zod.number(),
+                durationMinutes: zod.number(),
+                billedHours: zod.number(),
+                ratePlanName: zod.string(),
+                rateTier: zod.string(),
+                baseRentalAmount: zod.number(),
+                extensionAmount: zod.number(),
+                fullAdditionalDays: zod.number(),
+                additionalHours: zod.number(),
+                fullAdditionalDaysAmount: zod.number(),
+                additionalHoursAmount: zod.number(),
                 days: zod.number(),
                 dayRates: zod.array(
                   zod.object({
@@ -1213,6 +1244,19 @@ export const SearchRentalVehiclesResponse = zod.object({
           priceBreakdown: zod
             .union([
               zod.object({
+                pickupLocationFee: zod.number(),
+                returnLocationFee: zod.number(),
+                oneWayFee: zod.number(),
+                durationMinutes: zod.number(),
+                billedHours: zod.number(),
+                ratePlanName: zod.string(),
+                rateTier: zod.string(),
+                baseRentalAmount: zod.number(),
+                extensionAmount: zod.number(),
+                fullAdditionalDays: zod.number(),
+                additionalHours: zod.number(),
+                fullAdditionalDaysAmount: zod.number(),
+                additionalHoursAmount: zod.number(),
                 days: zod.number(),
                 dayRates: zod.array(
                   zod.object({
@@ -1468,6 +1512,21 @@ export const GetRentalVehicleResponse = zod
       pricing: zod
         .union([
           zod.object({
+            ratePlanName: zod.string(),
+            currency: zod.string(),
+            effectiveStartDate: zod.string().nullish(),
+            effectiveEndDate: zod.string().nullish(),
+            rateStatus: zod.string(),
+            rate6Hours: zod.number().nullish(),
+            rate12Hours: zod.number(),
+            rate24Hours: zod.number(),
+            additional24Hours: zod.number(),
+            additionalHour: zod.number(),
+            gracePeriodMinutes: zod.number(),
+            cheapestRateEnabled: zod.boolean(),
+            additionalDayCapEnabled: zod.boolean(),
+            lateReturnRequiresApproval: zod.boolean(),
+            earlyReturnRefund: zod.boolean(),
             id: zod.number(),
             vehicleId: zod.number(),
             basePrice: zod.number(),
@@ -1506,6 +1565,16 @@ export const GetRentalVehicleResponse = zod
  * @summary List published rental add-ons
  */
 export const GetRentalAddonsResponseItem = zod.object({
+  category: zod.enum(["equipment", "insurance", "winter_tires"]).optional(),
+  insuranceKind: zod
+    .union([
+      zod.literal("basic"),
+      zod.literal("cdw"),
+      zod.literal("noc"),
+      zod.literal("full"),
+      zod.literal(null),
+    ])
+    .nullish(),
   id: zod.number(),
   name: zod.string(),
   nameJa: zod.string().nullish(),
@@ -1514,7 +1583,14 @@ export const GetRentalAddonsResponseItem = zod.object({
   descriptionJa: zod.string().nullish(),
   descriptionZhTw: zod.string().nullish(),
   image: zod.string().nullish(),
-  pricingType: zod.enum(["flat", "per_day"]),
+  pricingType: zod.enum([
+    "flat",
+    "per_day",
+    "per_started_24_hours",
+    "per_rental",
+    "per_handover",
+    "included",
+  ]),
   flatFee: zod.number(),
   perDayFee: zod.number(),
   maxQty: zod.number(),
@@ -1645,6 +1721,19 @@ export const CalculateRentalPriceBody = zod.object({
 });
 
 export const CalculateRentalPriceResponse = zod.object({
+  pickupLocationFee: zod.number(),
+  returnLocationFee: zod.number(),
+  oneWayFee: zod.number(),
+  durationMinutes: zod.number(),
+  billedHours: zod.number(),
+  ratePlanName: zod.string(),
+  rateTier: zod.string(),
+  baseRentalAmount: zod.number(),
+  extensionAmount: zod.number(),
+  fullAdditionalDays: zod.number(),
+  additionalHours: zod.number(),
+  fullAdditionalDaysAmount: zod.number(),
+  additionalHoursAmount: zod.number(),
   days: zod.number(),
   dayRates: zod.array(
     zod.object({
@@ -1967,6 +2056,21 @@ export const GetAdminRentalVehicleResponse = zod
       pricing: zod
         .union([
           zod.object({
+            ratePlanName: zod.string(),
+            currency: zod.string(),
+            effectiveStartDate: zod.string().nullish(),
+            effectiveEndDate: zod.string().nullish(),
+            rateStatus: zod.string(),
+            rate6Hours: zod.number().nullish(),
+            rate12Hours: zod.number(),
+            rate24Hours: zod.number(),
+            additional24Hours: zod.number(),
+            additionalHour: zod.number(),
+            gracePeriodMinutes: zod.number(),
+            cheapestRateEnabled: zod.boolean(),
+            additionalDayCapEnabled: zod.boolean(),
+            lateReturnRequiresApproval: zod.boolean(),
+            earlyReturnRefund: zod.boolean(),
             id: zod.number(),
             vehicleId: zod.number(),
             basePrice: zod.number(),
@@ -2198,6 +2302,21 @@ export const GetAdminRentalVehiclePricingParams = zod.object({
 });
 
 export const GetAdminRentalVehiclePricingResponse = zod.object({
+  ratePlanName: zod.string(),
+  currency: zod.string(),
+  effectiveStartDate: zod.string().nullish(),
+  effectiveEndDate: zod.string().nullish(),
+  rateStatus: zod.string(),
+  rate6Hours: zod.number().nullish(),
+  rate12Hours: zod.number(),
+  rate24Hours: zod.number(),
+  additional24Hours: zod.number(),
+  additionalHour: zod.number(),
+  gracePeriodMinutes: zod.number(),
+  cheapestRateEnabled: zod.boolean(),
+  additionalDayCapEnabled: zod.boolean(),
+  lateReturnRequiresApproval: zod.boolean(),
+  earlyReturnRefund: zod.boolean(),
   id: zod.number(),
   vehicleId: zod.number(),
   basePrice: zod.number(),
@@ -2235,6 +2354,21 @@ export const UpdateAdminRentalVehiclePricingParams = zod.object({
 });
 
 export const UpdateAdminRentalVehiclePricingBody = zod.object({
+  ratePlanName: zod.string().optional(),
+  currency: zod.enum(["JPY"]).optional(),
+  effectiveStartDate: zod.string().nullish(),
+  effectiveEndDate: zod.string().nullish(),
+  rateStatus: zod.enum(["active", "draft", "inactive"]).optional(),
+  rate6Hours: zod.number().nullish(),
+  rate12Hours: zod.number().optional(),
+  rate24Hours: zod.number().optional(),
+  additional24Hours: zod.number().optional(),
+  additionalHour: zod.number().optional(),
+  gracePeriodMinutes: zod.number().optional(),
+  cheapestRateEnabled: zod.boolean().optional(),
+  additionalDayCapEnabled: zod.boolean().optional(),
+  lateReturnRequiresApproval: zod.boolean().optional(),
+  earlyReturnRefund: zod.boolean().optional(),
   basePrice: zod.number().optional(),
   weekendPrice: zod.number().optional(),
   holidayPrice: zod.number().optional(),
@@ -2263,6 +2397,21 @@ export const UpdateAdminRentalVehiclePricingBody = zod.object({
 });
 
 export const UpdateAdminRentalVehiclePricingResponse = zod.object({
+  ratePlanName: zod.string(),
+  currency: zod.string(),
+  effectiveStartDate: zod.string().nullish(),
+  effectiveEndDate: zod.string().nullish(),
+  rateStatus: zod.string(),
+  rate6Hours: zod.number().nullish(),
+  rate12Hours: zod.number(),
+  rate24Hours: zod.number(),
+  additional24Hours: zod.number(),
+  additionalHour: zod.number(),
+  gracePeriodMinutes: zod.number(),
+  cheapestRateEnabled: zod.boolean(),
+  additionalDayCapEnabled: zod.boolean(),
+  lateReturnRequiresApproval: zod.boolean(),
+  earlyReturnRefund: zod.boolean(),
   id: zod.number(),
   vehicleId: zod.number(),
   basePrice: zod.number(),
@@ -2856,6 +3005,16 @@ export const CompleteReturnAdminRentalReservationResponse = zod.object({
  * @summary List all add-ons (admin)
  */
 export const GetAdminRentalAddonsResponseItem = zod.object({
+  category: zod.enum(["equipment", "insurance", "winter_tires"]).optional(),
+  insuranceKind: zod
+    .union([
+      zod.literal("basic"),
+      zod.literal("cdw"),
+      zod.literal("noc"),
+      zod.literal("full"),
+      zod.literal(null),
+    ])
+    .nullish(),
   id: zod.number(),
   name: zod.string(),
   nameJa: zod.string().nullish(),
@@ -2864,7 +3023,14 @@ export const GetAdminRentalAddonsResponseItem = zod.object({
   descriptionJa: zod.string().nullish(),
   descriptionZhTw: zod.string().nullish(),
   image: zod.string().nullish(),
-  pricingType: zod.enum(["flat", "per_day"]),
+  pricingType: zod.enum([
+    "flat",
+    "per_day",
+    "per_started_24_hours",
+    "per_rental",
+    "per_handover",
+    "included",
+  ]),
   flatFee: zod.number(),
   perDayFee: zod.number(),
   maxQty: zod.number(),
@@ -2883,6 +3049,16 @@ export const GetAdminRentalAddonsResponse = zod.array(
  * @summary Create a new add-on
  */
 export const CreateAdminRentalAddonBody = zod.object({
+  category: zod.enum(["equipment", "insurance", "winter_tires"]).optional(),
+  insuranceKind: zod
+    .union([
+      zod.literal("basic"),
+      zod.literal("cdw"),
+      zod.literal("noc"),
+      zod.literal("full"),
+      zod.literal(null),
+    ])
+    .nullish(),
   name: zod.string(),
   nameJa: zod.string().optional(),
   nameZhTw: zod.string().optional(),
@@ -2909,6 +3085,16 @@ export const UpdateAdminRentalAddonParams = zod.object({
 });
 
 export const UpdateAdminRentalAddonBody = zod.object({
+  category: zod.enum(["equipment", "insurance", "winter_tires"]).optional(),
+  insuranceKind: zod
+    .union([
+      zod.literal("basic"),
+      zod.literal("cdw"),
+      zod.literal("noc"),
+      zod.literal("full"),
+      zod.literal(null),
+    ])
+    .nullish(),
   name: zod.string(),
   nameJa: zod.string().optional(),
   nameZhTw: zod.string().optional(),
@@ -2928,6 +3114,16 @@ export const UpdateAdminRentalAddonBody = zod.object({
 });
 
 export const UpdateAdminRentalAddonResponse = zod.object({
+  category: zod.enum(["equipment", "insurance", "winter_tires"]).optional(),
+  insuranceKind: zod
+    .union([
+      zod.literal("basic"),
+      zod.literal("cdw"),
+      zod.literal("noc"),
+      zod.literal("full"),
+      zod.literal(null),
+    ])
+    .nullish(),
   id: zod.number(),
   name: zod.string(),
   nameJa: zod.string().nullish(),
@@ -2936,7 +3132,14 @@ export const UpdateAdminRentalAddonResponse = zod.object({
   descriptionJa: zod.string().nullish(),
   descriptionZhTw: zod.string().nullish(),
   image: zod.string().nullish(),
-  pricingType: zod.enum(["flat", "per_day"]),
+  pricingType: zod.enum([
+    "flat",
+    "per_day",
+    "per_started_24_hours",
+    "per_rental",
+    "per_handover",
+    "included",
+  ]),
   flatFee: zod.number(),
   perDayFee: zod.number(),
   maxQty: zod.number(),

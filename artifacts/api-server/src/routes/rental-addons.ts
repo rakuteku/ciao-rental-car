@@ -7,6 +7,7 @@ import { platformOperatorId } from "../lib/platform-operator";
 import { z } from "zod/v4";
 import { logRentalAudit } from "../lib/rental-events";
 import { isMarketplaceEnabled } from "../lib/rental-request-policy.mjs";
+import { addonCategory, insuranceKind } from "../lib/rental-addon-policy.mjs";
 
 function adminName(req: { session: unknown }) {
   return ((req.session as { admin?: { username?: string } }).admin?.username) ?? "admin";
@@ -18,6 +19,8 @@ function serializeAddon(addon: typeof rentalAddonsTable.$inferSelect) {
   const isLegacyPerUnit = addon.pricingType === "per_unit";
   return {
     ...addon,
+    category: addonCategory(addon),
+    insuranceKind: addonCategory(addon) === "insurance" ? insuranceKind(addon) : null,
     pricingType: isLegacyPerUnit ? "flat" : addon.pricingType,
     flatFee: isLegacyPerUnit ? addon.perUnitFee : addon.flatFee,
     createdAt: addon.createdAt.toISOString(),
@@ -27,6 +30,8 @@ function serializeAddon(addon: typeof rentalAddonsTable.$inferSelect) {
 
 const AddonSchema = z.object({
   name: z.string().min(1),
+  category: z.enum(["equipment", "insurance", "winter_tires"]).optional(),
+  insuranceKind: z.enum(["basic", "cdw", "noc", "full"]).nullable().optional(),
   nameJa: z.string().nullable().optional(),
   nameZhTw: z.string().nullable().optional(),
   description: z.string().optional(),
@@ -34,8 +39,8 @@ const AddonSchema = z.object({
   descriptionZhTw: z.string().nullable().optional(),
   image: z.string().nullable().optional(),
   pricingType: z.enum(["per_started_24_hours", "per_rental", "per_handover", "included", "flat", "per_day"]).optional(),
-  flatFee: z.coerce.number().optional(),
-  perDayFee: z.coerce.number().optional(),
+  flatFee: z.coerce.number().int().min(0).optional(),
+  perDayFee: z.coerce.number().int().min(0).optional(),
   maxQty: z.coerce.number().int().optional(),
   inventoryLimit: z.coerce.number().int().nullable().optional(),
   vehicleCompatibility: z.array(z.string()).optional(),
@@ -57,7 +62,7 @@ router.get("/rental/addons", async (_req, res): Promise<void> => {
         : eq(rentalOperatorsTable.slug, "platform"),
     ))
     .orderBy(asc(rentalAddonsTable.sortOrder));
-  res.json(addons.map(({ addon }) => serializeAddon(addon)));
+  res.json(addons.filter(({ addon }) => addonCategory(addon) !== "winter_tires").map(({ addon }) => serializeAddon(addon)));
 });
 
 router.get("/admin/rental/addons", requireAdminAuth, async (_req, res): Promise<void> => {

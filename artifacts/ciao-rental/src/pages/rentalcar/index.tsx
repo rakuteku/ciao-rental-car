@@ -82,6 +82,11 @@ export function RentalCarHome() {
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
   const { data: contentData } = useGetPageContent("rentalcar");
   const content = contentData ? localizeContent(contentData.content.en as unknown as RentalCarContent, contentData.content, language) : undefined;
+  const importantNotes = content?.importantNotes.filter(
+    (note) =>
+      !/winters+t(?:i|y)res?|冬用タイヤ|スタッドレスタイヤ|冬季輪胎|雪胎/i.test(note) &&
+      !/winter[\s-]+t(?:i|y)res?|冬タイヤ|冬季轮胎/i.test(note),
+  ) ?? [];
   const storedLanguage = language === "zh-TW" ? "zh-CN" : language;
   const rawLanguageContent = contentData?.content?.[storedLanguage] as { search?: Record<string, string> } | undefined;
   const search = { ...SEARCH_COPY[language] } as Record<string, string>;
@@ -235,25 +240,25 @@ export function RentalCarHome() {
                         <FormMessage />
                       </FormItem>
                     )} />
-                    {pickupDate && <FormField control={form.control} name="pickupTime" render={({ field }) => (
-                      <FormItem className="animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.pickupTime}</FormLabel><FormControl><div className="relative"><Clock3 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input type="time" className="h-11 pl-9" {...field} onChange={(event) => { field.onChange(event); form.resetField("pickupLocation", { defaultValue: "" }); form.resetField("returnDate"); form.resetField("returnTime", { defaultValue: "" }); form.resetField("returnLocation", { defaultValue: "" }); }} /></div></FormControl><FormMessage /></FormItem>
-                    )} />}
-                    {pickupDate && pickupTime && <FormField control={form.control} name="pickupLocation" render={({ field }) => (
-                      <FormItem className="animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.pickupLocation}</FormLabel><Select onValueChange={(value) => { field.onChange(value); form.resetField("returnDate"); form.resetField("returnTime", { defaultValue: "" }); form.resetField("returnLocation", { defaultValue: "" }); }} value={field.value}><FormControl><SelectTrigger data-testid="select-pickup-location" className="h-11"><SelectValue placeholder={search.selectLocation} /></SelectTrigger></FormControl><SelectContent>{locations.map(loc => <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                    )} />}
+                    <FormField control={form.control} name="pickupTime" render={({ field }) => (
+                      <FormItem className="flex min-w-0 flex-col"><FormLabel>{search.pickupTime}</FormLabel><FormControl><Input type="time" className="h-11" {...field} onChange={(event) => { field.onChange(event); form.resetField("pickupLocation", { defaultValue: "" }); form.resetField("returnDate"); form.resetField("returnTime", { defaultValue: "" }); form.resetField("returnLocation", { defaultValue: "" }); }} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="pickupLocation" render={({ field }) => (
+                      <FormItem className="flex min-w-0 flex-col"><FormLabel>{search.pickupLocation}</FormLabel><Select onValueChange={(value) => { field.onChange(value); form.resetField("returnDate"); form.resetField("returnTime", { defaultValue: "" }); form.resetField("returnLocation", { defaultValue: "" }); }} value={field.value}><FormControl><SelectTrigger data-testid="select-pickup-location" className="h-11"><SelectValue placeholder={search.selectLocation} /></SelectTrigger></FormControl><SelectContent>{locations.map(loc => <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    )} />
                   </fieldset>
 
-                  <fieldset className={cn("grid min-w-0 gap-3 rounded-md border bg-card p-4 transition-opacity sm:grid-cols-3", !pickupLocation && "pointer-events-none opacity-45")}>
+                  <fieldset disabled={!pickupDate || !pickupTime || !pickupLocation} className={cn("grid min-w-0 gap-3 rounded-md border bg-card p-4 transition-opacity sm:grid-cols-3", (!pickupDate || !pickupTime || !pickupLocation) && "pointer-events-none opacity-45")}>
                     <legend className="px-2 text-xs font-semibold uppercase text-primary">2 · {search.returnTrip}</legend>
-                    {pickupLocation ? <FormField control={form.control} name="returnDate" render={({ field }) => (
+                    <FormField control={form.control} name="returnDate" render={({ field }) => (
                       <FormItem className="flex flex-col animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.returnDate}</FormLabel><Popover><PopoverTrigger asChild><FormControl><Button variant="outline" data-testid="button-return-date" className={cn("h-11 w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "MMM d, yyyy") : <span>{search.pickDate}</span>}<CalendarIcon className="ml-auto size-4 opacity-50" /></Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(date) => { field.onChange(date); form.resetField("returnTime", { defaultValue: "" }); form.resetField("returnLocation", { defaultValue: "" }); }} disabled={(date) => format(date, "yyyy-MM-dd") < format(pickupDate || new Date(`${tokyoParts(new Date().toISOString()).date}T12:00:00`), "yyyy-MM-dd")} initialFocus /></PopoverContent></Popover><FormMessage /></FormItem>
-                    )} /> : <p className="col-span-3 py-3 text-xs text-muted-foreground">{search.pickupLocation}</p>}
-                    {returnDate && <FormField control={form.control} name="returnTime" render={({ field }) => (
-                      <FormItem className="animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.returnTime}</FormLabel><FormControl><div className="relative"><Clock3 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input type="time" className="h-11 pl-9" {...field} onChange={(event) => { field.onChange(event); form.resetField("returnLocation", { defaultValue: "" }); }} /></div></FormControl><FormMessage /></FormItem>
-                    )} />}
-                    {returnDate && returnTime && <FormField control={form.control} name="returnLocation" render={({ field }) => (
-                      <FormItem className="animate-in fade-in slide-in-from-left-1 duration-200"><FormLabel>{search.returnLocation}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger data-testid="select-return-location" className="h-11"><SelectValue placeholder={search.selectLocation} /></SelectTrigger></FormControl><SelectContent>{locations.map(loc => <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                    )} />}
+                    )} />
+                    <FormField control={form.control} name="returnTime" render={({ field }) => (
+                      <FormItem className="flex min-w-0 flex-col"><FormLabel>{search.returnTime}</FormLabel><FormControl><Input type="time" className="h-11" {...field} onChange={(event) => { field.onChange(event); form.resetField("returnLocation", { defaultValue: "" }); }} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="returnLocation" render={({ field }) => (
+                      <FormItem className="flex min-w-0 flex-col"><FormLabel>{search.returnLocation}</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger data-testid="select-return-location" className="h-11"><SelectValue placeholder={search.selectLocation} /></SelectTrigger></FormControl><SelectContent>{locations.map(loc => <SelectItem key={loc.value} value={loc.value}>{rentalLocationLabel(loc.value, locations, language)}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    )} />
                   </fieldset>
                 </div>
 
@@ -313,7 +318,6 @@ export function RentalCarHome() {
                     )} />
                     {([
                        ["has4wd", search.fourWheelDrive],
-                       ["winterTires", search.winterTires],
                        ["childSeat", search.childSeat],
                        ["airportDelivery", search.airportDelivery],
                        ["skiLuggage", search.skiLuggage],
@@ -402,32 +406,35 @@ export function RentalCarHome() {
               ))}
             </div>
 
-            <div className="space-y-6">
+            {addons?.some(addon => addon.category === "insurance") && <div className="space-y-6">
                <h3 className="text-2xl font-serif font-bold tracking-tight">{content.sections.insurancePlans}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {content.plans.map((plan) => (
-                  <div key={plan.name} className="border p-6 space-y-2">
+                {addons.filter(addon => addon.category === "insurance").map((addon) => {
+                  const plan = localizeAddon(addon, language);
+                  const period = ["per_day", "per_started_24_hours"].includes(String(addon.pricingType));
+                  return <div key={addon.id} className="border p-6 space-y-2">
                     <div className="flex items-baseline justify-between">
                       <h4 className="font-semibold">{plan.name}</h4>
-                      <span className="text-sm font-medium tabular-nums">{plan.price}</span>
+                      <span className="text-sm font-medium tabular-nums">{String(addon.pricingType) === "included" ? rentalLabels.included : `¥${(period ? addon.perDayFee : addon.flatFee).toLocaleString()} ${period ? (language === "ja" ? "/24時間（端数切上げ）" : language === "zh-TW" ? "/每開始24小時" : "/started 24h") : rentalLabels.perBooking}`}</span>
                     </div>
                     <p className="text-sm text-muted-foreground leading-relaxed">{plan.description}</p>
-                  </div>
-                ))}
+                  </div>;
+                })}
               </div>
-            </div>
+            </div>}
 
             <div className="space-y-6">
                <h3 className="text-2xl font-serif font-bold tracking-tight">{content.sections.addOns}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {addons?.map((addOn) => {
-                  const price = addOn.pricingType === "per_day" ? addOn.perDayFee : addOn.flatFee;
+                {addons?.filter(addon => !addon.category || addon.category === "equipment").map((addOn) => {
+                  const period = ["per_day", "per_started_24_hours"].includes(String(addOn.pricingType));
+                  const price = period ? addOn.perDayFee : addOn.flatFee;
                   const localizedAddOn = localizeAddon(addOn, language);
                   return (
                   <div key={addOn.id} className="border p-6 space-y-2">
                     <div className="flex items-baseline justify-between">
                       <h4 className="font-semibold text-sm">{localizedAddOn.name}</h4>
-                      <span className="text-sm font-medium tabular-nums">¥{price.toLocaleString()}{addOn.pricingType === "per_day" ? rentalLabels.perDay : rentalLabels.perBooking}</span>
+                      <span className="text-sm font-medium tabular-nums">{String(addOn.pricingType) === "included" ? rentalLabels.included : `¥${price.toLocaleString()}${period ? (language === "ja" ? "/24時間（端数切上げ）" : language === "zh-TW" ? "/每開始24小時" : "/started 24h") : rentalLabels.perBooking}`}</span>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">{localizedAddOn.description}</p>
                   </div>
@@ -436,11 +443,11 @@ export function RentalCarHome() {
               </div>
             </div>
 
-            {content.importantNotes.length > 0 && (
+            {importantNotes.length > 0 && (
               <div className="bg-muted/40 border p-6 space-y-3">
                  <h3 className="text-sm font-semibold uppercase tracking-wide">{content.sections.importantNotes}</h3>
                 <ul className="space-y-2 list-disc list-inside text-sm text-muted-foreground">
-                  {content.importantNotes.map((note) => (
+                  {importantNotes.map((note) => (
                     <li key={note}>{note}</li>
                   ))}
                 </ul>

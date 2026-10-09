@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
-import { useLocation } from "wouter";
-import { CalendarDays, MapPin, Search, Users } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
+import { Link, useLocation } from "wouter";
+import { CalendarDays, MapPin, Search, Users, Building2, Bookmark } from "lucide-react";
 import { localizedPath, type Language } from "@/lib/language";
 import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 import { tokyoInstant, tokyoParts } from "@/lib/rental-marketplace";
@@ -57,6 +58,17 @@ export function HomeSearchPanel({ language }: { language: Language }) {
   const [pickupLocation, setPickupLocation] = useState(DEFAULT_RENTAL_LOCATIONS[0].value);
   const [adults, setAdults] = useState("2");
   const [error, setError] = useState("");
+  const panelRef = useRef<HTMLFormElement>(null);
+  const [sticky, setSticky] = useState(false);
+  const shortcuts = language === "ja" ? ["宿泊", "予約確認"] : language === "zh-TW" ? ["住宿", "我的預訂"] : ["Lodging", "My bookings"];
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const observer = new IntersectionObserver(([entry]) => setSticky(!entry.isIntersecting && entry.boundingClientRect.top < 88), { rootMargin: "-88px 0px 0px 0px" });
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, []);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,7 +99,17 @@ export function HomeSearchPanel({ language }: { language: Language }) {
   }
 
   return (
+    <>
+    {sticky && createPortal(<form onSubmit={onSubmit} aria-label={labels.title} data-testid="home-sticky-search" className="public-site fixed inset-x-0 top-[4.5rem] z-40 border-b bg-background px-3 py-2 text-foreground shadow-sm">
+      <div className="mx-auto grid max-w-5xl grid-cols-2 items-center gap-3 md:grid-cols-[1fr_1fr_1.2fr_auto]">
+        <label className="min-w-0 text-[10px] text-muted-foreground">{labels.pickupDate}<input aria-label={labels.pickupDate} type="date" required min={today} value={pickupDate} onChange={event => { const value = event.target.value; setPickupDate(value); if (returnDate <= value) setReturnDate(nextTokyoDate(value)); }} className="block w-full bg-transparent text-sm font-semibold text-foreground" /></label>
+        <label className="min-w-0 text-[10px] text-muted-foreground">{labels.returnDate}<input aria-label={labels.returnDate} type="date" required min={pickupDate} value={returnDate} onChange={event => setReturnDate(event.target.value)} className="block w-full bg-transparent text-sm font-semibold text-foreground" /></label>
+        <label className="hidden min-w-0 text-[10px] text-muted-foreground md:block">{labels.pickupLocation}<select value={pickupLocation} onChange={event => setPickupLocation(event.target.value)} className="block w-full bg-transparent text-sm text-foreground">{locations.map(location => <option key={location.value} value={location.value}>{rentalLocationLabel(location.value, locations, language)}</option>)}</select></label>
+        <button type="submit" className="hidden h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm text-primary-foreground md:flex"><Search className="size-4" />{labels.search}</button>
+      </div>
+    </form>, document.body)}
     <form
+      ref={panelRef}
       onSubmit={onSubmit}
       className="mx-auto w-full max-w-5xl rounded-md border border-white/50 bg-background p-3 text-left shadow-xl sm:p-4"
       aria-label={labels.title}
@@ -175,5 +197,10 @@ export function HomeSearchPanel({ language }: { language: Language }) {
       {error && <p id="home-search-error" className="mt-2 px-1 text-xs font-medium text-destructive" role="alert" data-testid="status-home-search-error">{error}</p>}
       <p className="mt-2 px-1 text-[10px] leading-5 text-muted-foreground" data-testid="text-home-room-confirmation-note">{labels.note}</p>
     </form>
+    {createPortal(<nav aria-label={language === "ja" ? "クイックリンク" : language === "zh-TW" ? "快速連結" : "Quick links"} className="public-site fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 divide-x border-t bg-background pb-[env(safe-area-inset-bottom)] text-foreground shadow-sm md:hidden">
+      <Link href={localizedPath("/lodging", language)} className="flex min-h-14 items-center justify-center gap-2 text-sm font-medium"><Building2 className="size-4" />{shortcuts[0]}</Link>
+      <Link href={localizedPath("/rentalcar/my-bookings", language)} className="flex min-h-14 items-center justify-center gap-2 text-sm font-medium"><Bookmark className="size-4" />{shortcuts[1]}</Link>
+    </nav>, document.body)}
+    </>
   );
 }

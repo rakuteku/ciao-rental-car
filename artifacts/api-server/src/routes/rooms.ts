@@ -1,6 +1,7 @@
-import { Router, type IRouter } from "express";
+import { Router, raw, type IRouter } from "express";
+import { randomUUID } from "node:crypto";
 import { eq, asc } from "drizzle-orm";
-import { db, roomsTable, type Room } from "@workspace/db";
+import { db, roomsTable, lodgingImagesTable, type Room } from "@workspace/db";
 import {
   GetRoomsQueryParams,
   GetRoomParams,
@@ -12,6 +13,36 @@ import {
 import { requireAdminAuth } from "../middlewares/admin-auth";
 
 const router: IRouter = Router();
+
+function validExternalUrl(value: string | undefined) {
+  if (!value) return true;
+  try { return ["https:", "http:"].includes(new URL(value).protocol); } catch { return false; }
+}
+
+router.post("/admin/rooms/images", requireAdminAuth, raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "5mb" }), async (req, res): Promise<void> => {
+  const data = req.body;
+  if (!Buffer.isBuffer(data) || !data.length) {
+    res.status(400).json({ error: "Upload a JPEG, PNG or WebP image (maximum 5 MB)" });
+    return;
+  }
+  const mimeType = data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ? "image/png"
+    : data[0] === 255 && data[1] === 216 && data[2] === 255 ? "image/jpeg"
+    : data.toString("ascii", 0, 4) === "RIFF" && data.toString("ascii", 8, 12) === "WEBP" ? "image/webp" : null;
+  if (!mimeType || mimeType !== req.get("content-type")?.split(";")[0]) {
+    res.status(400).json({ error: "Invalid image format" });
+    return;
+  }
+  const id = randomUUID();
+  await db.insert(lodgingImagesTable).values({ id, mimeType, data: data.toString("base64") });
+  res.status(201).json({ url: `/api/lodging-images/${id}` });
+});
+
+router.get("/lodging-images/:id", async (req, res): Promise<void> => {
+  const [image] = await db.select().from(lodgingImagesTable).where(eq(lodgingImagesTable.id, String(req.params.id)));
+  if (!image) { res.sendStatus(404); return; }
+  res.set({ "Content-Type": image.mimeType, "X-Content-Type-Options": "nosniff", "Cache-Control": "public, max-age=31536000, immutable" });
+  res.send(Buffer.from(image.data, "base64"));
+});
 
 function serializeRoom(room: Room) {
   return {
@@ -88,6 +119,7 @@ router.post("/admin/rooms", requireAdminAuth, async (req, res): Promise<void> =>
   }
 
   const data = body.data;
+  if (!validExternalUrl(data.externalUrl)) { res.status(400).json({ error: "External URL must use HTTP or HTTPS" }); return; }
   const baseSlug = slugify(data.slug && data.slug.trim() ? data.slug : data.title);
   const slug = await ensureUniqueSlug(baseSlug);
 
@@ -116,6 +148,9 @@ router.post("/admin/rooms", requireAdminAuth, async (req, res): Promise<void> =>
       amenities: data.amenities ?? [],
       images: data.images ?? [],
       coverImage,
+      externalUrl: data.externalUrl ?? "",
+      externalNofollow: data.externalNofollow ?? true,
+      externalNewTab: data.externalNewTab ?? true,
       houseRules: data.houseRules ?? "",
       checkInTime: data.checkInTime ?? "15:00",
       checkOutTime: data.checkOutTime ?? "10:00",
@@ -167,6 +202,7 @@ router.put("/admin/rooms/:id", requireAdminAuth, async (req, res): Promise<void>
   }
 
   const data = body.data;
+  if (!validExternalUrl(data.externalUrl)) { res.status(400).json({ error: "External URL must use HTTP or HTTPS" }); return; }
   let slug = existing.slug;
   if (data.slug && data.slug.trim() && slugify(data.slug) !== existing.slug) {
     slug = await ensureUniqueSlug(slugify(data.slug), existing.id);
@@ -175,7 +211,7 @@ router.put("/admin/rooms/:id", requireAdminAuth, async (req, res): Promise<void>
   const title = data.title ?? existing.title;
   const description = data.description ?? existing.description;
   const images = data.images ?? existing.images;
-  const coverImage = data.coverImage || existing.coverImage || images[0] || "";
+  const coverImage = data.coverImage ?? existing.coverImage ?? images[0] ?? "";
   const metaTitle = data.metaTitle || existing.metaTitle || `${title} | CIAO Sapporo Lodging`;
   const metaDescription = data.metaDescription || existing.metaDescription || truncate(description, 155);
   const ogTitle = data.ogTitle || existing.ogTitle || metaTitle;
@@ -197,6 +233,9 @@ router.put("/admin/rooms/:id", requireAdminAuth, async (req, res): Promise<void>
       amenities: data.amenities ?? existing.amenities,
       images,
       coverImage,
+      externalUrl: data.externalUrl ?? existing.externalUrl,
+      externalNofollow: data.externalNofollow ?? existing.externalNofollow,
+      externalNewTab: data.externalNewTab ?? existing.externalNewTab,
       houseRules: data.houseRules ?? existing.houseRules,
       checkInTime: data.checkInTime ?? existing.checkInTime,
       checkOutTime: data.checkOutTime ?? existing.checkOutTime,

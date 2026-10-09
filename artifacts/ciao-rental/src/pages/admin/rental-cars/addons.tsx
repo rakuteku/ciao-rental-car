@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminAddons, useCreateAdminAddon, useDeleteAdminAddon, useUpdateAdminAddon } from "@/hooks/use-rental-operations";
+import { useLanguage } from "@/lib/language";
 
 type PricingType = "per_started_24_hours" | "per_rental" | "per_handover" | "included";
 type AddonFormData = {
@@ -19,6 +20,8 @@ type AddonFormData = {
   descriptionZhTw: string;
   pricingType: PricingType;
   price: string;
+  category: "equipment" | "insurance" | "winter_tires";
+  insuranceKind: "basic" | "cdw" | "noc" | "full";
 };
 
 const emptyForm = (): AddonFormData => ({
@@ -30,6 +33,8 @@ const emptyForm = (): AddonFormData => ({
   descriptionZhTw: "",
   pricingType: "per_started_24_hours",
   price: "0",
+  category: "equipment",
+  insuranceKind: "cdw",
 });
 
 function formatYen(value: number) {
@@ -37,6 +42,8 @@ function formatYen(value: number) {
 }
 
 export function AdminAddons() {
+  const { language } = useLanguage();
+  const t = (en: string, ja: string) => language === "ja" ? ja : en;
   const { data: addons = [], isLoading } = useAdminAddons();
   const createMut = useCreateAdminAddon();
   const updateMut = useUpdateAdminAddon();
@@ -58,6 +65,8 @@ export function AdminAddons() {
         descriptionJa: addon.descriptionJa || "",
         descriptionZhTw: addon.descriptionZhTw || "",
         pricingType,
+        category: addon.category || "equipment",
+        insuranceKind: addon.insuranceKind || "cdw",
         price: String(pricingType === "per_started_24_hours" ? addon.perDayFee || 0 : addon.flatFee || 0),
       });
     } else {
@@ -69,8 +78,8 @@ export function AdminAddons() {
 
   const handleSave = () => {
     const price = Number(formData.price);
-    if (!formData.name.trim() || !Number.isFinite(price) || price < 0) {
-      toast({ title: "Check the add-on details", description: "English name and a valid yen price are required.", variant: "destructive" });
+    if (!formData.name.trim() || !Number.isInteger(price) || price < 0) {
+      toast({ title: t("Check the add-on details", "入力内容を確認してください"), description: t("English name and a whole-yen price are required.", "英語名と整数の円料金が必要です。"), variant: "destructive" });
       return;
     }
     const payload = {
@@ -81,9 +90,12 @@ export function AdminAddons() {
       descriptionJa: formData.descriptionJa.trim() || null,
       descriptionZhTw: formData.descriptionZhTw.trim() || null,
       pricingType: formData.pricingType,
+      category: formData.category,
+      insuranceKind: formData.category === "insurance" ? formData.insuranceKind : null,
+      maxQty: 1,
       flatFee: ["per_rental", "per_handover"].includes(formData.pricingType) ? price : 0,
       perDayFee: formData.pricingType === "per_started_24_hours" ? price : 0,
-      published: true,
+      published: formData.category !== "winter_tires",
     };
     const options = { onSuccess: () => { toast({ title: editId ? "Add-on updated" : "Add-on created" }); setIsOpen(false); } };
     if (editId) updateMut.mutate({ id: editId, data: payload }, options);
@@ -98,35 +110,39 @@ export function AdminAddons() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <div><h1 className="text-3xl font-serif font-bold">Add-ons</h1><p className="text-muted-foreground">Manage translated extras and yen pricing.</p></div>
-        <Button onClick={() => openForm()}>Add New</Button>
+        <div><h1 className="text-3xl font-serif font-bold">{t("Equipment & protection", "備品・補償")}</h1></div>
+        <Button onClick={() => openForm()}>{t("Add New", "新規追加")}</Button>
       </div>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader><DialogTitle>{editId ? "Edit" : "Add"} Add-on</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editId ? t("Edit equipment or protection", "備品・補償を編集") : t("Add equipment or protection", "備品・補償を追加")}</DialogTitle></DialogHeader>
           <div className="space-y-6 py-3">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label>{t("Category", "種類")}</Label><Select value={formData.category} onValueChange={(category: AddonFormData["category"]) => setFormData(current => ({ ...current, category }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="equipment">{t("Optional equipment", "オプション備品")}</SelectItem><SelectItem value="insurance">{t("Insurance & protection", "保険・補償")}</SelectItem><SelectItem value="winter_tires">{t("Winter tires (included, not sold)", "冬用タイヤ（標準装備・販売なし）")}</SelectItem></SelectContent></Select></div>
+              {formData.category === "insurance" && <div className="space-y-1.5"><Label>{t("Protection type", "補償の種類")}</Label><Select value={formData.insuranceKind} onValueChange={(insuranceKind: AddonFormData["insuranceKind"]) => setFormData(current => ({ ...current, insuranceKind }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="basic">{t("Basic", "基本補償")}</SelectItem><SelectItem value="cdw">{t("CDW / deductible waiver", "CDW・免責補償")}</SelectItem><SelectItem value="noc">{t("NOC protection", "NOC補償")}</SelectItem><SelectItem value="full">{t("Full protection package", "フル補償パッケージ")}</SelectItem></SelectContent></Select></div>}
+            </div>
             {([ ["English", "name", "description"], ["日本語", "nameJa", "descriptionJa"], ["繁體中文", "nameZhTw", "descriptionZhTw"] ] as const).map(([language, nameField, descriptionField]) => (
               <section key={language} className="space-y-3 border-b pb-5 last:border-b-0">
                 <h3 className="text-sm font-semibold">{language}</h3>
-                <div className="space-y-1.5"><Label>Name{language === "English" ? " *" : ""}</Label><Input value={formData[nameField]} onChange={(event) => setFormData((current) => ({ ...current, [nameField]: event.target.value }))} /></div>
-                <div className="space-y-1.5"><Label>Description</Label><Textarea value={formData[descriptionField]} onChange={(event) => setFormData((current) => ({ ...current, [descriptionField]: event.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>{t("Name", "名称")}{language === "English" ? " *" : ""}</Label><Input value={formData[nameField]} onChange={(event) => setFormData((current) => ({ ...current, [nameField]: event.target.value }))} /></div>
+                <div className="space-y-1.5"><Label>{t("Description / coverage terms", "説明・補償条件")}</Label><Textarea value={formData[descriptionField]} onChange={(event) => setFormData((current) => ({ ...current, [descriptionField]: event.target.value }))} /></div>
               </section>
             ))}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label>Pricing method</Label>
+                <Label>{t("Pricing method", "料金の計算方法")}</Label>
                 <Select value={formData.pricingType} onValueChange={(value: PricingType) => setFormData((current) => ({ ...current, pricingType: value }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="per_started_24_hours">Per started 24 hours</SelectItem><SelectItem value="per_rental">Per rental</SelectItem><SelectItem value="per_handover">Per handover</SelectItem><SelectItem value="included">Included</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="per_started_24_hours">{t("Per started 24 hours", "24時間ごと（端数切上げ）")}</SelectItem><SelectItem value="per_rental">{t("Per rental", "1予約につき")}</SelectItem><SelectItem value="per_handover">{t("Per handover", "引渡しごと")}</SelectItem><SelectItem value="included">{t("Included", "料金に含む")}</SelectItem></SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Price (¥)</Label>
+                <Label>{t("Price (¥)", "料金（円）")}</Label>
                 <Input type="number" min="0" step="1" value={formData.price} onChange={(event) => setFormData((current) => ({ ...current, price: event.target.value }))} />
                 <p className="text-xs text-muted-foreground">{formData.pricingType === "per_started_24_hours" ? "A 25-hour rental uses two periods." : formData.pricingType === "included" ? "Shown as included with no charge." : formData.pricingType === "per_handover" ? "Charged once for the selected handover service." : "Charged once per booking."}</p>
               </div>
             </div>
-            <Button className="w-full" onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>Save</Button>
+            <Button className="w-full" onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>{t("Save", "保存")}</Button>
           </div>
         </DialogContent>
       </Dialog>

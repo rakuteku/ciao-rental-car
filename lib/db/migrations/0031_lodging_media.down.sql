@@ -1,0 +1,6 @@
+BEGIN;
+DROP TABLE IF EXISTS lodging_images;
+ALTER TABLE rooms DROP COLUMN IF EXISTS external_url;
+ALTER TABLE rooms DROP COLUMN IF EXISTS external_nofollow;
+ALTER TABLE rooms DROP COLUMN IF EXISTS external_new_tab;
+COMMIT;

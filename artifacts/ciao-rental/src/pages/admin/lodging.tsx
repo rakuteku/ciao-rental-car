@@ -45,6 +45,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useLanguage } from "@/lib/language";
+import { LodgingPhotos } from "@/components/admin/LodgingPhotos";
 
 type RoomFormData = {
   title: string;
@@ -57,6 +59,10 @@ type RoomFormData = {
   startingPrice: number;
   amenities: string;
   images: string;
+  coverImage: string;
+  externalUrl: string;
+  externalNofollow: boolean;
+  externalNewTab: boolean;
   houseRules: string;
   checkInTime: string;
   checkOutTime: string;
@@ -80,6 +86,10 @@ const defaultFormData: RoomFormData = {
   startingPrice: 8000,
   amenities: "",
   images: "",
+  coverImage: "",
+  externalUrl: "",
+  externalNofollow: true,
+  externalNewTab: true,
   houseRules: "",
   checkInTime: "15:00",
   checkOutTime: "10:00",
@@ -104,6 +114,10 @@ function roomToFormData(room: Room): RoomFormData {
     startingPrice: room.startingPrice,
     amenities: (room.amenities ?? []).join("\n"),
     images: (room.images ?? []).join("\n"),
+    coverImage: room.coverImage ?? "",
+    externalUrl: room.externalUrl ?? "",
+    externalNofollow: room.externalNofollow ?? true,
+    externalNewTab: room.externalNewTab ?? true,
     houseRules: room.houseRules ?? "",
     checkInTime: room.checkInTime,
     checkOutTime: room.checkOutTime,
@@ -133,12 +147,16 @@ function RoomForm({
   submitLabel: string;
 }) {
   const [form, setForm] = useState<RoomFormData>(initial);
+  const [uploading, setUploading] = useState(false);
+  const { language } = useLanguage();
+  const t = (en: string, ja: string) => language === "ja" ? ja : en;
 
   const set = (field: keyof RoomFormData, value: string | number | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (uploading) return;
     onSubmit(form);
   }
 
@@ -146,14 +164,14 @@ function RoomForm({
     <form onSubmit={handleSubmit} className="space-y-5 mt-2">
       <Tabs defaultValue="details">
         <TabsList>
-          <TabsTrigger value="details">Room Details</TabsTrigger>
+          <TabsTrigger value="details">{t("Room Details", "お部屋の詳細")}</TabsTrigger>
           <TabsTrigger value="seo">SEO</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-5 pt-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Room Title</Label>
+              <Label>{t("Room Title", "お部屋の名称")}</Label>
               <Input
                 placeholder="e.g. Sakura Studio"
                 value={form.title}
@@ -162,7 +180,7 @@ function RoomForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Room Type</Label>
+              <Label>{t("Room Type", "お部屋のタイプ")}</Label>
               <Input
                 placeholder="e.g. Studio, 1LDK, 2LDK"
                 value={form.roomType}
@@ -174,7 +192,7 @@ function RoomForm({
 
           <div className="grid grid-cols-4 gap-4">
             <div className="space-y-1.5">
-              <Label>Max Guests</Label>
+              <Label>{t("Max Guests", "最大宿泊人数")}</Label>
               <Input
                 type="number"
                 min={1}
@@ -184,7 +202,7 @@ function RoomForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Beds</Label>
+              <Label>{t("Beds", "ベッド数")}</Label>
               <Input
                 type="number"
                 min={1}
@@ -194,7 +212,7 @@ function RoomForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Size</Label>
+              <Label>{t("Size", "広さ")}</Label>
               <Input
                 placeholder="e.g. 22m²"
                 value={form.size}
@@ -202,7 +220,7 @@ function RoomForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Floor</Label>
+              <Label>{t("Floor", "階数")}</Label>
               <Input
                 placeholder="e.g. 2F"
                 value={form.floor}
@@ -212,11 +230,11 @@ function RoomForm({
           </div>
 
           <Separator />
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pricing & Stay</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("Pricing & Stay", "料金・滞在時間")}</p>
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label>Starting Price / Night (¥)</Label>
+              <Label>{t("Starting Price / Night (¥)", "1泊あたりの最低料金（円）")}</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">¥</span>
                 <Input
@@ -231,7 +249,7 @@ function RoomForm({
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Check-in Time</Label>
+              <Label>{t("Check-in Time", "チェックイン時間")}</Label>
               <Input
                 type="time"
                 value={form.checkInTime}
@@ -240,7 +258,7 @@ function RoomForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Check-out Time</Label>
+              <Label>{t("Check-out Time", "チェックアウト時間")}</Label>
               <Input
                 type="time"
                 value={form.checkOutTime}
@@ -251,10 +269,10 @@ function RoomForm({
           </div>
 
           <Separator />
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Content</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("Content", "コンテンツ")}</p>
 
           <div className="space-y-1.5">
-            <Label>Description</Label>
+            <Label>{t("Description", "説明")}</Label>
             <Textarea
               placeholder="Describe the room..."
               value={form.description}
@@ -264,29 +282,26 @@ function RoomForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Amenities</Label>
+            <Label>{t("Amenities", "設備・アメニティ")}</Label>
             <Textarea
               placeholder="One per line&#10;Free Wi-Fi&#10;Kitchenette"
               value={form.amenities}
               onChange={(e) => set("amenities", e.target.value)}
               rows={3}
             />
-            <p className="text-xs text-muted-foreground">Enter one amenity per line.</p>
+            <p className="text-xs text-muted-foreground">{t("Enter one amenity per line.", "設備・アメニティを1行に1項目ずつ入力してください。")}</p>
+          </div>
+
+          <LodgingPhotos images={parseLines(form.images)} coverImage={form.coverImage} onUploadingChange={setUploading} onChange={(images, coverImage) => setForm(prev => ({ ...prev, images: images.join("\n"), coverImage }))} />
+          <div className="space-y-3 border-t pt-4">
+            <Label htmlFor="lodging-external-url">{t("External booking URL", "外部予約URL")}</Label>
+            <Input id="lodging-external-url" type="url" value={form.externalUrl} onChange={event => set("externalUrl", event.target.value)} placeholder="https://" />
+            <div className="flex items-center gap-3"><Switch id="lodging-nofollow" checked={form.externalNofollow} onCheckedChange={value => set("externalNofollow", value)} /><Label htmlFor="lodging-nofollow">{t("Use nofollow", "nofollowを設定")}</Label></div>
+            <div className="flex items-center gap-3"><Switch id="lodging-new-tab" checked={form.externalNewTab} onCheckedChange={value => set("externalNewTab", value)} /><Label htmlFor="lodging-new-tab">{t("Open in a new tab", "新しいタブで開く")}</Label></div>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Image URLs</Label>
-            <Textarea
-              placeholder="One URL per line"
-              value={form.images}
-              onChange={(e) => set("images", e.target.value)}
-              rows={3}
-            />
-            <p className="text-xs text-muted-foreground">The first image is used as the cover image.</p>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>House Rules</Label>
+            <Label>{t("House Rules", "ハウスルール")}</Label>
             <Textarea
               value={form.houseRules}
               onChange={(e) => set("houseRules", e.target.value)}
@@ -297,11 +312,11 @@ function RoomForm({
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
               <Switch checked={form.published} onCheckedChange={(v) => set("published", v)} id="published" />
-              <Label htmlFor="published">Published</Label>
+              <Label htmlFor="published">{t("Published", "公開")}</Label>
             </div>
             <div className="flex items-center gap-3">
               <Switch checked={form.featured} onCheckedChange={(v) => set("featured", v)} id="featured" />
-              <Label htmlFor="featured">Featured on homepage</Label>
+              <Label htmlFor="featured">{t("Featured on homepage", "ホームページに掲載")}</Label>
             </div>
           </div>
         </TabsContent>
@@ -330,14 +345,16 @@ function RoomForm({
         </TabsContent>
       </Tabs>
 
-      <Button type="submit" disabled={isPending} className="w-full">
-        {isPending ? "Saving…" : submitLabel}
+      <Button type="submit" disabled={isPending || uploading} className="w-full">
+        {isPending ? t("Saving…", "保存中…") : submitLabel}
       </Button>
     </form>
   );
 }
 
 export function AdminLodging() {
+  const { language } = useLanguage();
+  const t = (en: string, ja: string) => language === "ja" ? ja : en;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: rooms, isLoading } = useGetAdminRooms({
@@ -368,7 +385,10 @@ export function AdminLodging() {
       startingPrice: data.startingPrice,
       amenities: parseLines(data.amenities),
       images,
-      coverImage: images[0] ?? undefined,
+      coverImage: data.coverImage || images[0] || "",
+      externalUrl: data.externalUrl.trim(),
+      externalNofollow: data.externalNofollow,
+      externalNewTab: data.externalNewTab,
       houseRules: data.houseRules || undefined,
       checkInTime: data.checkInTime,
       checkOutTime: data.checkOutTime,
@@ -488,25 +508,25 @@ export function AdminLodging() {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-serif font-bold tracking-tight">Lodging Management</h1>
-          <p className="text-muted-foreground text-sm mt-1">{rooms?.length ?? 0} rooms listed</p>
+          <h1 className="text-3xl font-serif font-bold tracking-tight">{t("Lodging Management", "宿泊施設管理")}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{rooms?.length ?? 0} {t("rooms listed", "室を登録")}</p>
         </div>
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
-              Add New Room
+              {t("Add New Room", "お部屋を追加")}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-serif text-xl">Add New Room</DialogTitle>
+              <DialogTitle className="font-serif text-xl">{t("Add New Room", "お部屋を追加")}</DialogTitle>
             </DialogHeader>
             <RoomForm
               initial={defaultFormData}
               onSubmit={handleCreate}
               isPending={createRoom.isPending}
-              submitLabel="Add Room"
+              submitLabel={t("Add Room", "お部屋を追加")}
             />
           </DialogContent>
         </Dialog>
@@ -516,15 +536,15 @@ export function AdminLodging() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Image</TableHead>
-              <TableHead>Room</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Guests</TableHead>
-              <TableHead>Price/Night</TableHead>
-              <TableHead>Featured</TableHead>
-              <TableHead>Published</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("Order", "表示順")}</TableHead>
+              <TableHead>{t("Image", "画像")}</TableHead>
+              <TableHead>{t("Room", "お部屋")}</TableHead>
+              <TableHead>{t("Type", "タイプ")}</TableHead>
+              <TableHead>{t("Guests", "人数")}</TableHead>
+              <TableHead>{t("Price/Night", "1泊の料金")}</TableHead>
+              <TableHead>{t("Featured", "おすすめ")}</TableHead>
+              <TableHead>{t("Published", "公開")}</TableHead>
+              <TableHead className="text-right">{t("Actions", "操作")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -544,7 +564,7 @@ export function AdminLodging() {
                   <div className="w-20 h-12 rounded overflow-hidden bg-muted">
                     {room.coverImage
                       ? <img src={room.coverImage} alt={room.title} className="object-cover w-full h-full" />
-                      : <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">No image</div>
+                      : <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">{t("No image", "画像なし")}</div>
                     }
                   </div>
                 </TableCell>
@@ -555,7 +575,7 @@ export function AdminLodging() {
                   </div>
                 </TableCell>
                 <TableCell>{room.roomType}</TableCell>
-                <TableCell>{room.maxGuests} pax</TableCell>
+                <TableCell>{room.maxGuests} {t("guests", "名")}</TableCell>
                 <TableCell className="font-mono">¥{room.startingPrice.toLocaleString()}</TableCell>
                 <TableCell>
                   <Switch checked={room.featured} onCheckedChange={() => handleToggleFeatured(room)} disabled={updateRoom.isPending} />
@@ -573,14 +593,14 @@ export function AdminLodging() {
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                          <DialogTitle className="font-serif text-xl">Edit {room.title}</DialogTitle>
+                          <DialogTitle className="font-serif text-xl">{t("Edit", "編集")} {room.title}</DialogTitle>
                         </DialogHeader>
                         {editRoom?.id === room.id && (
                           <RoomForm
                             initial={roomToFormData(room)}
                             onSubmit={handleEdit}
                             isPending={updateRoom.isPending}
-                            submitLabel="Save Changes"
+                            submitLabel={t("Save Changes", "変更を保存")}
                           />
                         )}
                       </DialogContent>
@@ -601,7 +621,7 @@ export function AdminLodging() {
             {!rooms?.length && (
               <TableRow>
                 <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
-                  No rooms yet. Click "Add New Room" to get started.
+                  {t("No rooms yet.", "登録されたお部屋はありません。")}
                 </TableCell>
               </TableRow>
             )}

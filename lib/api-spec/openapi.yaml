@@ -3036,6 +3036,12 @@ components:
     Room:
       type: object
       properties:
+        externalUrl:
+          type: string
+        externalNofollow:
+          type: boolean
+        externalNewTab:
+          type: boolean
         id:
           type: integer
         slug:
@@ -3123,6 +3129,12 @@ components:
     CreateRoomBody:
       type: object
       properties:
+        externalUrl:
+          type: string
+        externalNofollow:
+          type: boolean
+        externalNewTab:
+          type: boolean
         slug:
           type: string
         title:
@@ -3177,6 +3189,12 @@ components:
     UpdateRoomBody:
       type: object
       properties:
+        externalUrl:
+          type: string
+        externalNofollow:
+          type: boolean
+        externalNewTab:
+          type: boolean
         slug:
           type: string
         title:
@@ -3492,6 +3510,21 @@ components:
     RentalVehiclePricing:
       type: object
       properties:
+        ratePlanName: {type: string}
+        currency: {type: string}
+        effectiveStartDate: {type: [string, "null"]}
+        effectiveEndDate: {type: [string, "null"]}
+        rateStatus: {type: string}
+        rate6Hours: {type: [number, "null"]}
+        rate12Hours: {type: number}
+        rate24Hours: {type: number}
+        additional24Hours: {type: number}
+        additionalHour: {type: number}
+        gracePeriodMinutes: {type: integer}
+        cheapestRateEnabled: {type: boolean}
+        additionalDayCapEnabled: {type: boolean}
+        lateReturnRequiresApproval: {type: boolean}
+        earlyReturnRefund: {type: boolean}
         id:
           type: integer
         vehicleId:
@@ -3568,6 +3601,18 @@ components:
         - airportPickupFee
         - airportDropoffFee
         - manualPriceOverride
+        - ratePlanName
+        - currency
+        - rateStatus
+        - rate12Hours
+        - rate24Hours
+        - additional24Hours
+        - additionalHour
+        - gracePeriodMinutes
+        - cheapestRateEnabled
+        - additionalDayCapEnabled
+        - lateReturnRequiresApproval
+        - earlyReturnRefund
 
     RentalVehicleDetail:
       allOf:
@@ -3611,6 +3656,12 @@ components:
     RentalAddon:
       type: object
       properties:
+        category:
+          type: string
+          enum: [equipment, insurance, winter_tires]
+        insuranceKind:
+          type: [string, "null"]
+          enum: [basic, cdw, noc, full, null]
         id:
           type: integer
         name:
@@ -3629,7 +3680,7 @@ components:
           type: ["string", "null"]
         pricingType:
           type: string
-          enum: [flat, per_day]
+          enum: [flat, per_day, per_started_24_hours, per_rental, per_handover, included]
         flatFee:
           type: number
         perDayFee:
@@ -3887,6 +3938,19 @@ components:
     RentalPriceBreakdown:
       type: object
       properties:
+        pickupLocationFee: {type: number}
+        returnLocationFee: {type: number}
+        oneWayFee: {type: number}
+        durationMinutes: {type: number}
+        billedHours: {type: number}
+        ratePlanName: {type: string}
+        rateTier: {type: string}
+        baseRentalAmount: {type: number}
+        extensionAmount: {type: number}
+        fullAdditionalDays: {type: number}
+        additionalHours: {type: number}
+        fullAdditionalDaysAmount: {type: number}
+        additionalHoursAmount: {type: number}
         days:
           type: integer
         dayRates:
@@ -3922,6 +3986,19 @@ components:
       required:
         - days
         - dayRates
+        - pickupLocationFee
+        - returnLocationFee
+        - oneWayFee
+        - durationMinutes
+        - billedHours
+        - ratePlanName
+        - rateTier
+        - baseRentalAmount
+        - extensionAmount
+        - fullAdditionalDays
+        - additionalHours
+        - fullAdditionalDaysAmount
+        - additionalHoursAmount
         - subtotal
         - deliveryFee
         - airportPickupFee
@@ -4421,6 +4498,21 @@ components:
     UpdateVehiclePricingBody:
       type: object
       properties:
+        ratePlanName: {type: string}
+        currency: {type: string, enum: [JPY]}
+        effectiveStartDate: {type: [string, "null"]}
+        effectiveEndDate: {type: [string, "null"]}
+        rateStatus: {type: string, enum: [active, draft, inactive]}
+        rate6Hours: {type: [number, "null"]}
+        rate12Hours: {type: number}
+        rate24Hours: {type: number}
+        additional24Hours: {type: number}
+        additionalHour: {type: number}
+        gracePeriodMinutes: {type: integer}
+        cheapestRateEnabled: {type: boolean}
+        additionalDayCapEnabled: {type: boolean}
+        lateReturnRequiresApproval: {type: boolean}
+        earlyReturnRefund: {type: boolean}
         basePrice:
           type: number
         weekendPrice:
@@ -4541,6 +4633,8 @@ components:
     CreateAddonBody:
       type: object
       properties:
+        category: {type: string, enum: [equipment, insurance, winter_tires]}
+        insuranceKind: {type: [string, "null"], enum: [basic, cdw, noc, full, null]}
         name:
           type: string
         nameJa:

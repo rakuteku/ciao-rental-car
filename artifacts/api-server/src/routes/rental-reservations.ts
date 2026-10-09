@@ -402,7 +402,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
         .insert(rentalDriversTable)
         .values({
           fullName: body.data.driver.fullName,
-          email: body.data.driver.email,
+          email: body.data.driver.email.trim().toLowerCase(),
           phone: body.data.driver.phone,
           romanizedName: body.data.driver.romanizedName ?? null,
           dob: body.data.driver.dateOfBirth ?? null,
@@ -480,6 +480,19 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
         .set({ releasedAt: new Date(), reservationId: reservation.id })
         .where(eq(rentalReservationHoldsTable.id, hold.id));
 
+      await queueRentalNotification({
+        email: driver.email.trim().toLowerCase(),
+        eventType: "new_booking",
+        bookingId: reservation.id,
+        locale: customerAccount.preferredLanguage === "ja" ? "ja" : customerAccount.preferredLanguage === "zh-TW" ? "zh-TW" : "en",
+        dedupeKey: `reservation:${reservation.id}:new_booking`,
+        dispatch: false,
+        extra: {
+          accessCode: reservation.customerAccessToken,
+          panelUrl: `${(process.env.RENTAL_PUBLIC_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "")}/${customerAccount.preferredLanguage === "en" ? "" : `${customerAccount.preferredLanguage}/`}rentalcar/my-bookings`,
+        },
+      }, tx);
+
       return { reservation };
     });
   } catch (err: unknown) {
@@ -493,17 +506,6 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
     return;
   }
   res.status(201).json({ ...serializeReservation(result.reservation), pricing });
-  await queueRentalNotification({
-    email: customerAccount.email,
-    eventType: "new_booking",
-    bookingId: result.reservation.id,
-    locale: customerAccount.preferredLanguage === "ja" ? "ja" : customerAccount.preferredLanguage === "zh-TW" ? "zh-TW" : "en",
-    dedupeKey: `reservation:${result.reservation.id}:new_booking`,
-    extra: {
-      accessCode: result.reservation.customerAccessToken,
-      panelUrl: `${(process.env.RENTAL_PUBLIC_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "")}/${customerAccount.preferredLanguage === "en" ? "" : `${customerAccount.preferredLanguage}/`}rentalcar/my-bookings`,
-    },
-  });
 });
 
 router.get("/admin/rental/reservations", requireAdminAuth, async (req, res): Promise<void> => {
@@ -663,11 +665,14 @@ router.put("/admin/rental/reservations/:id", requireAdminAuth, async (req, res):
   }
 
   const [previous] = await db.select().from(rentalReservationsTable).where(eq(rentalReservationsTable.id, id));
-  const [reservation] = await db
-    .update(rentalReservationsTable)
-    .set(updateData)
-    .where(and(eq(rentalReservationsTable.id, id), isNull(rentalReservationsTable.deletedAt)))
-    .returning();
+  const reservation = await db.transaction(async tx => {
+    const [updated] = await tx.update(rentalReservationsTable)
+      .set(updateData)
+      .where(and(eq(rentalReservationsTable.id, id), isNull(rentalReservationsTable.deletedAt)))
+      .returning();
+    if (updated && previous?.status !== updated.status) await notifyReservationStatus(updated, tx);
+    return updated;
+  });
 
   if (!reservation) {
     res.status(404).json({ error: "Reservation not found" });
@@ -684,6 +689,21 @@ router.put("/admin/rental/reservations/:id", requireAdminAuth, async (req, res):
   });
   res.json(serializeReservation(reservation));
 });
+
+async function notifyReservationStatus(reservation: typeof rentalReservationsTable.$inferSelect, client: Pick<typeof db, "insert" | "select"> = db) {
+  if (!reservation.primaryDriverId || !["confirmed", "cancelled"].includes(reservation.status)) return;
+  const [driver] = await client.select().from(rentalDriversTable).where(eq(rentalDriversTable.id, reservation.primaryDriverId));
+  if (!driver?.email) return;
+  const [account] = await client.select().from(rentalCustomerAccountsTable).where(eq(rentalCustomerAccountsTable.email, driver.email.trim().toLowerCase()));
+  await queueRentalNotification({
+    email: driver.email,
+    eventType: reservation.status === "confirmed" ? "booking_confirmed" : "cancellation_confirmed",
+    bookingId: reservation.id,
+    locale: account?.preferredLanguage === "ja" ? "ja" : account?.preferredLanguage === "zh-TW" ? "zh-TW" : "en",
+    dedupeKey: `reservation:${reservation.id}:${reservation.status}`,
+    dispatch: false,
+  }, client);
+}
 
 function createStatusAction(newStatus: typeof rentalReservationsTable.$inferInsert["status"]) {
   return async (req: Parameters<Parameters<typeof router.post>[1]>[0], res: Parameters<Parameters<typeof router.post>[1]>[1]): Promise<void> => {
@@ -719,11 +739,14 @@ function createStatusAction(newStatus: typeof rentalReservationsTable.$inferInse
       res.status(409).json({ error: `Cannot transition from ${previous.status} to ${newStatus}` });
       return;
     }
-    const [reservation] = await db
-      .update(rentalReservationsTable)
-      .set({ status: newStatus, updatedAt: new Date() })
-      .where(and(eq(rentalReservationsTable.id, id), isNull(rentalReservationsTable.deletedAt)))
-      .returning();
+    const reservation = await db.transaction(async tx => {
+      const [updated] = await tx.update(rentalReservationsTable)
+        .set({ status: newStatus, updatedAt: new Date() })
+        .where(and(eq(rentalReservationsTable.id, id), eq(rentalReservationsTable.status, previous.status), isNull(rentalReservationsTable.deletedAt)))
+        .returning();
+      if (updated) await notifyReservationStatus(updated, tx);
+      return updated;
+    });
 
     if (!reservation) {
       res.status(404).json({ error: "Reservation not found" });
@@ -738,10 +761,6 @@ function createStatusAction(newStatus: typeof rentalReservationsTable.$inferInse
       previousValue: previous ? { status: previous.status } : null,
       newValue: { status: newStatus },
     });
-    if (newStatus === "confirmed" && reservation.primaryDriverId) {
-      const [driver] = await db.select().from(rentalDriversTable).where(eq(rentalDriversTable.id, reservation.primaryDriverId));
-      await queueRentalNotification({ email: driver?.email, eventType: "booking_confirmed", bookingId: id });
-    }
     res.json(serializeReservation(reservation));
   };
 }
