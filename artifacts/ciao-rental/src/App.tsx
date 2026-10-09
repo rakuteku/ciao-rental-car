@@ -1,4 +1,4 @@
-import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { LanguageProvider } from "@/lib/language";
+import { RentalNavigation, RentalTripProvider, isCarDetailPath } from "@/components/rental/RentalNavigation";
 
 import { Home } from "@/pages/home";
 import { RentalCarHome } from "@/pages/rentalcar/index";
@@ -52,10 +53,13 @@ import { PartnerReservationTripPage } from "@/pages/partner/reservation-trip";
 const queryClient = new QueryClient();
 
 function MainLayout({ children }: { children: React.ReactNode }) {
+  const [path] = useLocation();
+  const carDetail = isCarDetailPath(path);
   return (
-    <div className="public-site flex min-h-[100dvh] flex-col">
+    <div className={`public-site flex min-h-[100dvh] flex-col ${carDetail ? "" : "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"}`}>
       <Navbar />
-      <main className="flex-1">
+      <RentalNavigation />
+      <main className={`flex-1 ${carDetail ? "" : "pt-14 md:pt-0"}`}>
         {children}
       </main>
       <Footer />
@@ -152,7 +156,7 @@ function App() {
       <LanguageProvider>
         <TooltipProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
+            <RentalTripProvider><Router /></RentalTripProvider>
           </WouterRouter>
           <Toaster />
         </TooltipProvider>

@@ -1,13 +1,16 @@
 import { useEffect } from "react";
 import { Link, useSearch } from "wouter";
-import { Car as CarIcon, Fuel } from "lucide-react";
+import { Car as CarIcon, Fuel, SlidersHorizontal, ArrowRight } from "lucide-react";
 import { useSearchRentalVehicles, useCalculateRentalPrice, type RentalVehicle } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { localizeVehicle, rentalCopy } from "@/lib/rental-localization";
-import { captureRentalAttribution, formatTokyo } from "@/lib/rental-marketplace";
+import { captureRentalAttribution } from "@/lib/rental-marketplace";
+import { useRentalTrip } from "@/components/rental/RentalNavigation";
+import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
+import { formatRentalTime } from "@/lib/rental-time";
 
 function EstimatedPrice({ vehicle, pickupAt, returnAt, pickupLocation, returnLocation }: {
   vehicle: RentalVehicle;
@@ -78,9 +81,25 @@ export function CarsPage() {
     return dailyRate >= minPrice && dailyRate <= maxPrice;
   });
   const unavailableCars = searchResults?.unavailable || [];
+  const { trip } = useRentalTrip();
+  const { data: configuredLocations } = useRentalLocations();
+  const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
+  const pickupLabel = language === "ja" ? "受取" : language === "zh-TW" ? "取車" : "Pickup";
+  const returnLabel = language === "ja" ? "返却" : language === "zh-TW" ? "還車" : "Return";
+  const tripDate = (value?: string) => value ? new Intl.DateTimeFormat(language, { month: "short", day: "numeric", timeZone: "Asia/Tokyo" }).format(new Date(`${value}T12:00:00+09:00`)) : copy.selectDates;
 
   return (
     <div className="min-h-[100dvh] flex flex-col">
+      <div data-testid="cars-sticky-search" className="fixed inset-x-0 top-[4.5rem] z-40 h-14 border-b bg-background/95 shadow-sm backdrop-blur md:sticky md:h-20">
+        <div className="container flex h-full items-center gap-3 md:gap-6">
+          <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-2 md:max-w-3xl">
+            <div className="min-w-0"><p className="text-[10px] text-muted-foreground">{pickupLabel}</p><p className="truncate text-xs font-semibold md:text-sm">{tripDate(trip.pickupDate)}{trip.pickupTime ? ` · ${formatRentalTime(trip.pickupTime)}` : ""}</p>{pickupLocation && <p className="hidden truncate text-xs text-muted-foreground md:block">{rentalLocationLabel(pickupLocation, locations, language)}</p>}</div>
+            <ArrowRight className="size-4 text-primary" aria-hidden="true" />
+            <div className="min-w-0"><p className="text-[10px] text-muted-foreground">{returnLabel}</p><p className="truncate text-xs font-semibold md:text-sm">{tripDate(trip.returnDate)}{trip.returnTime ? ` · ${formatRentalTime(trip.returnTime)}` : ""}</p>{returnLocation && <p className="hidden truncate text-xs text-muted-foreground md:block">{rentalLocationLabel(returnLocation, locations, language)}</p>}</div>
+          </div>
+          <Link href={`${localizedPath("/rentalcar", language)}${searchString ? `?${searchString}` : ""}`} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold md:text-sm" aria-label={copy.editSearch} title={copy.editSearch}><SlidersHorizontal className="size-4" /><span className="hidden sm:inline">{copy.editSearch}</span></Link>
+        </div>
+      </div>
       <div className="border-b py-12 bg-white">
         <div className="container">
           <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-2">{copy.fleet}</p>
@@ -88,14 +107,6 @@ export function CarsPage() {
           <p className="text-muted-foreground mt-3 text-sm max-w-xl">
             {copy.vehiclesIntro}
           </p>
-          {(pickupAt && returnAt) && (
-            <div className="mt-6 flex flex-wrap gap-4 text-sm font-medium text-muted-foreground bg-muted/40 p-4 rounded-lg inline-flex">
-              <span>{pickupLocation} → {returnLocation}</span>
-              <span>•</span>
-              <span>{formatTokyo(pickupAt, language)} — {formatTokyo(returnAt, language)}</span>
-                  <Link href={localizedPath("/rentalcar", language)} className="text-primary hover:underline ml-2">{copy.editSearch}</Link>
-            </div>
-          )}
         </div>
       </div>
 

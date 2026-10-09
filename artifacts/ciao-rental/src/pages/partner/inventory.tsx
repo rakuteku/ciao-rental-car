@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
 import { formatTokyo, tokyoInstant } from "@/lib/rental-marketplace";
+import { RentalTimeSelect } from "@/components/rental/RentalTimeSelect";
 import { PartnerShell, Section, Field, inputClass, textareaClass, PrimaryButton, SecondaryButton, StatusMessage, partnerRequest, usePartnerText, type PartnerIdentity, record, arrayFrom } from "./shared";
 
 type Vehicle = Record<string, any> & { id?: string | number; internalName?: string; publicTitle?: string; brand?: string; model?: string };
@@ -142,9 +143,9 @@ function PartnerRequestQueue({ role, vehicles }: { role: string; vehicles: Vehic
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Field label={t("Vehicle", "車両")}><select required className={inputClass()} value={quote.vehicleId} onChange={e => setQuote({ ...quote, vehicleId: e.target.value })}><option value="">{t("Select your vehicle", "自社の車両を選択")}</option>{vehicles.filter(v => v.id != null && v.status === "published").map(v => <option key={v.id} value={String(v.id)}>{v.publicTitle || `${v.brand} ${v.model}`} · #{v.id}</option>)}</select></Field>
         <Field label={t("Pickup date (JST)", "貸出日（日本時間）")}><input required type="date" className={inputClass()} value={quote.pickupDate} onChange={e => setQuote({ ...quote, pickupDate: e.target.value })} /></Field>
-        <Field label={t("Pickup time (JST)", "貸出時刻（日本時間）")}><input required type="time" className={inputClass()} value={quote.pickupTime} onChange={e => setQuote({ ...quote, pickupTime: e.target.value })} /></Field>
+        <Field label={t("Pickup time (JST)", "貸出時刻（日本時間）")}><RentalTimeSelect required value={quote.pickupTime} onChange={e => setQuote({ ...quote, pickupTime: e.target.value })} /></Field>
         <Field label={t("Return date (JST)", "返却日（日本時間）")}><input required type="date" className={inputClass()} value={quote.returnDate} onChange={e => setQuote({ ...quote, returnDate: e.target.value })} /></Field>
-        <Field label={t("Return time (JST)", "返却時刻（日本時間）")}><input required type="time" className={inputClass()} value={quote.returnTime} onChange={e => setQuote({ ...quote, returnTime: e.target.value })} /></Field>
+        <Field label={t("Return time (JST)", "返却時刻（日本時間）")}><RentalTimeSelect required value={quote.returnTime} onChange={e => setQuote({ ...quote, returnTime: e.target.value })} /></Field>
         <Field label={t("Pickup location", "貸出場所")}><input required maxLength={300} className={inputClass()} value={quote.pickupLocation} onChange={e => setQuote({ ...quote, pickupLocation: e.target.value })} /></Field>
         <Field label={t("Return location", "返却場所")}><input required maxLength={300} className={inputClass()} value={quote.returnLocation} onChange={e => setQuote({ ...quote, returnLocation: e.target.value })} /></Field>
         <Field label={t("Customer legal name", "お客様の氏名")}><input required maxLength={200} className={inputClass()} value={quote.fullName} onChange={e => setQuote({ ...quote, fullName: e.target.value })} /></Field>

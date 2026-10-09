@@ -67,7 +67,7 @@ export function Home() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col pb-16 md:pb-0">
-      <section aria-labelledby="home-hero-title" className="relative isolate flex min-h-[720px] items-center overflow-hidden sm:min-h-[760px] lg:min-h-[calc(100svh-8rem)]">
+      <section data-public-hero aria-labelledby="home-hero-title" className="relative isolate flex min-h-[720px] items-center overflow-hidden sm:min-h-[760px] lg:min-h-[calc(100svh-8rem)]">
         <img
           src="/hero-sapporo.png"
           alt={content.copy.heroImageAlt}

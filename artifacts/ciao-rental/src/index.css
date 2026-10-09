@@ -346,6 +346,12 @@
   border-radius: 6px;
 }
 
+@media (min-width: 768px) {
+  .public-site main .container:not([data-public-hero] .container) {
+    max-width: 1080px;
+  }
+}
+
 .admin-shell {
   color: hsl(var(--foreground));
   background: hsl(var(--background));

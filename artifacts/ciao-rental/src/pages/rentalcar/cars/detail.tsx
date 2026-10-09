@@ -34,6 +34,9 @@ import { captureRentalAttribution, formatTokyo, tokyoInstant, tokyoParts } from 
 import { useRentalMarketplaceConfig } from "@/hooks/use-rental-operations";
 import { MarketplaceTerms } from "@/components/rental/MarketplaceTerms";
 import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
+import { RentalTimeSelect } from "@/components/rental/RentalTimeSelect";
+import { useRentalTrip } from "@/components/rental/RentalNavigation";
+import { formatRentalTime, isRentalTime } from "@/lib/rental-time";
 
 const bookingSchema = z.object({
   pickupLocation: z.string({ required_error: "Pickup location is required" }),
@@ -64,8 +67,10 @@ export function CarDetailPage() {
   const createHold = useCreateRentalHold();
   const { data: addons } = useGetRentalAddons();
   const [selectedAddons, setSelectedAddons] = useState<Record<number, number>>({});
-  const [pickupTime, setPickupTime] = useState(tokyoParts(searchParams.get("pickupAt") || "").time);
-  const [returnTime, setReturnTime] = useState(tokyoParts(searchParams.get("returnAt") || "").time);
+  const pickupQueryTime = searchParams.get("pickupTime") || tokyoParts(searchParams.get("pickupAt") || "").time;
+  const returnQueryTime = searchParams.get("returnTime") || tokyoParts(searchParams.get("returnAt") || "").time;
+  const [pickupTime, setPickupTime] = useState(isRentalTime(pickupQueryTime) ? pickupQueryTime : "");
+  const [returnTime, setReturnTime] = useState(isRentalTime(returnQueryTime) ? returnQueryTime : "");
   useEffect(() => { captureRentalAttribution(); }, []);
 
   const tokyoToday = new Date(`${tokyoParts(new Date().toISOString()).date}T12:00:00`);
@@ -84,10 +89,12 @@ export function CarDetailPage() {
 
   const pickupDate = form.watch("pickupDate");
   const returnDate = form.watch("returnDate");
-  const pickupInstant = pickupDate ? pickupDateString(pickupDate, pickupTime) : undefined;
-  const returnInstant = returnDate ? pickupDateString(returnDate, returnTime) : undefined;
+  const pickupInstant = pickupDate && isRentalTime(pickupTime) ? pickupDateString(pickupDate, pickupTime) : undefined;
+  const returnInstant = returnDate && isRentalTime(returnTime) ? pickupDateString(returnDate, returnTime) : undefined;
   const pickupLocation = form.watch("pickupLocation");
   const returnLocation = form.watch("returnLocation");
+  const { updateTrip } = useRentalTrip();
+  useEffect(() => { updateTrip({ pickupDate: pickupDate ? format(pickupDate, "yyyy-MM-dd") : undefined, returnDate: returnDate ? format(returnDate, "yyyy-MM-dd") : undefined, pickupTime, returnTime, pickupLocation, returnLocation }); }, [pickupDate, returnDate, pickupTime, returnTime, pickupLocation, returnLocation, updateTrip]);
   const availabilitySearch = useSearchRentalVehicles({
     slug,
     pickupAt: pickupInstant,
@@ -123,7 +130,7 @@ export function CarDetailPage() {
   calculateRef.current = calculatePrice.mutate;
 
   useEffect(() => {
-    if (car?.id && pickupDate && returnDate && pickupLocation && returnLocation) {
+    if (car?.id && pickupInstant && returnInstant && pickupLocation && returnLocation) {
       calculateRef.current({
         data: {
           vehicleId: car.id,
@@ -142,6 +149,14 @@ export function CarDetailPage() {
 
   function onSubmit(data: z.infer<typeof bookingSchema>) {
     if (!car) return;
+    if (!isRentalTime(pickupTime) || !isRentalTime(returnTime)) {
+      toast({
+        title: language === "ja" ? "時間を選択してください" : language === "zh-TW" ? "請重新選擇時間" : "Select rental times",
+        description: language === "ja" ? "貸出・返却時間を選び直してください。" : language === "zh-TW" ? "請重新選擇取車與還車時間。" : "Choose pickup and return times between 10:00 AM and 7:00 PM.",
+        variant: "destructive",
+      });
+      return;
+    }
     const start = pickupDateString(data.pickupDate, pickupTime);
     const end = pickupDateString(data.returnDate, returnTime);
     if (end <= start || start <= new Date().toISOString()) {
@@ -201,7 +216,7 @@ export function CarDetailPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-muted/20 pb-48 pt-6 sm:py-12 lg:pb-12">
+    <div className="min-h-[100dvh] bg-muted/20 pb-48 pt-6 sm:pt-12 lg:pb-12">
       <div className="container max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -337,68 +352,19 @@ export function CarDetailPage() {
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="pickupLocation"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{copy.pickup}</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                 {(car.pickupLocations?.length ? car.pickupLocations : locations.map(location => location.value)).map(loc => (
-                                  <SelectItem key={loc} value={loc}>{rentalLocationLabel(loc, locations, language)}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="returnLocation"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{copy.return}</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="h-11 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                 {(car.returnLocations?.length ? car.returnLocations : locations.map(location => location.value)).map(loc => (
-                                  <SelectItem key={loc} value={loc}>{rentalLocationLabel(loc, locations, language)}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                     <div className="grid grid-cols-2 gap-4">
-                       <label className="text-sm font-medium">{language === "ja" ? "貸出時刻（日本時間）" : "Pickup time (JST)"}<input type="time" value={pickupTime} onChange={e => setPickupTime(e.target.value)} className="mt-2 h-11 w-full rounded border bg-background px-2" data-testid="input-detail-pickup-time" /></label>
-                       <label className="text-sm font-medium">{language === "ja" ? "返却時刻（日本時間）" : "Return time (JST)"}<input type="time" value={returnTime} onChange={e => setReturnTime(e.target.value)} className="mt-2 h-11 w-full rounded border bg-background px-2" data-testid="input-detail-return-time" /></label>
-                     </div>
-                     <p className="text-xs text-muted-foreground">{pickupInstant && returnInstant ? `${formatTokyo(pickupInstant, language)} — ${formatTokyo(returnInstant, language)}` : ""}</p>
-
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-4">
                       <FormField
                         control={form.control}
                         name="pickupDate"
                         render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>{copy.pickupDate}</FormLabel>
+                          <FormItem className="flex min-w-0 flex-col">
+                            <FormLabel className="min-h-10 text-xs leading-4 sm:text-sm sm:leading-5">{copy.pickupDate}</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
-                                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}>
-                                    {field.value ? format(field.value, "MMM d, yyyy") : <span>Date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  <Button variant="outline" className={cn("flex h-11 w-full min-w-0 justify-between gap-1 overflow-hidden px-2 text-left text-xs font-normal sm:h-10 sm:pl-3 sm:text-sm", !field.value && "text-muted-foreground")}>
+                                    {field.value ? <span className="min-w-0 truncate">{format(field.value, "MMM d, yyyy")}</span> : <span className="min-w-0 truncate">Date</span>}
+                                    <CalendarIcon className="h-4 w-4 shrink-0 opacity-50" />
                                   </Button>
                                 </FormControl>
                               </PopoverTrigger>
@@ -410,18 +376,44 @@ export function CarDetailPage() {
                           </FormItem>
                         )}
                       />
+                      <label className="flex min-w-0 flex-col text-xs font-medium leading-4 sm:text-sm sm:leading-5">
+                        <span className="min-h-10">{language === "ja" ? "貸出時刻（日本時間）" : language === "zh-TW" ? "取車時間（日本時間）" : "Pickup time (JST)"}</span>
+                        <RentalTimeSelect required value={pickupTime} onChange={e => setPickupTime(e.target.value)} className="mt-2 h-11 px-2 text-xs sm:px-3 sm:text-sm" data-testid="input-detail-pickup-time" />
+                      </label>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="pickupLocation"
+                      render={({ field }) => (
+                        <FormItem className="min-w-0">
+                          <FormLabel>{copy.pickup}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-11 w-full min-w-0 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {(car.pickupLocations?.length ? car.pickupLocations : locations.map(location => location.value)).map(loc => (
+                                <SelectItem key={loc} value={loc}>{rentalLocationLabel(loc, locations, language)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-4">
                       <FormField
                         control={form.control}
                         name="returnDate"
                         render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>{copy.returnDate}</FormLabel>
+                          <FormItem className="flex min-w-0 flex-col">
+                            <FormLabel className="min-h-10 text-xs leading-4 sm:text-sm sm:leading-5">{copy.returnDate}</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
-                                  <Button variant={"outline"} className={cn("w-full pl-3 text-left font-normal h-11 md:h-10", !field.value && "text-muted-foreground")}>
-                                    {field.value ? format(field.value, "MMM d, yyyy") : <span>Date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  <Button variant="outline" className={cn("flex h-11 w-full min-w-0 justify-between gap-1 overflow-hidden px-2 text-left text-xs font-normal sm:h-10 sm:pl-3 sm:text-sm", !field.value && "text-muted-foreground")}>
+                                    {field.value ? <span className="min-w-0 truncate">{format(field.value, "MMM d, yyyy")}</span> : <span className="min-w-0 truncate">Date</span>}
+                                    <CalendarIcon className="h-4 w-4 shrink-0 opacity-50" />
                                   </Button>
                                 </FormControl>
                               </PopoverTrigger>
@@ -433,7 +425,32 @@ export function CarDetailPage() {
                           </FormItem>
                         )}
                       />
+                      <label className="flex min-w-0 flex-col text-xs font-medium leading-4 sm:text-sm sm:leading-5">
+                        <span className="min-h-10">{language === "ja" ? "返却時刻（日本時間）" : language === "zh-TW" ? "還車時間（日本時間）" : "Return time (JST)"}</span>
+                        <RentalTimeSelect required value={returnTime} onChange={e => setReturnTime(e.target.value)} className="mt-2 h-11 px-2 text-xs sm:px-3 sm:text-sm" data-testid="input-detail-return-time" />
+                      </label>
                     </div>
+                    <FormField
+                      control={form.control}
+                      name="returnLocation"
+                      render={({ field }) => (
+                        <FormItem className="min-w-0">
+                          <FormLabel>{copy.return}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-11 w-full min-w-0 md:h-10"><SelectValue placeholder="Select location" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {(car.returnLocations?.length ? car.returnLocations : locations.map(location => location.value)).map(loc => (
+                                <SelectItem key={loc} value={loc}>{rentalLocationLabel(loc, locations, language)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <p className="min-w-0 break-words text-xs leading-5 text-muted-foreground">{pickupInstant && returnInstant ? `${formatTokyo(pickupInstant, language)} — ${formatTokyo(returnInstant, language)}` : ""}</p>
                     <div className="space-y-3 border-t pt-4">
                       <div className="flex items-center justify-between"><h3 className="font-semibold">{copy.addons}</h3><span className="text-xs text-muted-foreground">{copy.optional}</span></div>
                       <AddonSelector addons={addons ?? []} selected={selectedAddons} onChange={setSelectedAddons} />
@@ -494,7 +511,7 @@ export function CarDetailPage() {
                       )}
                     </div>
 
-                     <Button type="submit" className="w-full mt-4" size="lg" disabled={createHold.isPending || calculatePrice.isPending || !priceData || !isStillAvailable || !pickupInstant || !returnInstant || returnInstant <= pickupInstant}>
+                     <Button type="submit" className="w-full mt-4" size="lg" disabled={createHold.isPending || calculatePrice.isPending || !priceData || !isStillAvailable || !isRentalTime(pickupTime) || !isRentalTime(returnTime) || !pickupInstant || !returnInstant || returnInstant <= pickupInstant}>
                       {createHold.isPending ? copy.calculating : copy.continueBooking}
                     </Button>
 
@@ -505,7 +522,7 @@ export function CarDetailPage() {
           </div>
         </div>
       </div>
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/97 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_32px_rgba(15,23,42,0.14)] backdrop-blur-xl lg:hidden">
+      <div data-testid="detail-mobile-booking-bar" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/97 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_32px_rgba(15,23,42,0.14)] backdrop-blur-xl lg:hidden">
         <div className="mx-auto max-w-xl space-y-2.5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -518,9 +535,9 @@ export function CarDetailPage() {
             </div>
           </div>
           <button type="button" onClick={() => bookingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })} className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-md border bg-muted/45 px-3 py-2 text-left">
-            <span className="min-w-0"><span className="block text-[9px] font-semibold uppercase text-muted-foreground">{copy.pickupDate}</span><span className="block truncate text-xs font-semibold">{pickupDate ? `${format(pickupDate, "MMM d")} · ${pickupTime}` : "—"}</span></span>
+            <span className="min-w-0"><span className="block text-[9px] font-semibold uppercase text-muted-foreground">{copy.pickupDate}</span><span className="block truncate text-xs font-semibold">{pickupDate ? `${format(pickupDate, "MMM d")} · ${formatRentalTime(pickupTime)}` : "—"}</span></span>
             <ArrowRight className="size-4 text-primary" aria-hidden="true" />
-            <span className="min-w-0 text-right"><span className="block text-[9px] font-semibold uppercase text-muted-foreground">{copy.returnDate}</span><span className="block truncate text-xs font-semibold">{returnDate ? `${format(returnDate, "MMM d")} · ${returnTime}` : "—"}</span></span>
+            <span className="min-w-0 text-right"><span className="block text-[9px] font-semibold uppercase text-muted-foreground">{copy.returnDate}</span><span className="block truncate text-xs font-semibold">{returnDate ? `${format(returnDate, "MMM d")} · ${formatRentalTime(returnTime)}` : "—"}</span></span>
           </button>
           <Button type="button" className="h-10 w-full" onClick={() => bookingCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}>{copy.reserve}<ArrowRight className="ml-2 size-4" /></Button>
         </div>
