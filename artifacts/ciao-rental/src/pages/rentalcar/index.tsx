@@ -22,7 +22,7 @@ import { localizeAddon, rentalCopy } from "@/lib/rental-localization";
 import { captureRentalAttribution, tokyoInstant, tokyoParts } from "@/lib/rental-marketplace";
 import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 import { RentalTimeSelect } from "@/components/rental/RentalTimeSelect";
-import { useRentalTrip } from "@/components/rental/RentalNavigation";
+import { useRentalTrip, useStickySummaryVisible } from "@/components/rental/RentalNavigation";
 import { formatRentalTime, isRentalTime } from "@/lib/rental-time";
 
 interface PricingRow {
@@ -98,8 +98,8 @@ export function RentalCarHome() {
   });
   useSeoMeta("rentalcar");
   const searchCardRef = useRef<HTMLDivElement>(null);
-  const [showDesktopSearchBar, setShowDesktopSearchBar] = useState(false);
   const { trip, updateTrip } = useRentalTrip();
+  const stickySummaryVisible = useStickySummaryVisible();
 
   const form = useForm<z.infer<typeof searchSchema>>({
     resolver: zodResolver(searchSchema),
@@ -130,17 +130,6 @@ export function RentalCarHome() {
   useEffect(() => {
     updateTrip({ pickupDate: pickupDate ? format(pickupDate, "yyyy-MM-dd") : undefined, returnDate: returnDate ? format(returnDate, "yyyy-MM-dd") : undefined, pickupTime, returnTime, pickupLocation, returnLocation });
   }, [pickupDate, returnDate, pickupTime, returnTime, pickupLocation, returnLocation, updateTrip]);
-
-  useEffect(() => {
-    const target = searchCardRef.current;
-    if (!target) return;
-    const observer = new IntersectionObserver(([entry]) => setShowDesktopSearchBar(!entry.isIntersecting && entry.boundingClientRect.top < 88), {
-      rootMargin: "-88px 0px 0px 0px",
-      threshold: 0.05,
-    });
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, []);
 
   function onSubmit(data: z.infer<typeof searchSchema>) {
     captureRentalAttribution();
@@ -176,7 +165,7 @@ export function RentalCarHome() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col pb-20 md:pb-0">
-      <div className={cn("fixed inset-x-0 top-[4.5rem] z-40 hidden border-b border-border/70 bg-background/95 shadow-md backdrop-blur-xl transition-all duration-200 md:block", showDesktopSearchBar ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0")}>
+      {stickySummaryVisible && <div data-testid="rental-sticky-search" className="fixed inset-x-0 top-[4.5rem] z-40 hidden border-b border-border/70 bg-background/95 shadow-md backdrop-blur-xl md:block">
         <div className="container flex h-[4.75rem] items-center gap-6">
           <button type="button" className="flex min-w-0 flex-1 items-center gap-5 text-left" onClick={() => searchCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}>
             <span className="flex min-w-0 items-center gap-3">
@@ -192,7 +181,7 @@ export function RentalCarHome() {
           <Button type="button" variant="outline" onClick={() => searchCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}>{search.editSearch}</Button>
           <Button type="button" disabled={!tripReady} onClick={form.handleSubmit(onSubmit)}>{search.searchVehicles}</Button>
         </div>
-      </div>
+      </div>}
 
       {/* Hero Section */}
       <section data-public-hero className="relative flex min-h-[720px] w-full items-center overflow-hidden sm:min-h-[760px] lg:min-h-[calc(100svh-8rem)]">

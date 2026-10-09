@@ -77,7 +77,7 @@ export function LodgingDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <div className="rounded-xl overflow-hidden bg-background border shadow-sm">
-              <div className="aspect-[16/9] relative bg-muted">
+              <div data-public-hero className="aspect-[16/9] relative bg-muted">
                 {images[activeImage] && (
                   <img
                     src={images[activeImage]}

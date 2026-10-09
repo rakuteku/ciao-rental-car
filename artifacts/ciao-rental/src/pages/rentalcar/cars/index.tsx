@@ -8,7 +8,7 @@ import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { localizeVehicle, rentalCopy } from "@/lib/rental-localization";
 import { captureRentalAttribution } from "@/lib/rental-marketplace";
-import { useRentalTrip } from "@/components/rental/RentalNavigation";
+import { useRentalTrip, useStickySummaryVisible } from "@/components/rental/RentalNavigation";
 import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 import { formatRentalTime } from "@/lib/rental-time";
 
@@ -82,6 +82,7 @@ export function CarsPage() {
   });
   const unavailableCars = searchResults?.unavailable || [];
   const { trip } = useRentalTrip();
+  const stickySummaryVisible = useStickySummaryVisible();
   const { data: configuredLocations } = useRentalLocations();
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
   const pickupLabel = language === "ja" ? "受取" : language === "zh-TW" ? "取車" : "Pickup";
@@ -90,7 +91,7 @@ export function CarsPage() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col">
-      <div data-testid="cars-sticky-search" className="fixed inset-x-0 top-[4.5rem] z-40 h-14 border-b bg-background/95 shadow-sm backdrop-blur md:sticky md:h-20">
+      {stickySummaryVisible && <div data-testid="cars-sticky-search" className="fixed inset-x-0 top-[4.5rem] z-40 h-14 border-b bg-background/95 shadow-sm backdrop-blur md:h-14">
         <div className="container flex h-full items-center gap-3 md:gap-6">
           <div className="grid min-w-0 flex-1 grid-cols-[1fr_auto_1fr] items-center gap-2 md:max-w-3xl">
             <div className="min-w-0"><p className="text-[10px] text-muted-foreground">{pickupLabel}</p><p className="truncate text-xs font-semibold md:text-sm">{tripDate(trip.pickupDate)}{trip.pickupTime ? ` · ${formatRentalTime(trip.pickupTime)}` : ""}</p>{pickupLocation && <p className="hidden truncate text-xs text-muted-foreground md:block">{rentalLocationLabel(pickupLocation, locations, language)}</p>}</div>
@@ -99,8 +100,8 @@ export function CarsPage() {
           </div>
           <Link href={`${localizedPath("/rentalcar", language)}${searchString ? `?${searchString}` : ""}`} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border px-3 text-xs font-semibold md:text-sm" aria-label={copy.editSearch} title={copy.editSearch}><SlidersHorizontal className="size-4" /><span className="hidden sm:inline">{copy.editSearch}</span></Link>
         </div>
-      </div>
-      <div className="border-b py-12 bg-white">
+      </div>}
+      <div data-sticky-summary-trigger className="border-b py-12 bg-white">
         <div className="container">
           <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-2">{copy.fleet}</p>
           <h1 className="text-4xl font-serif font-bold tracking-tight">{copy.vehicles}</h1>

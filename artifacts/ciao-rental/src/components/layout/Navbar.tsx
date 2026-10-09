@@ -46,7 +46,7 @@ export function Navbar() {
   const logoutFromAdmin = () => logout.mutate(undefined, { onSuccess: () => { window.location.href = "/"; } });
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/90 backdrop-blur-xl">
+    <header data-site-navbar className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/90 backdrop-blur-xl">
       <div className="container flex h-[4.5rem] items-center justify-between gap-4">
         <Link href={localizedHref("/")} className="group relative z-50 flex shrink-0 items-center gap-3" onClick={closeMenu} aria-label="CIAO Sapporo home">
           <span className="font-serif text-[1.35rem] font-semibold tracking-[0.17em]">CIAO</span>

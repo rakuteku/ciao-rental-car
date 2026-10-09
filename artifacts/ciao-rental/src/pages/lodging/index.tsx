@@ -23,7 +23,7 @@ export function LodgingPage() {
 
   return (
     <div className="min-h-[100dvh] flex flex-col">
-      <div className="border-b py-12 bg-white">
+      <div data-public-hero className="border-b py-12 bg-white">
         <div className="container">
            <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground mb-2">{content?.copy.eyebrow ?? "Short-Term Lodging"}</p>
            <h1 className="text-4xl font-serif font-bold tracking-tight">{content?.hero.title ?? "Short-Term Lodging in Sapporo"}</h1>

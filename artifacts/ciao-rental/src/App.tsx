@@ -8,7 +8,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { LanguageProvider } from "@/lib/language";
-import { RentalNavigation, RentalTripProvider, isCarDetailPath } from "@/components/rental/RentalNavigation";
+import { RentalNavigation, RentalTripProvider, StickySummaryVisibilityProvider, isCarDetailPath } from "@/components/rental/RentalNavigation";
 
 import { Home } from "@/pages/home";
 import { RentalCarHome } from "@/pages/rentalcar/index";
@@ -56,14 +56,16 @@ function MainLayout({ children }: { children: React.ReactNode }) {
   const [path] = useLocation();
   const carDetail = isCarDetailPath(path);
   return (
-    <div className={`public-site flex min-h-[100dvh] flex-col ${carDetail ? "" : "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"}`}>
-      <Navbar />
-      <RentalNavigation />
-      <main className={`flex-1 ${carDetail ? "" : "pt-14 md:pt-0"}`}>
-        {children}
-      </main>
-      <Footer />
-    </div>
+    <StickySummaryVisibilityProvider>
+      <div className={`public-site flex min-h-[100dvh] flex-col ${carDetail ? "" : "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"}`}>
+        <Navbar />
+        <RentalNavigation />
+        <main data-sticky-summary-scope className="flex-1">
+          {children}
+        </main>
+        <Footer />
+      </div>
+    </StickySummaryVisibilityProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
 import { CalendarDays, MapPin, Search, Users } from "lucide-react";
@@ -6,7 +6,7 @@ import { localizedPath, type Language } from "@/lib/language";
 import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 import { tokyoInstant, tokyoParts } from "@/lib/rental-marketplace";
 import { RentalTimeSelect } from "@/components/rental/RentalTimeSelect";
-import { useRentalTrip } from "@/components/rental/RentalNavigation";
+import { useRentalTrip, useStickySummaryVisible } from "@/components/rental/RentalNavigation";
 import { isRentalTime } from "@/lib/rental-time";
 
 const copy = {
@@ -66,6 +66,7 @@ export function HomeSearchPanel({ language }: { language: Language }) {
   const today = todayInTokyo();
   const tomorrow = nextTokyoDate(today);
   const { trip, updateTrip } = useRentalTrip();
+  const stickySummaryVisible = useStickySummaryVisible();
   const [pickupDate, setPickupDate] = useState(trip.pickupDate || today);
   const [returnDate, setReturnDate] = useState(trip.returnDate || tomorrow);
   const [pickupTime, setPickupTime] = useState(trip.pickupTime || "10:00");
@@ -73,17 +74,7 @@ export function HomeSearchPanel({ language }: { language: Language }) {
   const [pickupLocation, setPickupLocation] = useState(trip.pickupLocation || DEFAULT_RENTAL_LOCATIONS[0].value);
   const [adults, setAdults] = useState("2");
   const [error, setError] = useState("");
-  const panelRef = useRef<HTMLFormElement>(null);
-  const [sticky, setSticky] = useState(false);
   useEffect(() => { updateTrip({ pickupDate, returnDate, pickupTime, returnTime, pickupLocation, returnLocation: pickupLocation }); }, [pickupDate, returnDate, pickupTime, returnTime, pickupLocation, updateTrip]);
-
-  useEffect(() => {
-    const panel = panelRef.current;
-    if (!panel) return;
-    const observer = new IntersectionObserver(([entry]) => setSticky(!entry.isIntersecting && entry.boundingClientRect.top < 88), { rootMargin: "-88px 0px 0px 0px" });
-    observer.observe(panel);
-    return () => observer.disconnect();
-  }, []);
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -119,7 +110,7 @@ export function HomeSearchPanel({ language }: { language: Language }) {
 
   return (
     <>
-    {sticky && createPortal(<form onSubmit={onSubmit} aria-label={labels.title} data-testid="home-sticky-search" className="public-site fixed inset-x-0 top-[4.5rem] z-40 hidden border-b bg-background px-3 py-2 text-foreground shadow-sm md:block">
+    {stickySummaryVisible && createPortal(<form onSubmit={onSubmit} aria-label={labels.title} data-testid="home-sticky-search" className="public-site fixed inset-x-0 top-[4.5rem] z-40 hidden border-b bg-background px-3 py-2 text-foreground shadow-sm md:block">
       <div className="mx-auto grid max-w-5xl grid-cols-2 items-center gap-3 md:grid-cols-[1fr_1fr_1.2fr_auto]">
         <label className="min-w-0 text-[10px] text-muted-foreground">{labels.pickupDate}<input aria-label={labels.pickupDate} type="date" required min={today} value={pickupDate} onChange={event => { const value = event.target.value; setPickupDate(value); if (returnDate <= value) setReturnDate(nextTokyoDate(value)); }} className="block w-full bg-transparent text-sm font-semibold text-foreground" /></label>
         <label className="min-w-0 text-[10px] text-muted-foreground">{labels.returnDate}<input aria-label={labels.returnDate} type="date" required min={pickupDate} value={returnDate} onChange={event => setReturnDate(event.target.value)} className="block w-full bg-transparent text-sm font-semibold text-foreground" /></label>
@@ -128,7 +119,6 @@ export function HomeSearchPanel({ language }: { language: Language }) {
       </div>
     </form>, document.body)}
     <form
-      ref={panelRef}
       onSubmit={onSubmit}
       className="mx-auto w-full max-w-5xl rounded-md border border-white/50 bg-background p-3 text-left shadow-xl sm:p-4"
       aria-label={labels.title}

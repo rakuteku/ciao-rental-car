@@ -39,6 +39,8 @@ function queryTrip(search: string): Trip | undefined {
   };
 }
 const TripContext = createContext<{ trip: Trip; updateTrip: (value: Trip) => void } | null>(null);
+const StickySummaryContext = createContext(false);
+
 export function RentalTripProvider({ children }: { children: ReactNode }) {
   const search = useSearch();
   const [trip, setTrip] = useState<Trip>(() => queryTrip(search) || storedTrip());
@@ -55,6 +57,83 @@ export function useRentalTrip() {
   return value;
 }
 
+function useStickySummaryVisibilityForRoute() {
+  const [path] = useLocation();
+  const { language } = useLanguage();
+  const [isPastIntro, setIsPastIntro] = useState(false);
+
+  useEffect(() => {
+    setIsPastIntro(false);
+    if (isCarDetailPath(path)) return;
+
+    const scope = document.querySelector<HTMLElement>("[data-sticky-summary-scope]");
+    if (!scope) return;
+
+    const navbar = document.querySelector<HTMLElement>("[data-site-navbar]");
+    const headerBottom = Math.max(0, Math.ceil(navbar?.getBoundingClientRect().bottom ?? 72));
+    let visibilityObserver: IntersectionObserver | undefined;
+    let observedTarget: Element | null = null;
+    let active = true;
+
+    const findTrigger = () => {
+      const hero = scope.querySelector("[data-public-hero]");
+      if (hero) return hero;
+      const markedIntro = scope.querySelector("[data-sticky-summary-trigger]");
+      if (markedIntro) return markedIntro;
+      const heading = scope.querySelector("h1");
+      return heading?.closest("header") ?? heading?.parentElement ?? scope.firstElementChild;
+    };
+
+    const observeTrigger = () => {
+      const target = findTrigger();
+      if (target === observedTarget) return;
+
+      visibilityObserver?.disconnect();
+      visibilityObserver = undefined;
+      observedTarget = target;
+      setIsPastIntro(false);
+      if (!target) return;
+
+      const observer = new IntersectionObserver(([entry]) => {
+        if (active && visibilityObserver === observer && entry) {
+          setIsPastIntro(entry.boundingClientRect.bottom <= headerBottom);
+        }
+      }, {
+        rootMargin: `-${headerBottom}px 0px 0px 0px`,
+        threshold: 0,
+      });
+      visibilityObserver = observer;
+      observer.observe(target);
+    };
+
+    observeTrigger();
+    const mutationObserver = new MutationObserver(observeTrigger);
+    mutationObserver.observe(scope, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-public-hero", "data-sticky-summary-trigger"],
+    });
+
+    return () => {
+      active = false;
+      mutationObserver.disconnect();
+      visibilityObserver?.disconnect();
+    };
+  }, [path, language]);
+
+  return isPastIntro;
+}
+
+export function StickySummaryVisibilityProvider({ children }: { children: ReactNode }) {
+  const isPastIntro = useStickySummaryVisibilityForRoute();
+  return <StickySummaryContext.Provider value={isPastIntro}>{children}</StickySummaryContext.Provider>;
+}
+
+export function useStickySummaryVisible() {
+  return useContext(StickySummaryContext);
+}
+
 const labels = {
   en: { pickup: "Pickup", returned: "Return", choose: "Choose dates", edit: "Edit search", lodging: "Lodging", bookings: "My bookings", navigation: "Quick links" },
   ja: { pickup: "受取", returned: "返却", choose: "日付を選択", edit: "検索を編集", lodging: "宿泊", bookings: "予約確認", navigation: "クイックリンク" },
@@ -64,8 +143,12 @@ export function RentalNavigation() {
   const { language } = useLanguage();
   const [path, navigate] = useLocation();
   const { trip } = useRentalTrip();
+  const stickySummaryVisible = useStickySummaryVisible();
   const copy = labels[language];
-  const isCarsList = /\/rentalcar\/cars\/?$/.test(path);
+  const routePath = path.replace(/^\/(?:en|ja|zh-TW|zh-CN)(?=\/|$)/, "") || "/";
+  const normalizedPath = routePath.length > 1 ? routePath.replace(/\/+$/, "") : routePath;
+  const isCarsList = normalizedPath === "/rentalcar/cars";
+  const hasPageDesktopSummary = normalizedPath === "/" || normalizedPath === "/rentalcar" || isCarsList;
   if (isCarDetailPath(path)) return null;
   function editSearch() {
     const form = document.getElementById("rental-search-form") || document.querySelector('[data-testid="form-home-car-search"]');
@@ -78,12 +161,15 @@ export function RentalNavigation() {
     return Number.isNaN(parsed.getTime()) ? copy.choose : new Intl.DateTimeFormat(language === "zh-TW" ? "zh-TW" : language, { month: "short", day: "numeric", timeZone: "Asia/Tokyo" }).format(parsed);
   }
   return <>
-    {!isCarsList && <div data-testid="mobile-trip-bar" className="fixed inset-x-0 top-[4.5rem] z-40 h-14 border-b bg-background/95 px-4 shadow-sm backdrop-blur md:hidden">
-      <button type="button" onClick={editSearch} aria-label={copy.edit} className="mx-auto grid h-full w-full max-w-xl grid-cols-[1fr_auto_1fr] items-center gap-3 text-left">
-        <span className="min-w-0"><span className="block text-[10px] text-muted-foreground">{copy.pickup}</span><span className="block truncate text-xs font-semibold">{dateLabel(trip.pickupDate)}{trip.pickupDate && trip.pickupTime ? ` · ${formatRentalTime(trip.pickupTime)}` : ""}</span></span>
-        <ArrowRight className="size-4 text-primary" aria-hidden="true" />
-        <span className="min-w-0 text-right"><span className="block text-[10px] text-muted-foreground">{copy.returned}</span><span className="block truncate text-xs font-semibold">{dateLabel(trip.returnDate)}{trip.returnDate && trip.returnTime ? ` · ${formatRentalTime(trip.returnTime)}` : ""}</span></span>
-      </button>
+    {stickySummaryVisible && !isCarsList && <div data-testid="mobile-trip-bar" className={`fixed inset-x-0 top-[4.5rem] z-40 h-14 border-b bg-background/95 px-4 shadow-sm backdrop-blur ${hasPageDesktopSummary ? "md:hidden" : ""}`}>
+      <div className="container flex h-full items-center justify-center">
+        <button type="button" onClick={editSearch} aria-label={copy.edit} className="grid h-full w-full max-w-xl grid-cols-[1fr_auto_1fr] items-center gap-3 text-left md:max-w-4xl md:grid-cols-[1fr_auto_1fr_auto] md:gap-6">
+          <span className="min-w-0"><span className="block text-[10px] text-muted-foreground">{copy.pickup}</span><span className="block truncate text-xs font-semibold">{dateLabel(trip.pickupDate)}{trip.pickupDate && trip.pickupTime ? ` · ${formatRentalTime(trip.pickupTime)}` : ""}</span></span>
+          <ArrowRight className="size-4 text-primary" aria-hidden="true" />
+          <span className="min-w-0 text-right"><span className="block text-[10px] text-muted-foreground">{copy.returned}</span><span className="block truncate text-xs font-semibold">{dateLabel(trip.returnDate)}{trip.returnDate && trip.returnTime ? ` · ${formatRentalTime(trip.returnTime)}` : ""}</span></span>
+          <span className="hidden shrink-0 text-xs font-semibold text-primary md:inline">{copy.edit}</span>
+        </button>
+      </div>
     </div>}
     <nav data-testid="mobile-public-navigation" aria-label={copy.navigation} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 divide-x border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-sm backdrop-blur md:hidden">
       <Link href={localizedPath("/lodging", language)} className="flex h-14 min-w-0 items-center justify-center gap-2 px-2 text-sm font-semibold"><Building2 className="size-4 shrink-0 text-primary" />{copy.lodging}</Link>
