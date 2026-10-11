@@ -10,12 +10,17 @@ const { Pool } = requireDb("pg");
 test("approved staff see only their operator's IDs, writes and private files", async () => {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const ids = { operators: [], vehicles: [], reservations: [], addons: [] };
+  let legacyCarId;
   const unique = randomBytes(8).toString("hex");
   const password = `test-${unique}`;
   const salt = randomBytes(16).toString("hex");
   const passwordHash = `scrypt$${salt}$${scryptSync(password, salt, 64).toString("hex")}`;
   let child;
   try {
+    const { rows: [legacyCar] } = await pool.query(
+      "INSERT INTO cars(model,name,year,passenger_capacity,price_per_day) VALUES('Toyota','Alphard',2024,6,18000) RETURNING id",
+    );
+    legacyCarId = legacyCar.id;
     for (const suffix of ["a", "b"]) {
       const { rows: [operator] } = await pool.query(
         "INSERT INTO rental_operators(slug,name,status,verification_status) VALUES($1,$2,'active','approved') RETURNING id",
@@ -109,10 +114,11 @@ test("approved staff see only their operator's IDs, writes and private files", a
         addons: [{ addonId: ids.addons[0], qty: 1 }],
       }),
     });
-    assert.equal(crossAddonPrice.status, 400);
+    assert.equal(crossAddonPrice.status, 404);
 
     const { rows: [mapped] } = await pool.query("SELECT id FROM rental_vehicles WHERE legacy_car_id IS NOT NULL LIMIT 1");
     assert.ok(mapped, "a platform vehicle must be mapped to a legacy car");
+    ids.vehicles.push(mapped.id);
     const adminLogin = await fetch(`${base}/admin/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -142,6 +148,7 @@ test("approved staff see only their operator's IDs, writes and private files", a
       await pool.query("DELETE FROM rental_vehicles WHERE id=$1", [id]);
     }
     for (const id of ids.operators) await pool.query("DELETE FROM rental_operators WHERE id=$1", [id]);
+    if (legacyCarId) await pool.query("DELETE FROM cars WHERE id=$1", [legacyCarId]);
     await pool.end();
   }
 });

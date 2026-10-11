@@ -89,6 +89,6 @@ test("production proxy trust preserves the admin session cookie", async () => {
     });
   } finally {
     child.kill("SIGTERM");
-    await new Promise((resolve) => child.once("close", resolve));
+    if (child.exitCode === null) await new Promise((resolve) => child.once("close", resolve));
   }
 });
