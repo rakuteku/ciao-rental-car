@@ -7,11 +7,34 @@ const workerPath = resolve(
   workspaceRoot,
   "artifacts/ciao-rental/staging/cloudflare-pages/_worker.js",
 );
-const worker = (await import(pathToFileURL(workerPath))).default;
+const workerModule = await import(pathToFileURL(workerPath));
+const worker = workerModule.default;
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
+
+function assertThrows(action, message) {
+  try {
+    action();
+  } catch {
+    return;
+  }
+  throw new Error(message);
+}
+
+assertThrows(
+  () => workerModule.getApiOrigin({}),
+  "Staging verification must fail when API_ORIGIN is missing",
+);
+assertThrows(
+  () => workerModule.getApiOrigin({ API_ORIGIN: "https://car-fleet-manager.replit.app" }),
+  "Staging verification must fail when API_ORIGIN points to production",
+);
+
+const stagingEnv = {
+  API_ORIGIN: "https://staging-api.example",
+};
 
 const originalFetch = globalThis.fetch;
 let capturedRequest;
@@ -42,6 +65,7 @@ try {
       body: '{"ok":true}',
     }),
     {
+      ...stagingEnv,
       ASSETS: {
         fetch: async () => {
           throw new Error("ASSETS should not be used for API requests");
@@ -52,7 +76,7 @@ try {
 
   assert(
     capturedRequest.url ===
-      "https://car-fleet-manager.replit.app/api/bookings?draft=true",
+      "https://staging-api.example/api/bookings?draft=true",
     "API proxy did not preserve the full path and query string",
   );
   assert(capturedRequest.method === "POST", "API proxy did not preserve the method");
@@ -78,6 +102,7 @@ try {
   const staticResponse = await worker.fetch(
     new Request("https://staging.example/ja/custom-page"),
     {
+      ...stagingEnv,
       ASSETS: {
         fetch: async (request) => {
           assetRequests.push(new URL(request.url).pathname);
