@@ -108,15 +108,19 @@ const demoAddons = [
 
 async function seedRental() {
   await db.transaction(async (tx) => {
-    await tx.insert(rentalOperatorsTable).values({
-      slug: "platform",
-      name: "Platform",
-      status: "active",
-      verificationStatus: "approved",
-      isPlatform: true,
-    }).onConflictDoNothing({ target: rentalOperatorsTable.slug });
-    const [platform] = await tx.select().from(rentalOperatorsTable)
-      .where(eq(rentalOperatorsTable.slug, "platform"));
+    let [platform] = await tx.select().from(rentalOperatorsTable)
+      .where(eq(rentalOperatorsTable.isPlatform, true));
+    if (!platform) {
+      await tx.insert(rentalOperatorsTable).values({
+        slug: "platform",
+        name: "Platform",
+        status: "active",
+        verificationStatus: "approved",
+        isPlatform: true,
+      }).onConflictDoNothing();
+      [platform] = await tx.select().from(rentalOperatorsTable)
+        .where(eq(rentalOperatorsTable.isPlatform, true));
+    }
     if (!platform) throw new Error("Platform operator seed failed");
 
     for (const vehicle of demoVehicles) {

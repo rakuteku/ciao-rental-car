@@ -11,16 +11,22 @@ test("approved staff see only their operator's IDs, writes and private files", a
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const ids = { operators: [], vehicles: [], reservations: [], addons: [] };
   let legacyCarId;
+  let createdLegacyCar = false;
   const unique = randomBytes(8).toString("hex");
   const password = `test-${unique}`;
   const salt = randomBytes(16).toString("hex");
   const passwordHash = `scrypt$${salt}$${scryptSync(password, salt, 64).toString("hex")}`;
   let child;
   try {
-    const { rows: [legacyCar] } = await pool.query(
-      "INSERT INTO cars(model,name,year,passenger_capacity,price_per_day) VALUES('Toyota','Alphard',2024,6,18000) RETURNING id",
-    );
-    legacyCarId = legacyCar.id;
+    const { rows: [existingLegacyCar] } = await pool.query("SELECT id FROM cars WHERE name='Alphard' ORDER BY id LIMIT 1");
+    if (existingLegacyCar) legacyCarId = existingLegacyCar.id;
+    else {
+      const { rows: [legacyCar] } = await pool.query(
+        "INSERT INTO cars(model,name,year,passenger_capacity,price_per_day) VALUES('Toyota','Alphard',2024,6,18000) RETURNING id",
+      );
+      legacyCarId = legacyCar.id;
+      createdLegacyCar = true;
+    }
     for (const suffix of ["a", "b"]) {
       const { rows: [operator] } = await pool.query(
         "INSERT INTO rental_operators(slug,name,status,verification_status) VALUES($1,$2,'active','approved') RETURNING id",
@@ -104,21 +110,49 @@ test("approved staff see only their operator's IDs, writes and private files", a
     const list = await (await request("/operator/rental/vehicles")).json();
     assert.ok(list.some((row) => row.id === ids.vehicles[0]));
     assert.ok(!list.some((row) => row.id === ids.vehicles[1]));
+    const { rows: [platform] } = await pool.query("SELECT id FROM rental_operators WHERE is_platform=true");
+    assert.ok(platform, "startup must create a platform operator");
+    const { rows: [priceableVehicle] } = await pool.query(
+      "INSERT INTO rental_vehicles(operator_id,internal_name,public_title,slug,brand,model,year,status,operational_status) VALUES($1,'Priceable test car','Priceable test car',$2,'Test','Car',2025,'published','available') RETURNING id",
+      [platform.id, `tenant-priceable-${unique}`],
+    );
+    ids.vehicles.push(priceableVehicle.id);
+    await pool.query(
+      "INSERT INTO rental_vehicle_pricing(vehicle_id,base_price,rate_12_hours,rate_24_hours,additional_24_hours,additional_hour) VALUES($1,12000,8000,12000,12000,1000)",
+      [priceableVehicle.id],
+    );
+    const { rows: [platformAddon] } = await pool.query(
+      "INSERT INTO rental_addons(operator_id,name,published,flat_fee) VALUES($1,$2,true,100) RETURNING id",
+      [platform.id, `tenant-platform-${unique}`],
+    );
+    ids.addons.push(platformAddon.id);
     const crossAddonPrice = await fetch(`${base}/rental/pricing/calculate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        vehicleId: ids.vehicles[0],
+        vehicleId: priceableVehicle.id,
         pickupAt: "2035-02-02T00:00:00Z",
         returnAt: "2035-02-03T00:00:00Z",
         addons: [{ addonId: ids.addons[0], qty: 1 }],
       }),
     });
-    assert.equal(crossAddonPrice.status, 404);
+    assert.equal(crossAddonPrice.status, 400);
+    assert.equal((await crossAddonPrice.json()).error, "Add-on not available for this vehicle");
+    const ownAddonPrice = await fetch(`${base}/rental/pricing/calculate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        vehicleId: priceableVehicle.id,
+        pickupAt: "2035-02-02T00:00:00Z",
+        returnAt: "2035-02-03T00:00:00Z",
+        addons: [{ addonId: platformAddon.id, qty: 1 }],
+      }),
+    });
+    assert.equal(ownAddonPrice.status, 200);
 
-    const { rows: [mapped] } = await pool.query("SELECT id FROM rental_vehicles WHERE legacy_car_id IS NOT NULL LIMIT 1");
+    const { rows: [mapped] } = await pool.query("SELECT id FROM rental_vehicles WHERE legacy_car_id=$1", [legacyCarId]);
     assert.ok(mapped, "a platform vehicle must be mapped to a legacy car");
-    ids.vehicles.push(mapped.id);
+    if (createdLegacyCar) ids.vehicles.push(mapped.id);
     const adminLogin = await fetch(`${base}/admin/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -148,7 +182,7 @@ test("approved staff see only their operator's IDs, writes and private files", a
       await pool.query("DELETE FROM rental_vehicles WHERE id=$1", [id]);
     }
     for (const id of ids.operators) await pool.query("DELETE FROM rental_operators WHERE id=$1", [id]);
-    if (legacyCarId) await pool.query("DELETE FROM cars WHERE id=$1", [legacyCarId]);
+    if (createdLegacyCar && legacyCarId) await pool.query("DELETE FROM cars WHERE id=$1", [legacyCarId]);
     await pool.end();
   }
 });

@@ -36,11 +36,16 @@ test("published rental catalog, live add-ons, pricing, slugs, and CMS cleanup ar
   assert.ok(process.env.DATABASE_URL, "DATABASE_URL is required for the rental catalog test");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const legacyIds = [];
+  const createdLegacyIds = [];
   for (const [name, pricePerDay] of [["Alphard", 18000], ["Vellfire", 20000], ["Sienta", 9800]]) {
-    const { rows: [car] } = await pool.query(
-      "INSERT INTO cars(model,name,year,passenger_capacity,price_per_day) VALUES('Toyota',$1,2024,6,$2) RETURNING id",
-      [name, pricePerDay],
-    );
+    let { rows: [car] } = await pool.query("SELECT id FROM cars WHERE name=$1 ORDER BY id LIMIT 1", [name]);
+    if (!car) {
+      ({ rows: [car] } = await pool.query(
+        "INSERT INTO cars(model,name,year,passenger_capacity,price_per_day) VALUES('Toyota',$1,2024,6,$2) RETURNING id",
+        [name, pricePerDay],
+      ));
+      createdLegacyIds.push(car.id);
+    }
     legacyIds.push(car.id);
   }
 
@@ -133,8 +138,10 @@ test("published rental catalog, live add-ons, pricing, slugs, and CMS cleanup ar
   } finally {
     child.kill("SIGTERM");
     if (child.exitCode === null) await new Promise((resolve) => child.once("close", resolve));
-    await pool.query("DELETE FROM rental_vehicles WHERE legacy_car_id = ANY($1::int[])", [legacyIds]);
-    await pool.query("DELETE FROM cars WHERE id = ANY($1::int[])", [legacyIds]);
+    if (createdLegacyIds.length) {
+      await pool.query("DELETE FROM rental_vehicles WHERE legacy_car_id = ANY($1::int[])", [createdLegacyIds]);
+      await pool.query("DELETE FROM cars WHERE id = ANY($1::int[])", [createdLegacyIds]);
+    }
     await pool.end();
   }
 });

@@ -26,15 +26,53 @@ async function getJson(path) {
   return response.json();
 }
 
+test("API starts and reports healthy when no legacy cars exist", async () => {
+  assert.ok(process.env.DATABASE_URL, "DATABASE_URL is required for the startup backfill test");
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const { rows: [{ count }] } = await pool.query("SELECT count(*)::int AS count FROM cars");
+  assert.equal(count, 0, "this fresh-database test must run before any legacy car fixture is created");
+  const child = spawn("node", ["dist/index.mjs"], {
+    cwd: new URL("..", import.meta.url),
+    env: {
+      ...process.env,
+      NODE_ENV: "production",
+      PORT: String(port),
+      SESSION_SECRET: process.env.SESSION_SECRET ?? "rental-empty-startup-test-secret",
+      ADMIN_PASSWORD: "rental-empty-startup-admin-password",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const outputRef = { value: "" };
+  child.stdout.on("data", (chunk) => { outputRef.value += chunk.toString(); });
+  child.stderr.on("data", (chunk) => { outputRef.value += chunk.toString(); });
+  try {
+    await waitForText(child, outputRef, "Server listening");
+    const health = await fetch(`${baseUrl}/api/healthz`);
+    assert.equal(health.status, 200);
+    for (const name of ["Alphard", "Vellfire", "Sienta"]) {
+      assert.ok(outputRef.value.includes(`legacy car \\"${name}\\" was not found; skipping it`));
+    }
+  } finally {
+    child.kill("SIGTERM");
+    if (child.exitCode === null) await new Promise((resolve) => child.once("close", resolve));
+    await pool.end();
+  }
+});
+
 test("API startup completes the rental backfill before serving routes", async () => {
   assert.ok(process.env.DATABASE_URL, "DATABASE_URL is required for the startup backfill test");
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const legacyIds = [];
+  const createdLegacyIds = [];
   for (const [name, pricePerDay] of [["Alphard", 18000], ["Vellfire", 20000], ["Sienta", 9800]]) {
-    const { rows: [car] } = await pool.query(
-      "INSERT INTO cars(model,name,year,passenger_capacity,price_per_day) VALUES('Toyota',$1,2024,6,$2) RETURNING id",
-      [name, pricePerDay],
-    );
+    let { rows: [car] } = await pool.query("SELECT id FROM cars WHERE name=$1 ORDER BY id LIMIT 1", [name]);
+    if (!car) {
+      ({ rows: [car] } = await pool.query(
+        "INSERT INTO cars(model,name,year,passenger_capacity,price_per_day) VALUES('Toyota',$1,2024,6,$2) RETURNING id",
+        [name, pricePerDay],
+      ));
+      createdLegacyIds.push(car.id);
+    }
     legacyIds.push(car.id);
   }
 
@@ -90,8 +128,10 @@ test("API startup completes the rental backfill before serving routes", async ()
   } finally {
     child.kill("SIGTERM");
     if (child.exitCode === null) await new Promise((resolve) => child.once("close", resolve));
-    await pool.query("DELETE FROM rental_vehicles WHERE legacy_car_id = ANY($1::int[])", [legacyIds]);
-    await pool.query("DELETE FROM cars WHERE id = ANY($1::int[])", [legacyIds]);
+    if (createdLegacyIds.length) {
+      await pool.query("DELETE FROM rental_vehicles WHERE legacy_car_id = ANY($1::int[])", [createdLegacyIds]);
+      await pool.query("DELETE FROM cars WHERE id = ANY($1::int[])", [createdLegacyIds]);
+    }
     await pool.end();
   }
 });
