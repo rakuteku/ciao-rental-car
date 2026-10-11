@@ -1,19 +1,15 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useAdminMe, useAdminLogout, getAdminMeQueryKey } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Menu, X } from "lucide-react";
 import { localizedPath, useLanguage } from "@/lib/language";
 
 const languageLabels = {
-  en: { lodging: "Lodging", cars: "Rental cars", bookings: "My bookings", language: "Language", admin: "Admin", logout: "Log out" },
-  ja: { lodging: "宿泊", cars: "レンタカー", bookings: "予約の確認", language: "言語", admin: "管理", logout: "ログアウト" },
-  "zh-TW": { lodging: "住宿", cars: "租車", bookings: "我的預訂", language: "語言", admin: "管理", logout: "登出" },
+  en: { lodging: "Lodging", cars: "Rental cars", bookings: "My bookings", language: "Language" },
+  ja: { lodging: "宿泊", cars: "レンタカー", bookings: "予約の確認", language: "言語" },
+  "zh-TW": { lodging: "住宿", cars: "租車", bookings: "我的預訂", language: "語言" },
 } as const;
 
 export function Navbar() {
-  const { data: admin } = useAdminMe({ query: { retry: false, queryKey: getAdminMeQueryKey() } });
-  const logout = useAdminLogout();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
   const localizedHref = (path: string) => localizedPath(path, language);
@@ -43,8 +39,6 @@ export function Navbar() {
       ))}
     </div>
   );
-  const logoutFromAdmin = () => logout.mutate(undefined, { onSuccess: () => { window.location.href = "/"; } });
-
   return (
     <header data-site-navbar className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/90 backdrop-blur-xl">
       <div className="container flex h-[4.5rem] items-center justify-between gap-4">
@@ -77,26 +71,6 @@ export function Navbar() {
             {labels.bookings}
           </Link>
           {languageOptions()}
-          {admin?.authenticated ? (
-            <div className="flex items-center gap-4 border-l border-border/70 pl-6">
-              <Link href="/admin/dashboard" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-                {labels.admin}
-              </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-9 rounded-full px-4 text-xs font-semibold"
-                onClick={logoutFromAdmin}
-                disabled={logout.isPending}
-              >
-                {logout.isPending ? "…" : labels.logout}
-              </Button>
-            </div>
-          ) : (
-            <Link href="/admin/login" className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground">
-              {labels.admin}<ArrowUpRight className="size-3.5" aria-hidden="true" />
-            </Link>
-          )}
         </nav>
 
         <div
@@ -121,25 +95,6 @@ export function Navbar() {
             <Link href={localizedHref("/rentalcar/my-bookings")} onClick={closeMenu} className="flex min-h-14 items-center justify-between border-b border-border/70 text-sm font-semibold">
               {labels.bookings}<ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
             </Link>
-              {admin?.authenticated ? (
-                <>
-                  <Link href="/admin/dashboard" onClick={closeMenu} className="flex min-h-14 items-center justify-between border-b border-border/70 text-sm font-semibold text-primary">
-                    {labels.admin}<ArrowUpRight className="size-4" aria-hidden="true" />
-                  </Link>
-                  <Button
-                    variant="outline"
-                    className="mt-5 h-12 w-full rounded-full font-semibold"
-                    onClick={() => { closeMenu(); logoutFromAdmin(); }}
-                    disabled={logout.isPending}
-                  >
-                    {logout.isPending ? "…" : labels.logout}
-                  </Button>
-                </>
-              ) : (
-                <Link href="/admin/login" onClick={closeMenu} className="flex min-h-14 items-center justify-between text-sm font-semibold text-muted-foreground">
-                  {labels.admin}<ArrowUpRight className="size-4" aria-hidden="true" />
-                </Link>
-              )}
           </nav>
         </div>
       </div>
