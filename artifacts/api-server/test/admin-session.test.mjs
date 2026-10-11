@@ -34,7 +34,7 @@ function responseCookies(response) {
   return cookie ? [cookie] : [];
 }
 
-test("production proxy trust preserves the admin session cookie", async () => {
+test("production proxy trust preserves secure regenerated admin sessions and allows only configured CORS origins", async () => {
   assert.ok(process.env.DATABASE_URL, "DATABASE_URL is required for the API server test");
 
   const child = spawn("node", ["dist/index.mjs"], {
@@ -45,6 +45,7 @@ test("production proxy trust preserves the admin session cookie", async () => {
       PORT: String(port),
       SESSION_SECRET: process.env.SESSION_SECRET ?? "admin-session-regression-test-secret",
       ADMIN_PASSWORD: testAdminPassword,
+      CORS_ALLOWED_ORIGINS: "https://app.example.test",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -74,10 +75,42 @@ test("production proxy trust preserves the admin session cookie", async () => {
       sessionCookie,
       "login should emit the application connect.sid cookie behind the HTTPS proxy",
     );
+    assert.match(sessionCookie, /; HttpOnly(?:;|$)/);
+    assert.match(sessionCookie, /; Secure(?:;|$)/);
+    assert.match(sessionCookie, /; SameSite=Lax(?:;|$)/);
+
+    const secondLogin = await fetch(`${baseUrl}/api/admin/login`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: sessionCookie.split(";", 1)[0],
+        "x-forwarded-proto": "https",
+      },
+      body: JSON.stringify({ username: "admin", password: testAdminPassword }),
+    });
+    assert.equal(secondLogin.status, 200);
+    const regeneratedCookie = responseCookies(secondLogin).find((cookie) => cookie.startsWith("connect.sid="));
+    assert.ok(regeneratedCookie, "a repeated login should issue a replacement session cookie");
+    assert.notEqual(
+      regeneratedCookie.split(";", 1)[0],
+      sessionCookie.split(";", 1)[0],
+      "admin login must regenerate the session ID",
+    );
+
+    const allowedOrigin = await fetch(`${baseUrl}/api/healthz`, {
+      headers: { origin: "https://app.example.test" },
+    });
+    assert.equal(allowedOrigin.headers.get("access-control-allow-origin"), "https://app.example.test");
+    assert.equal(allowedOrigin.headers.get("access-control-allow-credentials"), "true");
+
+    const disallowedOrigin = await fetch(`${baseUrl}/api/healthz`, {
+      headers: { origin: "https://evil.example" },
+    });
+    assert.equal(disallowedOrigin.headers.get("access-control-allow-origin"), null);
 
     const me = await fetch(`${baseUrl}/api/admin/me`, {
       headers: {
-        cookie: sessionCookie.split(";", 1)[0],
+        cookie: regeneratedCookie.split(";", 1)[0],
         "x-forwarded-proto": "https",
       },
     });
@@ -88,7 +121,10 @@ test("production proxy trust preserves the admin session cookie", async () => {
       username: "admin",
     });
   } finally {
-    child.kill("SIGTERM");
-    await new Promise((resolve) => child.once("close", resolve));
+    if (child.exitCode === null) {
+      const closed = new Promise((resolve) => child.once("close", resolve));
+      child.kill("SIGTERM");
+      await closed;
+    }
   }
 });
