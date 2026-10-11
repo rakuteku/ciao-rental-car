@@ -37,6 +37,7 @@ import type {
   CreateRentalVehicleBody,
   CreateReservationBody,
   CreateRoomBody,
+  CreatedRentalHold,
   DeclineRentalAlternateOfferParams,
   DeleteAdminCar200,
   DeleteAdminRentalAddon200,
@@ -3057,8 +3058,8 @@ export const getCreateRentalHoldUrl = () => {
 export const createRentalHold = async (
   createHoldBody: CreateHoldBody,
   options?: RequestInit,
-): Promise<RentalHold> => {
-  return customFetch<RentalHold>(getCreateRentalHoldUrl(), {
+): Promise<CreatedRentalHold> => {
+  return customFetch<CreatedRentalHold>(getCreateRentalHoldUrl(), {
     ...options,
     method: "POST",
     headers: { "Content-Type": "application/json", ...options?.headers },

@@ -113,10 +113,11 @@ function LegacyCheckout() {
     return addon ? localizeAddon(addon, language).name : fallback;
   };
   const { data: holdStatus } = useGetRentalHold(draft?.holdId ?? 0, {
+    request: { headers: { "X-Hold-Token": draft?.holdToken ?? "" } },
     query: {
-      enabled: Boolean(draft?.holdId),
-      queryKey: getGetRentalHoldQueryKey(draft?.holdId ?? 0),
+      queryKey: [...getGetRentalHoldQueryKey(draft?.holdId ?? 0), draft?.holdToken],
       refetchInterval: 30_000,
+      enabled: Boolean(draft?.holdId && draft?.holdToken),
     },
   });
 
@@ -233,7 +234,7 @@ function LegacyCheckout() {
       });
       return;
     }
-    if (!draft.holdId || holdExpired) {
+    if (!draft.holdId || !draft.holdToken || holdExpired) {
       toast({ title: "Error", description: "Hold expired or invalid", variant: "destructive" });
       return;
     }
@@ -241,6 +242,7 @@ function LegacyCheckout() {
     createReservation.mutate({
       data: {
         holdId: draft.holdId,
+        holdToken: draft.holdToken,
         vehicleId: draft.vehicleId,
         pickupAt: draft.pickupAt,
         returnAt: draft.returnAt,

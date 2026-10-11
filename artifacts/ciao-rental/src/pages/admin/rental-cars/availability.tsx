@@ -313,14 +313,15 @@ function ManualReservationSheet({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ vehicleId: id, pickupAt: new Date(start).toISOString(), returnAt: new Date(end).toISOString() }),
       });
-      const hold = await holdResponse.json() as { holdId?: number; error?: string };
-      if (!holdResponse.ok || !hold.holdId) throw new Error(hold.error ?? "Unable to reserve this time");
+      const hold = await holdResponse.json() as { holdId?: number; holdToken?: string; error?: string };
+      if (!holdResponse.ok || !hold.holdId || !hold.holdToken) throw new Error(hold.error ?? "Unable to reserve this time");
 
       const reservationResponse = await fetch("/api/rental/reservations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           holdId: hold.holdId,
+          holdToken: hold.holdToken,
           vehicleId: id,
           pickupLocation,
           returnLocation,

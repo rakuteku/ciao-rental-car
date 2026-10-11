@@ -8,6 +8,7 @@ export interface CheckoutDraft {
   pickupLocation: string;
   returnLocation: string;
   holdId?: number;
+  holdToken?: string;
   heldUntil?: string;
   addons: { addonId: number; qty: number }[];
   documents?: Record<string, string>;

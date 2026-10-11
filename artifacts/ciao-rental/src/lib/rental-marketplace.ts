@@ -94,7 +94,7 @@ export interface RentalPaymentState {
 }
 
 export interface CreateRentalRequest {
-  holdId: number; vehicleId: number; pickupLocation: string; returnLocation: string;
+  holdId: number; holdToken: string; vehicleId: number; pickupLocation: string; returnLocation: string;
   driver: { fullName: string; email: string; phone: string; romanizedName?: string; nationality?: string; flightNumber?: string; accommodation?: string };
   additionalDrivers?: Array<{ fullName: string; email: string; phone: string }>;
   travelNotes?: string; marketingConsent: boolean; locale?: "en" | "ja" | "zh-TW"; attribution?: Attribution;

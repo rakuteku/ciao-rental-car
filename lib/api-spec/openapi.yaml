@@ -955,7 +955,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RentalHold"
+                $ref: "#/components/schemas/CreatedRentalHold"
         "400":
           description: Bad request
           content:
@@ -986,6 +986,12 @@ paths:
           required: true
           schema:
             type: integer
+        - name: X-Hold-Token
+          in: header
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-f0-9]{64}$"
       responses:
         "200":
           description: Temporary hold
@@ -3919,6 +3925,15 @@ components:
         - createdAt
         - expired
 
+    CreatedRentalHold:
+      allOf:
+        - $ref: "#/components/schemas/RentalHold"
+        - type: object
+          properties:
+            holdToken:
+              type: string
+          required: [holdToken]
+
     DayRate:
       type: object
       properties:
@@ -4060,8 +4075,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CreateReservationAddonBody"
-        sessionToken:
-          type: string
       required:
         - vehicleId
         - pickupAt
@@ -4124,6 +4137,8 @@ components:
       properties:
         holdId:
           type: integer
+        holdToken:
+          type: string
         vehicleId:
           type: integer
         pickupAt:
@@ -4160,6 +4175,7 @@ components:
           type: string
       required:
         - holdId
+        - holdToken
         - vehicleId
         - pickupAt
         - returnAt
@@ -4722,6 +4738,7 @@ components:
       type: object
       properties:
         holdId: { type: integer }
+        holdToken: { type: string }
         vehicleId: { type: integer }
         pickupLocation: { type: string }
         returnLocation: { type: string }
@@ -4744,7 +4761,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CreateReservationAddonBody"
-      required: [holdId, vehicleId, pickupLocation, returnLocation, driver, marketingConsent]
+      required: [holdId, holdToken, vehicleId, pickupLocation, returnLocation, driver, marketingConsent]
 
     RentalRequestOfferInput:
       type: object

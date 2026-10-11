@@ -846,6 +846,10 @@ export interface RentalHold {
   expired: boolean;
 }
 
+export type CreatedRentalHold = RentalHold & {
+  holdToken: string;
+};
+
 export type RentalReservationWithPricing = RentalReservation & {
   pricing?: RentalPriceBreakdown;
 };
@@ -862,7 +866,6 @@ export interface CreateHoldBody {
   pickupLocation?: string;
   returnLocation?: string;
   addons?: CreateReservationAddonBody[];
-  sessionToken?: string;
 }
 
 export interface CreateReservationDriverBody {
@@ -904,6 +907,7 @@ export type CreateReservationBodyAdditionalDriversItem = {
 
 export interface CreateReservationBody {
   holdId: number;
+  holdToken: string;
   vehicleId: number;
   pickupAt: string;
   returnAt: string;
@@ -1257,6 +1261,7 @@ export const RentalRequestInputLocale = {
 
 export interface RentalRequestInput {
   holdId: number;
+  holdToken: string;
   vehicleId: number;
   pickupLocation: string;
   returnLocation: string;

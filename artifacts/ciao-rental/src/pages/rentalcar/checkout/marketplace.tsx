@@ -71,7 +71,7 @@ export function MarketplaceCheckout() {
   const remaining = draft?.heldUntil ? Math.max(0, Math.ceil((new Date(draft.heldUntil).getTime() - now) / 60000)) : 0;
 
   async function submit(driver: Driver) {
-    if (!draft || !draft.holdId || expired || busy) return;
+    if (!draft || !draft.holdId || !draft.holdToken || expired || busy) return;
     if (showExtra && (!extra.fullName.trim() || !extra.email.trim() || !extra.phone.trim())) {
       setError(ja ? "追加運転者の氏名、メールアドレス、電話番号を入力してください。" : "Enter the additional driver's name, email and phone."); return;
     }
@@ -80,7 +80,7 @@ export function MarketplaceCheckout() {
     try {
       updateDraft({ driver });
       const result = await createRentalRequest({
-        holdId: draft.holdId, vehicleId: draft.vehicleId, pickupLocation: draft.pickupLocation,
+        holdId: draft.holdId, holdToken: draft.holdToken, vehicleId: draft.vehicleId, pickupLocation: draft.pickupLocation,
         returnLocation: draft.returnLocation, driver,
         additionalDrivers: showExtra ? [extra] : undefined,
         travelNotes: notes.trim() || undefined, marketingConsent: consent,

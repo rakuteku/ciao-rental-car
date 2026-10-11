@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { createHoldToken, hashHoldToken, holdTokenSchema } from "../lib/hold-token";
 import { eq, and, isNull, desc, sql, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
@@ -54,7 +55,7 @@ function serializeCustomerReservation(res: typeof rentalReservationsTable.$infer
 }
 
 function serializeHold(hold: typeof rentalReservationHoldsTable.$inferSelect) {
-  const { sessionToken: _sessionToken, reservationId: _reservationId, ...publicHold } = hold;
+  const { sessionToken: _sessionToken, holdTokenHash: _holdTokenHash, reservationId: _reservationId, ...publicHold } = hold;
   return {
     ...publicHold,
     pickupAt: hold.pickupAt.toISOString(),
@@ -79,7 +80,6 @@ const HoldSchema = z.object({
       }),
     )
     .optional(),
-  sessionToken: z.string().optional(),
 });
 
 router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
@@ -111,7 +111,7 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
   const vehicleId = body.data.vehicleId;
 
   const holdExpiryMinutes = await getHoldExpiryMinutes();
-  (req.session as typeof req.session & { rentalHoldSession?: boolean }).rentalHoldSession = true;
+  const holdToken = createHoldToken();
 
   let hold: typeof rentalReservationHoldsTable.$inferSelect;
   try {
@@ -161,7 +161,7 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
           pickupAt,
           returnAt,
           heldUntil,
-          sessionToken: req.sessionID,
+          holdTokenHash: hashHoldToken(holdToken),
         })
         .returning();
 
@@ -173,7 +173,7 @@ router.post("/rental/reservations/hold", async (req, res): Promise<void> => {
     return;
   }
 
-  res.status(201).json({ ...serializeHold(hold), holdId: hold.id, expired: false });
+  res.status(201).json({ ...serializeHold(hold), holdId: hold.id, holdToken, expired: false });
 });
 
 router.get("/rental/reservations/holds/:holdId", async (req, res): Promise<void> => {
@@ -184,10 +184,16 @@ router.get("/rental/reservations/holds/:holdId", async (req, res): Promise<void>
     return;
   }
 
+  const token = holdTokenSchema.safeParse(req.get("x-hold-token"));
+  if (!token.success) {
+    res.status(400).json({ error: "Invalid hold token" });
+    return;
+  }
+
   const [hold] = await db
     .select()
     .from(rentalReservationHoldsTable)
-    .where(and(eq(rentalReservationHoldsTable.id, holdId), eq(rentalReservationHoldsTable.sessionToken, req.sessionID)));
+    .where(and(eq(rentalReservationHoldsTable.id, holdId), eq(rentalReservationHoldsTable.holdTokenHash, hashHoldToken(token.data))));
 
   if (!hold) {
     res.status(404).json({ error: "Hold not found" });
@@ -203,6 +209,7 @@ router.get("/rental/reservations/holds/:holdId", async (req, res): Promise<void>
 
 const CreateReservationSchema = z.object({
   holdId: z.coerce.number().int(),
+  holdToken: holdTokenSchema,
   vehicleId: z.coerce.number().int(),
   pickupLocation: z.string().min(1),
   returnLocation: z.string().min(1),
@@ -272,7 +279,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
   const [preHold] = await db
     .select()
     .from(rentalReservationHoldsTable)
-    .where(and(eq(rentalReservationHoldsTable.id, body.data.holdId), eq(rentalReservationHoldsTable.sessionToken, req.sessionID)));
+    .where(and(eq(rentalReservationHoldsTable.id, body.data.holdId), eq(rentalReservationHoldsTable.holdTokenHash, hashHoldToken(body.data.holdToken))));
 
   if (!preHold || preHold.vehicleId !== vehicleId || preHold.releasedAt != null) {
     res.status(400).json({ error: "Invalid or expired hold" });
@@ -297,7 +304,7 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
       const [hold] = await tx
         .select()
         .from(rentalReservationHoldsTable)
-        .where(and(eq(rentalReservationHoldsTable.id, body.data.holdId), eq(rentalReservationHoldsTable.sessionToken, req.sessionID)));
+        .where(and(eq(rentalReservationHoldsTable.id, body.data.holdId), eq(rentalReservationHoldsTable.holdTokenHash, hashHoldToken(body.data.holdToken))));
 
       if (!hold || hold.vehicleId !== vehicleId || hold.releasedAt != null) {
         const err = new Error("Invalid or expired hold") as Error & { status: number };
