@@ -40,6 +40,7 @@ export interface SeoMetaFields {
   ogTitle: string;
   ogDescription: string;
   ogImage: string;
+  robots?: string;
 }
 
 export function applySeoMeta(seo: SeoMetaFields | undefined) {
@@ -52,6 +53,7 @@ export function applySeoMeta(seo: SeoMetaFields | undefined) {
   setMetaTag("property", "og:title", seo.ogTitle);
   setMetaTag("property", "og:description", seo.ogDescription);
   setMetaTag("property", "og:image", seo.ogImage);
+  setMetaTag("name", "robots", seo.robots ?? "index,follow");
 }
 
 export function useSeoMeta(page: string) {

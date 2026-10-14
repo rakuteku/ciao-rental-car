@@ -21,6 +21,8 @@ import { Ledger, TripRecordSummary } from "@/components/rental/TripWorkflow";
 import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
 import { usesMarketplaceExceptions } from "@/lib/rental-exception-rollout.mjs";
 import { formatTokyo } from "@/lib/rental-marketplace";
+import { rentalReservationStatusLabel } from "@/lib/rental-localization";
+import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 
 const copy = {
   en: { loading: "Loading booking details...", missing: "Booking not found or the account does not match.", booking: "Booking", itinerary: "Itinerary details", pickup: "Pickup", return: "Return", payment: "Payment summary", base: "Base rate", addons: "Add-ons", taxes: "Insurance, taxes & fees", total: "Booking total", upload: "Upload ID", required: "Required before pickup.", documentType: "Document type", passport: "Passport", licence: "Driver's licence", internationalLicence: "International driving permit", driver: "Authorized driver", selectDriver: "Select driver", submit: "Submit document", cancel: "Cancel booking", cancellationFee: "Cancellation fees may apply.", trip: "Trip condition & receipt", tripNote: "Inspection evidence and ledger entries are shown as recorded. A provisional amount is not a collected payment.", provisional: "Provisional charges - not collected", operator: "Rental operator contact" },
@@ -33,6 +35,14 @@ export function MyBookingDetail() {
   const id = Number(params.id);
   const { language } = useLanguage();
   const t = copy[language];
+  useInlineSeoMeta({
+    metaTitle: `${t.booking}${Number.isInteger(id) ? ` #${id}` : ""} | CIAO Rental Car`,
+    metaDescription: t.itinerary,
+    ogTitle: t.booking,
+    ogDescription: t.itinerary,
+    ogImage: "",
+    robots: "noindex,nofollow",
+  });
   
   const { data: res, isLoading } = useMyBookingDetail(id);
   const docMut = useSubmitBookingDocuments();
@@ -135,7 +145,7 @@ export function MyBookingDetail() {
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-serif font-bold text-primary">{t.booking} #{res.id}</h1>
             <Badge variant={res.status === 'confirmed' ? 'default' : res.status === 'cancelled' ? 'destructive' : 'secondary'} className="text-sm">
-              {res.status.toUpperCase()}
+              {rentalReservationStatusLabel(res.status, language)}
             </Badge>
           </div>
           <p className="text-muted-foreground">{res.driver?.fullName} • {res.driver?.email}</p>
