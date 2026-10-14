@@ -51,13 +51,6 @@ test("customer session and hold token survive API restart", async () => {
   const ids = {};
   let child;
   try {
-    // API startup requires the three legacy catalog cars even in a fresh database.
-    for (const [name, price] of [["Alphard", 18000], ["Vellfire", 20000], ["Sienta", 9800]]) {
-      const { rowCount } = await pool.query("SELECT 1 FROM cars WHERE name=$1", [name]);
-      if (!rowCount) await pool.query(
-        "INSERT INTO cars(name,passenger_capacity,price_per_day) VALUES($1,7,$2)", [name, price],
-      );
-    }
     child = await startApi();
     const { rows: [platform] } = await pool.query("SELECT id FROM rental_operators WHERE is_platform=true LIMIT 1");
     const { rows: [vehicle] } = await pool.query(
