@@ -19,35 +19,6 @@ async function runPsql(query) {
   ]);
 }
 
-async function insertMissingLegacyCars() {
-  const cars = [
-    ["Alphard", 6, 18000],
-    ["Vellfire", 6, 20000],
-    ["Sienta", 6, 9800],
-  ];
-  const insertedIds = [];
-
-  for (const [name, passengerCapacity, pricePerDay] of cars) {
-    const { stdout } = await runPsql(
-      `INSERT INTO cars (name, passenger_capacity, price_per_day)\n` +
-      `SELECT '${name}', ${passengerCapacity}, ${pricePerDay}\n` +
-      `WHERE NOT EXISTS (SELECT 1 FROM cars WHERE name = '${name}')\n` +
-      "RETURNING id;",
-    );
-    const returnedId = stdout.trim();
-    if (returnedId) {
-      const id = Number(returnedId);
-      if (Number.isInteger(id)) insertedIds.push(id);
-    }
-  }
-
-  return async () => {
-    for (const id of insertedIds) {
-      await runPsql(`DELETE FROM cars WHERE id = ${id};`);
-    }
-  };
-}
-
 async function deleteCustomerAccount(email) {
   await runPsql(`DELETE FROM rental_customer_accounts WHERE email = '${email}';`);
 }
@@ -82,7 +53,6 @@ function responseCookies(response) {
 
 test("production proxy trust preserves the admin session cookie", async () => {
   assert.ok(process.env.DATABASE_URL, "DATABASE_URL is required for the API server test");
-  const removeLegacyCars = await insertMissingLegacyCars();
 
   const child = spawn("node", ["dist/index.mjs"], {
     cwd: new URL("..", import.meta.url),
@@ -173,13 +143,11 @@ test("production proxy trust preserves the admin session cookie", async () => {
       child.kill("SIGTERM");
       await closed;
     }
-    await removeLegacyCars();
   }
 });
 
 test("customer login regenerates the session and logout destroys it", async () => {
   assert.ok(process.env.DATABASE_URL, "DATABASE_URL is required for the API server test");
-  const removeLegacyCars = await insertMissingLegacyCars();
   const email = `customer-session-${process.pid}-${Date.now()}@example.test`;
   const password = "customer-session-password";
   const child = spawn("node", ["dist/index.mjs"], {
@@ -237,6 +205,5 @@ test("customer login regenerates the session and logout destroys it", async () =
       await closed;
     }
     await deleteCustomerAccount(email);
-    await removeLegacyCars();
   }
 });
