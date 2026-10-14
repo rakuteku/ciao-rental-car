@@ -50,11 +50,12 @@ function policyText(snapshot: unknown) {
   return typeof snapshot === "string" ? snapshot : JSON.stringify(snapshot, null, 2);
 }
 
-export function RentalExceptionsPanel({ reservationId, scope, operatorContact, reservationStatus }: {
+export function RentalExceptionsPanel({ reservationId, scope, operatorContact, reservationStatus, language = "en" }: {
   reservationId: number;
   scope: RentalExceptionScope;
   operatorContact?: Contact;
   reservationStatus?: string;
+  language?: "en" | "ja" | "zh-TW";
 }) {
   const customer = scope === "customer";
   const query = useRentalExceptions(reservationId, scope);
@@ -240,7 +241,7 @@ export function RentalExceptionsPanel({ reservationId, scope, operatorContact, r
           </dl>
           {cancelQuote.manualReviewRequired && <p className="rounded border border-amber-300 bg-amber-50 p-2 text-sm text-amber-950">This quote requires operator review; the final refund will be determined by the operator.</p>}
           {cancelQuote.policySnapshot != null && <details className="text-sm"><summary className="cursor-pointer font-medium">Cancellation policy snapshot</summary><pre className="mt-2 whitespace-pre-wrap rounded bg-background p-2 text-xs">{policyText(cancelQuote.policySnapshot)}</pre></details>}
-          {cancelQuote.expiresAt && <p className="text-xs text-muted-foreground">Quote expires {formatTokyo(cancelQuote.expiresAt)}</p>}
+          {cancelQuote.expiresAt && <p className="text-xs text-muted-foreground">Quote expires {formatTokyo(cancelQuote.expiresAt, language)}</p>}
           <label className="flex items-start gap-2 text-sm"><input data-testid="check-cancellation-consent" type="checkbox" className="mt-1" checked={cancelConsent} onChange={event => setCancelConsent(event.target.checked)} /><span>I have reviewed the reason, refundable amount, retained amount, and policy and explicitly accept this cancellation quote.</span></label>
           {!cancelQuote.confirmation && <button type="button" data-testid="button-confirm-cancellation" disabled={!cancellationConsentValid || action.isPending} onClick={() => runAction(customerPath("cancellation/confirm"), { quoteId: cancelQuote.quoteId, accepted: true }, result => { setCancelConsent(false); setCancelQuote({ ...cancelQuote, confirmation: result }); })} className="min-h-10 rounded-md bg-destructive px-4 text-sm font-semibold text-destructive-foreground disabled:opacity-50">{action.isPending ? "Submitting…" : "Confirm cancellation"}</button>}
           {cancelQuote.confirmation && <p data-testid="status-cancellation-confirmation" role="status" className="text-sm">
@@ -285,7 +286,7 @@ export function RentalExceptionsPanel({ reservationId, scope, operatorContact, r
                       <dt>Additional amount</dt><dd className="text-right">{money(offer.alternativeAdditionalAmount)}</dd>
                     </dl>
                     {offer.policySnapshot && <details><summary className="cursor-pointer font-medium">Offer terms</summary><pre className="mt-2 whitespace-pre-wrap rounded bg-muted p-2 text-xs">{policyText(offer.policySnapshot)}</pre></details>}
-                    <p className="text-xs text-muted-foreground">Offer expires {offer.expiresAt ? formatTokyo(offer.expiresAt) : "at an unspecified time"}.</p>
+                    <p className="text-xs text-muted-foreground">Offer expires {offer.expiresAt ? formatTokyo(offer.expiresAt, language) : "at an unspecified time"}.</p>
                     {selectedChoice ? <p role="status" className="rounded bg-muted p-2">You selected {selectedChoice === "full_refund" ? "the full refund" : "the alternate vehicle"}. No other choice can be made for this offer.</p> : <>
                       <div className="flex flex-wrap gap-2">
                         <button type="button" data-testid={`button-accept-full-refund-${quoteId}`} disabled={action.isPending} onClick={() => runAction(customerPath("cancellation/confirm"), { quoteId: Number(quoteId), accepted: true, choice: "full_refund" }, result => {
@@ -346,17 +347,17 @@ export function RentalExceptionsPanel({ reservationId, scope, operatorContact, r
         {extensionQuote && <div className="space-y-3 rounded-md bg-muted/50 p-3" data-testid="panel-extension-quote">
           <p className="font-medium">Extension quote</p>
           <dl className="grid grid-cols-2 gap-2 text-sm">
-            <dt>Current return</dt><dd className="text-right">{extensionQuote.oldReturnAt ? formatTokyo(extensionQuote.oldReturnAt) : "—"}</dd>
-            <dt>New return</dt><dd className="text-right">{extensionQuote.newReturnAt ? formatTokyo(extensionQuote.newReturnAt) : "—"}</dd>
+            <dt>Current return</dt><dd className="text-right">{extensionQuote.oldReturnAt ? formatTokyo(extensionQuote.oldReturnAt, language) : "—"}</dd>
+            <dt>New return</dt><dd className="text-right">{extensionQuote.newReturnAt ? formatTokyo(extensionQuote.newReturnAt, language) : "—"}</dd>
             <dt>Additional amount</dt><dd className="text-right font-semibold">{money(extensionQuote.additionalAmount)}</dd>
           </dl>
           {extensionQuote.policySnapshot != null && <details className="text-sm"><summary className="cursor-pointer font-medium">Extension policy snapshot</summary><pre className="mt-2 whitespace-pre-wrap rounded bg-background p-2 text-xs">{policyText(extensionQuote.policySnapshot)}</pre></details>}
-          {extensionQuote.expiresAt && <p className="text-xs text-muted-foreground">Quote expires {formatTokyo(extensionQuote.expiresAt)}</p>}
+          {extensionQuote.expiresAt && <p className="text-xs text-muted-foreground">Quote expires {formatTokyo(extensionQuote.expiresAt, language)}</p>}
           {extensionApprovalQuery.isLoading && <p role="status" className="text-sm">Checking operator approval…</p>}
           {extensionApprovalQuery.isError && <div role="alert" className="space-y-2 text-sm text-destructive"><p>{extensionApprovalQuery.error instanceof Error ? extensionApprovalQuery.error.message : "Could not verify operator approval."} Checkout is disabled.</p><button type="button" data-testid="button-retry-extension-approval" onClick={() => void extensionApprovalQuery.refetch()} className="min-h-9 rounded-md border px-3">Refresh approval status</button></div>}
           {!extensionApprovalQuery.isLoading && !extensionApprovalQuery.isError && !extensionApprovalShapeValid && <p role="alert" className="text-sm text-destructive">Operator approval response is incomplete or does not match this quote version. Checkout is disabled; refresh status or request a fresh quote.</p>}
           {extensionApprovalShapeValid && extensionApproval?.approvalStatus === "pending" && <p role="status" data-testid="status-extension-approval-pending" className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">Waiting for operator approval of quote version {extensionQuote.quoteVersion}. This status refreshes automatically.</p>}
-          {extensionApprovalShapeValid && extensionApproval?.approvalStatus === "approved" && extensionApprovalReady && <p role="status" data-testid="status-extension-approved" className="rounded border border-green-300 bg-green-50 p-3 text-sm text-green-950">Operator approved quote version {extensionApproval.quoteVersion}. Approved until {formatTokyo(extensionApproval.expiresAt)}.</p>}
+          {extensionApprovalShapeValid && extensionApproval?.approvalStatus === "approved" && extensionApprovalReady && <p role="status" data-testid="status-extension-approved" className="rounded border border-green-300 bg-green-50 p-3 text-sm text-green-950">Operator approved quote version {extensionApproval.quoteVersion}. Approved until {formatTokyo(extensionApproval.expiresAt, language)}.</p>}
           {extensionNeedsRequote && extensionQuote && <div className="space-y-2 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
             <p>Approval is stale or the quote expired. Checkout is disabled.</p>
             <button type="button" data-testid="button-reset-extension-quote" onClick={() => { setExtensionQuote(null); setExtensionConsent(false); setCheckoutUrl(""); setExtensionPaymentStatus(""); }} className="min-h-9 rounded-md border border-amber-700 px-3">Request a fresh quote</button>
@@ -415,7 +416,7 @@ export function RentalExceptionsPanel({ reservationId, scope, operatorContact, r
               const quoteId = String(offer.quoteId);
               return <div key={quoteId} data-testid={`alternative-offer-${quoteId}`} className="space-y-2 rounded-md border p-3 text-sm">
                 <p className="font-semibold">{offer.vehicleName} · Total {money(offer.total)}{Number(offer.additionalAmount) ? ` · Additional ${money(offer.additionalAmount)}` : ""}</p>
-                {offer.expiresAt && <p className="text-xs text-muted-foreground">Offer expires {formatTokyo(offer.expiresAt)}</p>}
+                {offer.expiresAt && <p className="text-xs text-muted-foreground">Offer expires {formatTokyo(offer.expiresAt, language)}</p>}
                 {offer.policySnapshot && <details><summary className="cursor-pointer font-medium">Offer terms</summary><pre className="mt-2 whitespace-pre-wrap rounded bg-muted p-2 text-xs">{policyText(offer.policySnapshot)}</pre></details>}
                 {!alternativeCheckoutUrls[quoteId] && !alternativeAcceptedStatuses[quoteId] && <button type="button" data-testid={`button-accept-alternative-${quoteId}`} disabled={action.isPending} onClick={() => runAction(customerPath("alternatives/accept"), { quoteId: Number(quoteId), accepted: true }, result => {
                   const checkout = String(result?.checkoutUrl ?? "");
@@ -534,7 +535,7 @@ export function RentalExceptionsPanel({ reservationId, scope, operatorContact, r
           <p>{operatorCancellationOffer.policyReason}</p>
           <p>Full refund offered: {money(operatorCancellationOffer.fullRefundAmount)}</p>
           <p>Alternative: {operatorCancellationOffer.alternative?.vehicleName ?? "Unavailable"} · total {money(operatorCancellationOffer.alternative?.total)} · additional {money(operatorCancellationOffer.alternative?.additionalAmount)}</p>
-          {operatorCancellationOffer.expiresAt && <p>Expires {formatTokyo(operatorCancellationOffer.expiresAt)}</p>}
+          {operatorCancellationOffer.expiresAt && <p>Expires {formatTokyo(operatorCancellationOffer.expiresAt, language)}</p>}
           <p>No refund has been initiated.</p>
         </div>}
       </article>}
@@ -655,12 +656,12 @@ export function RentalExceptionsPanel({ reservationId, scope, operatorContact, r
                 return <article key={quoteId} data-testid={`partner-extension-quote-${quoteId}`} className="space-y-2 rounded-md border p-3 text-sm">
                   {!validQuote ? <p role="alert" className="text-destructive">Extension quote details are incomplete; approval is disabled.</p> : <>
                     <p className="font-semibold">Extension quote #{quoteId} · {quote.approvalStatus}</p>
-                    <p>Return: {quote.oldReturnAt ? formatTokyo(quote.oldReturnAt) : "—"} → {quote.newReturnAt ? formatTokyo(quote.newReturnAt) : "—"}</p>
+                    <p>Return: {quote.oldReturnAt ? formatTokyo(quote.oldReturnAt, language) : "—"} → {quote.newReturnAt ? formatTokyo(quote.newReturnAt, language) : "—"}</p>
                     <p>Additional amount: {money(quote.additionalAmount)}</p>
                     <p>Quote version: {quote.quoteVersion}</p>
-                    <p>Expires {formatTokyo(quote.expiresAt)}</p>
+                    <p>Expires {formatTokyo(quote.expiresAt, language)}</p>
                     {partnerExtensionRequoteRequired[quoteId] && <p role="alert" className="text-destructive">This quote changed or is stale (`requoteRequired`). Ask the customer to request a fresh extension quote.</p>}
-                    {quote.approvalStatus === "approved" && <p role="status">Approved{quote.approvedAt ? ` at ${formatTokyo(quote.approvedAt)}` : ""}. Checkout still requires the customer’s consent.</p>}
+                    {quote.approvalStatus === "approved" && <p role="status">Approved{quote.approvedAt ? ` at ${formatTokyo(quote.approvedAt, language)}` : ""}. Checkout still requires the customer’s consent.</p>}
                     {quote.approvalStatus === "stale" || (quote.approvalStatus === "pending" && !livePending) ? <p role="alert" className="text-amber-900">This extension quote is expired or no longer approvable. Ask the customer to request a fresh quote.</p> : null}
                     {livePending && !partnerExtensionRequoteRequired[quoteId] && <button type="button" data-testid={`button-approve-extension-${quoteId}`} disabled={action.isPending} onClick={() => runAction(`/partner/rental/exceptions/reservations/${reservationId}/extensions/${encodeURIComponent(quoteId)}/approve`, { quoteVersion: quote.quoteVersion }, result => {
                       const validApproval = Number(result?.quoteId) === Number(quote.quoteId)
@@ -715,7 +716,7 @@ export function RentalExceptionsPanel({ reservationId, scope, operatorContact, r
       {incidents.map((incident, index) => <article key={incident.id ?? index} data-testid={`incident-record-${incident.id ?? index}`} className="space-y-3 rounded-md border p-3 text-sm">
         <div>
           <p className="font-medium">{incident.category ?? "Incident"} · {incident.severity ?? "Severity unavailable"} · {incident.status ?? "Reported"}</p>
-          {incident.occurredAt && <p className="mt-1 text-muted-foreground">{formatTokyo(incident.occurredAt)}</p>}
+          {incident.occurredAt && <p className="mt-1 text-muted-foreground">{formatTokyo(incident.occurredAt, language)}</p>}
           <p className="mt-1">{incident.description ?? "Incident details unavailable"}</p>
           {incident.unsafeVehicle && <p className="mt-1 font-semibold text-destructive">Vehicle marked unsafe — platform clearance is required.</p>}
           {incident.customerUpdate && <p className="mt-2 rounded bg-muted p-2">Operator update: {incident.customerUpdate}</p>}
@@ -760,7 +761,7 @@ export function RentalExceptionsPanel({ reservationId, scope, operatorContact, r
     {evidence.length > 0 && <section className="space-y-2 rounded-xl border p-4">
       <h3 className="font-semibold">Private evidence on file</h3>
       <ul className="space-y-2">{evidence.map((item: any, index: number) => <li key={item.token ?? index} data-testid={`exception-evidence-${item.token ?? index}`} className="flex flex-wrap items-center justify-between gap-2 rounded border p-3 text-sm">
-        <span>{item.evidenceKind} · {item.contentType}{item.claimId ? ` · claim #${item.claimId}` : ""}{item.claimItemId ? ` · item #${item.claimItemId}` : ""}{item.incidentId ? ` · incident #${item.incidentId}` : ""}{item.uploadedAt ? ` · ${formatTokyo(item.uploadedAt)}` : ""}</span>
+        <span>{item.evidenceKind} · {item.contentType}{item.claimId ? ` · claim #${item.claimId}` : ""}{item.claimItemId ? ` · item #${item.claimItemId}` : ""}{item.incidentId ? ` · incident #${item.incidentId}` : ""}{item.uploadedAt ? ` · ${formatTokyo(item.uploadedAt, language)}` : ""}</span>
         {item.contentPath && <a data-testid={`link-exception-evidence-${item.token ?? index}`} className="font-medium underline" href={`/api${item.contentPath}`} target="_blank" rel="noreferrer">Open private evidence</a>}
       </li>)}</ul>
     </section>}
@@ -769,7 +770,7 @@ export function RentalExceptionsPanel({ reservationId, scope, operatorContact, r
       <h3 className="font-semibold">Request timeline</h3>
       <ol className="space-y-2">{timeline.map((entry, index) => <li key={entry.id ?? index} data-testid={`exception-timeline-entry-${entry.id ?? index}`} className="rounded-md border p-3 text-sm">
         <p className="font-medium">{entry.title ?? entry.eventType ?? entry.event ?? entry.type ?? entry.status ?? "Update"}</p>
-        {(entry.createdAt ?? entry.occurredAt) && <p className="text-xs text-muted-foreground">{formatTokyo(entry.createdAt ?? entry.occurredAt)}</p>}
+        {(entry.createdAt ?? entry.occurredAt) && <p className="text-xs text-muted-foreground">{formatTokyo(entry.createdAt ?? entry.occurredAt, language)}</p>}
         {entry.description && <p className="mt-1">{entry.description}</p>}
         {entry.details && <pre className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{policyText(entry.details)}</pre>}
       </li>)}</ol>

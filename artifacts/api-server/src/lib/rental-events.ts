@@ -91,10 +91,12 @@ const TEMPLATES = {
   pickup_reminder: (data) => ({
     en: { subject: `Pickup reminder for rental #${data.bookingId}`, body: data.message ? String(data.message) : data.scheduledAt ? `Your CIAO rental #${data.bookingId} pickup is scheduled for ${data.scheduledAt}.` : `Your CIAO rental #${data.bookingId} starts in 24 hours.` },
     ja: { subject: `レンタル #${data.bookingId} の出発リマインダー`, body: data.scheduledAt ? `レンタル #${data.bookingId} の出発予定日時は ${data.scheduledAt} です。` : `レンタル #${data.bookingId} の開始まで24時間です。` },
+    "zh-TW": { subject: `租車 #${data.bookingId} 取車提醒`, body: data.scheduledAt ? `您的 CIAO 租車 #${data.bookingId} 預定取車時間為 ${data.scheduledAt}。` : `您的 CIAO 租車 #${data.bookingId} 將在 24 小時後開始。` },
   }),
   return_reminder: (data) => ({
     en: { subject: `Return reminder for rental #${data.bookingId}`, body: data.message ? String(data.message) : data.scheduledAt ? `Your CIAO rental #${data.bookingId} is due back at ${data.scheduledAt}.` : `Your CIAO rental #${data.bookingId} is due back in 24 hours.` },
     ja: { subject: `レンタル #${data.bookingId} の返却リマインダー`, body: data.scheduledAt ? `レンタル #${data.bookingId} の返却予定日時は ${data.scheduledAt} です。` : `レンタル #${data.bookingId} の返却期限まで24時間です。` },
+    "zh-TW": { subject: `租車 #${data.bookingId} 還車提醒`, body: data.scheduledAt ? `您的 CIAO 租車 #${data.bookingId} 預定還車時間為 ${data.scheduledAt}。` : `您的 CIAO 租車 #${data.bookingId} 將在 24 小時後到期還車。` },
   }),
   overdue_alert: (data) => ({
     en: { subject: `Rental #${data.bookingId} is overdue`, body: `Your CIAO rental #${data.bookingId} is overdue. Please contact us.` },

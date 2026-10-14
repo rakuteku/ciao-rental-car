@@ -254,7 +254,7 @@ export function MyBookingDetail() {
 
       {isMarketplaceConfigLoading && <p role="status" className="rounded-md border p-3 text-sm text-muted-foreground">Checking availability of rental support requests…</p>}
       {isMarketplaceConfigError && <p role="alert" className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">Rental support requests are unavailable because rollout status could not be checked. Existing booking options remain available.</p>}
-      {marketplaceBookingEnabled && <RentalExceptionsPanel reservationId={id} scope="customer" reservationStatus={res.status} operatorContact={res.trip?.operatorContact ?? res.operatorContact} />}
+      {marketplaceBookingEnabled && <RentalExceptionsPanel reservationId={id} scope="customer" reservationStatus={res.status} operatorContact={res.trip?.operatorContact ?? res.operatorContact} language={language} />}
 
       {res.trip && <section data-testid={`section-trip-receipt-${res.id}`} className="space-y-5 rounded-xl border bg-card p-5 shadow-sm">
         <div>

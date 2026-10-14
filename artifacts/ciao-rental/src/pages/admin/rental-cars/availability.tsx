@@ -37,7 +37,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { tokyoParts } from "@/lib/rental-marketplace";
+import { tokyoInstant, tokyoParts } from "@/lib/rental-marketplace";
 import {
   Sheet,
   SheetContent,
@@ -116,6 +116,11 @@ function datetimeInputValue(value: Date) {
   return `${date}T${time}`;
 }
 
+function datetimeInputInstant(value: string) {
+  const [date, time] = value.split("T");
+  return tokyoInstant(date, time);
+}
+
 function readInitialVehicleId() {
   const raw = new URLSearchParams(window.location.search).get("vehicleId");
   const id = raw ? Number(raw) : NaN;
@@ -172,15 +177,17 @@ function BlockForm({
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!vehicleIds.length || !start || !end) return;
-    if (new Date(end) <= new Date(start)) return;
+    const startAt = datetimeInputInstant(start);
+    const endAt = datetimeInputInstant(end);
+    if (new Date(endAt) <= new Date(startAt)) return;
     onSave({
       vehicleIds,
-      start: new Date(start).toISOString(),
-      end: new Date(end).toISOString(),
+      start: startAt,
+      end: endAt,
       reason,
       notes,
       isRecurring,
-      recurrenceRule: isRecurring ? `FREQ=${frequency.toUpperCase()};UNTIL=${new Date(`${repeatEnd}T23:59`).toISOString()}` : undefined,
+      recurrenceRule: isRecurring ? `FREQ=${frequency.toUpperCase()};UNTIL=${datetimeInputInstant(`${repeatEnd}T23:59`)}` : undefined,
       applyFuture,
     });
   }
@@ -303,7 +310,9 @@ function ManualReservationSheet({
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const id = Number(vehicleId);
-    if (!id || new Date(end) <= new Date(start)) {
+    const pickupAt = datetimeInputInstant(start);
+    const returnAt = datetimeInputInstant(end);
+    if (!id || new Date(returnAt) <= new Date(pickupAt)) {
       toast({ title: "Check reservation dates", description: "Choose a vehicle and an end time after the pickup time.", variant: "destructive" });
       return;
     }
@@ -312,7 +321,7 @@ function ManualReservationSheet({
       const holdResponse = await fetch("/api/rental/reservations/hold", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vehicleId: id, pickupAt: new Date(start).toISOString(), returnAt: new Date(end).toISOString() }),
+        body: JSON.stringify({ vehicleId: id, pickupAt, returnAt }),
       });
       const hold = await holdResponse.json() as { holdId?: number; holdToken?: string; error?: string };
       if (!holdResponse.ok || !hold.holdId || !hold.holdToken) throw new Error(hold.error ?? "Unable to reserve this time");
@@ -675,7 +684,7 @@ export function AdminRentalAvailability() {
           <Button variant="outline" size="icon" aria-label="Previous period" onClick={() => movePeriod(-1)}><ChevronLeft className="h-4 w-4" /></Button>
           <Button variant="outline" size="sm" onClick={() => setAnchorDate(startOfWeek(new Date()))}>Today</Button>
           <Button variant="outline" size="icon" aria-label="Next period" onClick={() => movePeriod(1)}><ChevronRight className="h-4 w-4" /></Button>
-          <Input type="date" value={datetimeInputValue(anchorDate).slice(0, 10)} onChange={(event) => event.target.value && setAnchorDate(startOfWeek(new Date(`${event.target.value}T12:00`)))} className="ml-2 w-36" aria-label="Jump to date" />
+          <Input type="date" value={datetimeInputValue(anchorDate).slice(0, 10)} onChange={(event) => event.target.value && setAnchorDate(startOfWeek(new Date(tokyoInstant(event.target.value, "12:00"))))} className="ml-2 w-36" aria-label="Jump to date" />
         </div>
         <div className="text-center font-semibold">{title}</div>
         <div className="flex rounded-md border p-0.5">
