@@ -1,125 +1,42 @@
 import { Link, useSearch } from "wouter";
-import { CheckCircle2, MapPin, Upload, QrCode } from "lucide-react";
+import { CheckCircle2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { localizedPath, useLanguage } from "@/lib/language";
+import { localizedPath, useLanguage, type Language } from "@/lib/language";
 import { formatTokyo } from "@/lib/rental-marketplace";
+import { rentalReservationStatusLabel } from "@/lib/rental-localization";
+import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
+
+const copy = {
+  en: { missingTitle: "No booking confirmation found", missingBody: "This confirmation link is missing or has expired. You can look up an existing booking or search for another vehicle.", myBookings: "My Bookings", searchVehicles: "Search Vehicles", receivedTitle: "Booking received", confirmedTitle: "Car booking confirmed", receivedBody: "Thank you for choosing CIAO. We received your booking and will confirm its next status separately.", confirmedBody: "Thank you for choosing CIAO. Your booking is confirmed and ready for pickup.", reference: "Booking reference", status: "Booking status", vehicleFallback: "Your CIAO vehicle", pickup: "Pickup", return: "Return", seeEmail: "See booking email", addons: "Add-ons", addonsTotal: "Add-ons total", paidToday: "Paid today", outstanding: "Outstanding at pickup", stayPlanning: "Stay planning", roomSeparately: "Room availability is confirmed separately by staff.", nextSteps: "Next steps", documents: "Prepare your driver’s licence and passport or photo ID.", upload: "Upload any requested documents in My Bookings.", whatNext: "We will send your booking access link by email. Use that link to view or manage this reservation.", uploadDocuments: "Upload documents", returnHome: "Return to Home" },
+  ja: { missingTitle: "予約確認が見つかりません", missingBody: "この確認リンクが無効か期限切れです。既存の予約を検索するか、別の車両をお探しください。", myBookings: "予約を確認", searchVehicles: "車両を探す", receivedTitle: "予約を受け付けました", confirmedTitle: "レンタカーの予約が確定しました", receivedBody: "CIAOをお選びいただきありがとうございます。予約を受け付けました。次の予約状況は別途お知らせします。", confirmedBody: "CIAOをお選びいただきありがとうございます。予約は確定し、貸出の準備ができています。", reference: "予約番号", status: "予約状況", vehicleFallback: "CIAOの車両", pickup: "貸出", return: "返却", seeEmail: "予約メールをご確認ください", addons: "追加オプション", addonsTotal: "追加オプション合計", paidToday: "本日のお支払い", outstanding: "貸出時のお支払い予定額", stayPlanning: "宿泊のご計画", roomSeparately: "客室の空き状況はスタッフが別途確認します。", nextSteps: "次のステップ", documents: "運転免許証とパスポートまたは写真付き身分証明書をご用意ください。", upload: "提出を求められた書類は「予約を確認」からアップロードしてください。", whatNext: "予約の確認・管理用リンクをメールでお送りします。そのリンクからこの予約をご確認いただけます。", uploadDocuments: "書類をアップロード", returnHome: "トップへ戻る" },
+  "zh-TW": { missingTitle: "找不到預訂確認", missingBody: "此確認連結遺失或已過期。您可以查詢現有預訂，或搜尋其他車輛。", myBookings: "我的預訂", searchVehicles: "搜尋車輛", receivedTitle: "已收到預訂", confirmedTitle: "租車預訂已確認", receivedBody: "感謝您選擇 CIAO。我們已收到您的預訂，後續狀態將另行確認。", confirmedBody: "感謝您選擇 CIAO。您的預訂已確認，可準備取車。", reference: "預訂編號", status: "預訂狀態", vehicleFallback: "您的 CIAO 車輛", pickup: "取車", return: "還車", seeEmail: "請查看預訂電子郵件", addons: "加購項目", addonsTotal: "加購項目合計", paidToday: "今日已付", outstanding: "取車時應付餘額", stayPlanning: "住宿規劃", roomSeparately: "客房供應情況將由工作人員另行確認。", nextSteps: "接下來的步驟", documents: "請準備駕駛執照和護照或附照片的身分證明文件。", upload: "請在「我的預訂」中上傳任何要求提交的文件。", whatNext: "我們會透過電子郵件傳送預訂存取連結。請使用該連結查看或管理此預訂。", uploadDocuments: "上傳文件", returnHome: "返回首頁" },
+} satisfies Record<Language, Record<string, string>>;
+
+type Confirmation = {
+  reservation?: { finalTotal?: number; outstanding?: number; id?: number; status?: string };
+  selectedRoom?: { title?: string } | null;
+  pricing?: { addons?: Array<{ addonId: number; name: string; qty: number; totalPrice: number }>; addonsTotal?: number };
+  draft?: { pickupAt?: string; returnAt?: string; pickupLocation?: string; returnLocation?: string };
+  vehicle?: { title?: string };
+};
 
 export function BookingSuccessPage() {
   const search = useSearch();
   const reservationId = Number(new URLSearchParams(search).get("id"));
   const { language } = useLanguage();
+  const t = copy[language];
   const confirmation = (() => {
-    try {
-      return JSON.parse(window.sessionStorage.getItem("ciao_rental_confirmation") ?? "null") as {
-        reservation?: { finalTotal?: number; outstanding?: number; id?: number };
-        selectedRoom?: { title?: string; startingPrice?: number } | null;
-        pricing?: { addons?: Array<{ addonId: number; name: string; qty: number; totalPrice: number }>; addonsTotal?: number };
-        draft?: { pickupAt?: string; returnAt?: string; pickupLocation?: string; returnLocation?: string; documents?: Record<string, string> };
-        vehicle?: { title?: string; image?: string };
-      } | null;
-    } catch {
-      return null;
-    }
+    try { return JSON.parse(window.sessionStorage.getItem("ciao_rental_confirmation") ?? "null") as Confirmation | null; }
+    catch { return null; }
   })();
   const isValidConfirmation = Number.isInteger(reservationId) && reservationId > 0 && confirmation?.reservation?.id === reservationId;
+  const reservationStatus = confirmation?.reservation?.status ?? "pending_payment";
+  const isConfirmed = reservationStatus === "confirmed" || reservationStatus === "awaiting_pickup";
 
-  if (!isValidConfirmation) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center p-6">
-        <div className="max-w-lg w-full rounded-xl border bg-background p-8 text-center shadow-sm">
-          <h1 className="font-serif text-3xl font-bold">No booking confirmation found</h1>
-          <p className="mt-3 text-muted-foreground">
-            This confirmation link is missing or has expired. You can look up an existing booking or search for another vehicle.
-          </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <Link href={localizedPath("/rentalcar/my-bookings", language)}>
-              <Button variant="outline" className="w-full">My Bookings</Button>
-            </Link>
-            <Link href={localizedPath("/rentalcar", language)}>
-              <Button className="w-full">Search Vehicles</Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  useInlineSeoMeta({ metaTitle: `${isConfirmed ? t.confirmedTitle : t.receivedTitle} | CIAO Rental Car`, metaDescription: isConfirmed ? t.confirmedBody : t.receivedBody, ogTitle: isConfirmed ? t.confirmedTitle : t.receivedTitle, ogDescription: isConfirmed ? t.confirmedBody : t.receivedBody, ogImage: "", robots: "noindex,nofollow" });
+
+  if (!isValidConfirmation) return <div className="min-h-[70vh] flex items-center justify-center p-6"><div className="max-w-lg w-full rounded-xl border bg-background p-8 text-center shadow-sm"><h1 className="font-serif text-3xl font-bold">{t.missingTitle}</h1><p className="mt-3 text-muted-foreground">{t.missingBody}</p><div className="mt-6 grid gap-3 sm:grid-cols-2"><Link href={localizedPath("/rentalcar/my-bookings", language)}><Button variant="outline" className="w-full">{t.myBookings}</Button></Link><Link href={localizedPath("/rentalcar", language)}><Button className="w-full">{t.searchVehicles}</Button></Link></div></div></div>;
 
   const bookingNumber = `CIAO-${String(confirmation.reservation?.id).padStart(6, "0")}`;
-
-  return (
-    <div className="min-h-[100dvh] p-4 py-12 relative overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <img
-          src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80"
-          alt="Sapporo winter road"
-          className="w-full h-full object-cover opacity-20"
-        />
-        <div className="absolute inset-0 bg-background/90" />
-      </div>
-
-      <div className="mx-auto max-w-3xl bg-background/95 backdrop-blur-sm rounded-xl p-6 md:p-10 space-y-7 shadow-2xl border border-primary/10 relative z-10 animate-in fade-in zoom-in duration-500">
-        <div className="mx-auto w-20 h-20 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/30">
-          <CheckCircle2 className="w-10 h-10" />
-        </div>
-        <div className="space-y-3 text-center">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold">CIAO Rental Car</p>
-          <h1 className="font-serif text-4xl font-bold tracking-tight">Car Booking Confirmed</h1>
-          <p className="font-mono text-sm text-muted-foreground">Booking reference: {bookingNumber}</p>
-        </div>
-        <p className="text-center text-muted-foreground leading-relaxed">
-           Thank you for choosing CIAO. Your rental car is confirmed. Room availability is confirmed separately by the CIAO team.
-        </p>
-        <div className="grid gap-5 md:grid-cols-[1fr_auto]">
-          <div className="space-y-4 rounded-lg border p-5">
-            <h2 className="font-serif text-xl font-bold">{confirmation?.vehicle?.title ?? "Your CIAO vehicle"}</h2>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-xs uppercase text-muted-foreground">Pickup</p><p>{confirmation?.draft?.pickupAt ? formatTokyo(confirmation.draft.pickupAt, language) : "See booking email"}</p><p className="text-muted-foreground">{confirmation?.draft?.pickupLocation}</p></div>
-              <div><p className="text-xs uppercase text-muted-foreground">Return</p><p>{confirmation?.draft?.returnAt ? formatTokyo(confirmation.draft.returnAt, language) : "See booking email"}</p><p className="text-muted-foreground">{confirmation?.draft?.returnLocation}</p></div>
-            </div>
-             {confirmation?.pricing?.addons && confirmation.pricing.addons.length > 0 && (
-               <div className="border-t pt-4 text-sm">
-                 <p className="mb-2 text-xs uppercase text-muted-foreground">Add-ons</p>
-                 <div className="space-y-1">
-                   {confirmation.pricing.addons.map((addon) => (
-                     <div key={addon.addonId} className="flex justify-between gap-4">
-                       <span>{addon.name} × {addon.qty}</span>
-                       <strong>¥{addon.totalPrice.toLocaleString()}</strong>
-                     </div>
-                   ))}
-                 </div>
-                 <div className="mt-2 flex justify-between border-t pt-2">
-                   <span>Add-ons total</span>
-                   <strong>¥{(confirmation.pricing.addonsTotal ?? 0).toLocaleString()}</strong>
-                 </div>
-               </div>
-             )}
-            <div className="flex justify-between border-t pt-4 text-sm"><span>Paid today</span><strong>¥0</strong></div>
-            <div className="flex justify-between text-sm"><span>Outstanding at pickup</span><strong>¥{(confirmation?.reservation?.outstanding ?? confirmation?.reservation?.finalTotal ?? 0).toLocaleString()}</strong></div>
-             {confirmation.selectedRoom?.title && (
-               <div className="mt-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
-                 <p className="font-semibold">Stay planning</p>
-                 <p className="mt-1">{confirmation.selectedRoom.title}</p>
-                 <p className="mt-1 text-muted-foreground">Room availability is confirmed separately by staff.</p>
-               </div>
-             )}
-            {(confirmation?.reservation as { customerAccessToken?: string } | undefined)?.customerAccessToken && <div className="mt-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm"><p className="font-semibold">Booking access code</p><p className="mt-1 break-all font-mono">{(confirmation?.reservation as { customerAccessToken?: string }).customerAccessToken}</p><p className="mt-1 text-muted-foreground">Keep this code with your booking ID to view or manage your reservation.</p></div>}
-          </div>
-          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border bg-muted/30 p-5 text-center">
-            <div className="grid h-28 w-28 place-items-center bg-[linear-gradient(90deg,#111_10%,transparent_10%,transparent_20%,#111_20%,#111_30%,transparent_30%,transparent_40%,#111_40%,#111_50%,transparent_50%,transparent_60%,#111_60%,#111_70%,transparent_70%,transparent_80%,#111_80%,#111_90%,transparent_90%)]"><QrCode className="h-12 w-12 bg-white p-1" /></div>
-            <span className="text-xs text-muted-foreground">Present this booking QR at pickup</span>
-          </div>
-        </div>
-        <div className="rounded-lg border bg-muted/30 p-5 text-sm">
-          <div className="flex gap-3"><Upload className="h-5 w-5" /><div><h2 className="font-semibold">Documents reminder</h2><p className="mt-1 text-muted-foreground">Bring your driver’s license and passport or photo ID. Upload documents before pickup to speed up collection.</p></div></div>
-        </div>
-        <div className="pt-2 grid gap-3 sm:grid-cols-3">
-           <Link href={`${localizedPath("/rentalcar/my-bookings", language)}?section=documents`}><Button variant="outline" className="w-full">Upload documents</Button></Link>
-           <Link href={localizedPath("/rentalcar/my-bookings", language)}><Button variant="outline" className="w-full">My bookings</Button></Link>
-           <Link href={localizedPath("/rentalcar", language)}>
-            <Button className="w-full" size="lg">Return to Home</Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="min-h-[100dvh] p-4 py-12 relative overflow-hidden"><div className="absolute inset-0 z-0"><img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80" alt="Sapporo winter road" className="w-full h-full object-cover opacity-20" /><div className="absolute inset-0 bg-background/90" /></div><div className="mx-auto max-w-3xl bg-background/95 backdrop-blur-sm rounded-xl p-6 md:p-10 space-y-7 shadow-2xl border border-primary/10 relative z-10 animate-in fade-in zoom-in duration-500"><div className="mx-auto w-20 h-20 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/30"><CheckCircle2 className="w-10 h-10" /></div><div className="space-y-3 text-center"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground font-semibold">CIAO Rental Car</p><h1 className="font-serif text-4xl font-bold tracking-tight">{isConfirmed ? t.confirmedTitle : t.receivedTitle}</h1><p className="font-mono text-sm text-muted-foreground">{t.reference}: {bookingNumber}</p><p className="text-sm font-medium">{t.status}: {rentalReservationStatusLabel(reservationStatus, language)}</p></div><p className="text-center text-muted-foreground leading-relaxed">{isConfirmed ? t.confirmedBody : t.receivedBody}</p><div className="space-y-4 rounded-lg border p-5"><h2 className="font-serif text-xl font-bold">{confirmation.vehicle?.title ?? t.vehicleFallback}</h2><div className="grid grid-cols-2 gap-4 text-sm"><div><p className="text-xs uppercase text-muted-foreground">{t.pickup}</p><p>{confirmation.draft?.pickupAt ? formatTokyo(confirmation.draft.pickupAt, language) : t.seeEmail}</p><p className="text-muted-foreground">{confirmation.draft?.pickupLocation}</p></div><div><p className="text-xs uppercase text-muted-foreground">{t.return}</p><p>{confirmation.draft?.returnAt ? formatTokyo(confirmation.draft.returnAt, language) : t.seeEmail}</p><p className="text-muted-foreground">{confirmation.draft?.returnLocation}</p></div></div>{confirmation.pricing?.addons && confirmation.pricing.addons.length > 0 && <div className="border-t pt-4 text-sm"><p className="mb-2 text-xs uppercase text-muted-foreground">{t.addons}</p><div className="space-y-1">{confirmation.pricing.addons.map((addon) => <div key={addon.addonId} className="flex justify-between gap-4"><span>{addon.name} × {addon.qty}</span><strong>¥{addon.totalPrice.toLocaleString()}</strong></div>)}</div><div className="mt-2 flex justify-between border-t pt-2"><span>{t.addonsTotal}</span><strong>¥{(confirmation.pricing.addonsTotal ?? 0).toLocaleString()}</strong></div></div>}<div className="flex justify-between border-t pt-4 text-sm"><span>{t.paidToday}</span><strong>¥0</strong></div><div className="flex justify-between text-sm"><span>{t.outstanding}</span><strong>¥{(confirmation.reservation?.outstanding ?? confirmation.reservation?.finalTotal ?? 0).toLocaleString()}</strong></div>{confirmation.selectedRoom?.title && <div className="mt-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm"><p className="font-semibold">{t.stayPlanning}</p><p className="mt-1">{confirmation.selectedRoom.title}</p><p className="mt-1 text-muted-foreground">{t.roomSeparately}</p></div>}</div><div className="rounded-lg border bg-muted/30 p-5 text-sm"><div className="flex gap-3"><Upload className="h-5 w-5 shrink-0" /><div><h2 className="font-semibold">{t.nextSteps}</h2><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground"><li>{t.documents}</li><li>{t.upload}</li><li>{t.whatNext}</li></ul></div></div></div><div className="pt-2 grid gap-3 sm:grid-cols-3"><Link href={`${localizedPath("/rentalcar/my-bookings", language)}?section=documents`}><Button variant="outline" className="w-full">{t.uploadDocuments}</Button></Link><Link href={localizedPath("/rentalcar/my-bookings", language)}><Button variant="outline" className="w-full">{t.myBookings}</Button></Link><Link href={localizedPath("/rentalcar", language)}><Button className="w-full" size="lg">{t.returnHome}</Button></Link></div></div></div>;
 }

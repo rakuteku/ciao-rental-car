@@ -64,3 +64,54 @@ const COPY = {
 export function rentalCopy(language: Language) {
   return COPY[language];
 }
+
+export type RentalReservationStatus =
+  | "inquiry"
+  | "quote_sent"
+  | "pending_payment"
+  | "payment_failed"
+  | "confirmed"
+  | "driver_documents_pending"
+  | "driver_documents_under_review"
+  | "driver_documents_rejected"
+  | "awaiting_pickup"
+  | "vehicle_dispatched"
+  | "in_rental"
+  | "overdue"
+  | "return_initiated"
+  | "return_completed"
+  | "closed"
+  | "inspection_pending"
+  | "damage_assessed"
+  | "deposit_refunded"
+  | "cancelled"
+  | "refunded";
+
+const RESERVATION_STATUS_LABELS: Record<RentalReservationStatus, Record<Language, string>> = {
+  inquiry: { en: "Inquiry received", ja: "お問い合わせ受付済み", "zh-TW": "已收到詢問" },
+  quote_sent: { en: "Quote sent", ja: "お見積り送付済み", "zh-TW": "已寄送報價" },
+  pending_payment: { en: "Booking received — awaiting confirmation", ja: "予約受付済み（確認待ち）", "zh-TW": "已收到預約（待確認）" },
+  payment_failed: { en: "Action needed — payment could not be completed", ja: "お手続きが必要です（決済を完了できませんでした）", "zh-TW": "需採取行動－未能完成付款" },
+  confirmed: { en: "Confirmed — ready for pickup", ja: "予約確定", "zh-TW": "預約確認" },
+  driver_documents_pending: { en: "Reserved — documents needed", ja: "予約受付済み（書類の提出が必要です）", "zh-TW": "已預約－請上傳證件" },
+  driver_documents_under_review: { en: "Documents under review", ja: "書類確認中", "zh-TW": "證件審核中" },
+  driver_documents_rejected: { en: "Action needed — re-upload documents", ja: "書類の再提出が必要です", "zh-TW": "需重新上傳證件" },
+  awaiting_pickup: { en: "Confirmed — ready for pickup", ja: "予約確定", "zh-TW": "預約確認" },
+  vehicle_dispatched: { en: "Vehicle being prepared", ja: "車両準備中", "zh-TW": "車輛準備中" },
+  in_rental: { en: "On rent", ja: "貸出中", "zh-TW": "租賃中" },
+  overdue: { en: "Return overdue", ja: "返却期限を過ぎています", "zh-TW": "已逾還車時間" },
+  return_initiated: { en: "Return in progress", ja: "返却手続き中", "zh-TW": "正在辦理還車" },
+  return_completed: { en: "Return completed", ja: "返却完了", "zh-TW": "已完成還車" },
+  closed: { en: "Completed", ja: "ご利用完了", "zh-TW": "已完成" },
+  inspection_pending: { en: "Post-rental inspection pending", ja: "返却後点検待ち", "zh-TW": "待還車後檢查" },
+  damage_assessed: { en: "Post-rental review in progress", ja: "返却後確認中", "zh-TW": "正在進行還車後確認" },
+  deposit_refunded: { en: "Deposit refund processed", ja: "保証金返金処理済み", "zh-TW": "押金退款已處理" },
+  cancelled: { en: "Cancelled", ja: "キャンセル済み", "zh-TW": "已取消" },
+  refunded: { en: "Refund completed", ja: "返金完了", "zh-TW": "退款已完成" },
+};
+
+export function rentalReservationStatusLabel(status: string | null | undefined, language: Language) {
+  const labels = status ? RESERVATION_STATUS_LABELS[status as RentalReservationStatus] : undefined;
+  if (labels) return labels[language];
+  return language === "ja" ? "予約状況を確認中" : language === "zh-TW" ? "正在確認預約狀態" : "Booking status being confirmed";
+}
