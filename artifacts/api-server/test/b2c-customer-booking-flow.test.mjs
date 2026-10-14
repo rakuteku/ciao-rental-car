@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { build } from "esbuild";
+import { createRequire } from "node:module";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 const root = new URL("../../../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
@@ -33,14 +36,49 @@ test("Google customer sign-in verifies the token and remains configuration-gated
 });
 
 test("reservation email contains the localized customer-panel link", async () => {
-  const [reservations, events] = await Promise.all([
-    read("artifacts/api-server/src/routes/rental-reservations.ts"),
-    read("artifacts/api-server/src/lib/rental-events.ts"),
-  ]);
-  assert.match(reservations, /panelUrl/);
-  assert.match(reservations, /dedupeKey: `reservation:\$\{result\.reservation\.id\}:new_booking`/);
-  assert.match(events, /Sign in to review it/);
-  assert.match(events, /"zh-TW": \{ subject: `已收到預訂/);
+  const bundled = await build({
+    entryPoints: [fileURLToPath(new URL("../src/lib/rental-events.ts", import.meta.url))],
+    bundle: true,
+    write: false,
+    platform: "node",
+    format: "cjs",
+    external: ["drizzle-orm"],
+    plugins: [{
+      name: "notification-test-dependencies",
+      setup(buildContext) {
+        buildContext.onResolve({ filter: /^@workspace\/db$/ }, () => ({ path: "database", namespace: "test" }));
+        buildContext.onResolve({ filter: /\/logger$/ }, () => ({ path: "logger", namespace: "test" }));
+        buildContext.onLoad({ filter: /.*/, namespace: "test" }, ({ path }) => ({
+          contents: path === "logger"
+            ? "export const logger = { error() {}, info() {} };"
+            : "export const db = {}; export const rentalAuditLogTable = {}, rentalDriversTable = {}, rentalMarketplaceRequestsTable = {}, rentalNotificationsTable = {}, rentalOperatorsTable = {}, rentalReservationsTable = {};",
+          loader: "js",
+        }));
+      },
+    }],
+  });
+  const module = { exports: {} };
+  new Function("require", "module", "exports", bundled.outputFiles[0].text)(
+    createRequire(import.meta.url), module, module.exports,
+  );
+  let stored;
+  await module.exports.queueRentalNotification({
+    email: "customer@example.test",
+    eventType: "new_booking",
+    bookingId: 42,
+    locale: "zh-TW",
+    dispatch: false,
+    extra: { panelUrl: "https://example.test/zh-TW/rentalcar/my-bookings" },
+  }, {
+    insert() {
+      return { values(value) {
+        stored = value;
+        return { onConflictDoNothing() { return { returning: async () => [{ id: 1, ...value }] }; } };
+      } };
+    },
+  });
+  assert.equal(stored.payload.locale, "zh-TW");
+  assert.ok(stored.payload.localeTemplates["zh-TW"].body.includes("https://example.test/zh-TW/rentalcar/my-bookings"));
 });
 
 test("checkout gate and customer panel include English, Japanese and Traditional Chinese", async () => {
