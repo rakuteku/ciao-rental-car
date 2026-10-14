@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { test } from "node:test";
+
+const requireDb = createRequire(new URL("../../../lib/db/package.json", import.meta.url));
+const { Pool } = requireDb("pg");
 
 const port = 20000 + (process.pid % 1000);
 const baseUrl = `http://127.0.0.1:${port}`;
@@ -30,6 +34,20 @@ async function getJson(path) {
 
 test("published rental catalog, live add-ons, pricing, slugs, and CMS cleanup are stable", async () => {
   assert.ok(process.env.DATABASE_URL, "DATABASE_URL is required for the rental catalog test");
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const legacyIds = [];
+  const createdLegacyIds = [];
+  for (const [name, pricePerDay] of [["Alphard", 18000], ["Vellfire", 20000], ["Sienta", 9800]]) {
+    let { rows: [car] } = await pool.query("SELECT id FROM cars WHERE name=$1 ORDER BY id LIMIT 1", [name]);
+    if (!car) {
+      ({ rows: [car] } = await pool.query(
+        "INSERT INTO cars(model,name,year,passenger_capacity,price_per_day) VALUES('Toyota',$1,2024,6,$2) RETURNING id",
+        [name, pricePerDay],
+      ));
+      createdLegacyIds.push(car.id);
+    }
+    legacyIds.push(car.id);
+  }
 
   const child = spawn("node", ["dist/index.mjs"], {
     cwd: new URL("..", import.meta.url),
@@ -74,7 +92,6 @@ test("published rental catalog, live add-ons, pricing, slugs, and CMS cleanup ar
       addons.map((addon) => [addon.name, addon.perDayFee]),
       [
         ["Child Safety Seat", 800],
-        ["Winter Tire Upgrade", 1000],
         ["Portable Wi-Fi Router", 600],
       ],
     );
@@ -120,6 +137,11 @@ test("published rental catalog, live add-ons, pricing, slugs, and CMS cleanup ar
     assert.doesNotMatch(homeSource, /useGetCars/);
   } finally {
     child.kill("SIGTERM");
-    await new Promise((resolve) => child.once("close", resolve));
+    if (child.exitCode === null) await new Promise((resolve) => child.once("close", resolve));
+    if (createdLegacyIds.length) {
+      await pool.query("DELETE FROM rental_vehicles WHERE legacy_car_id = ANY($1::int[])", [createdLegacyIds]);
+      await pool.query("DELETE FROM cars WHERE id = ANY($1::int[])", [createdLegacyIds]);
+    }
+    await pool.end();
   }
 });

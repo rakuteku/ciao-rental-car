@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
@@ -57,6 +57,27 @@ async function verifyPassword(password: string, stored: string) {
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
+function regenerateSession(req: Request): Promise<void> {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((error) => error ? reject(error) : resolve());
+  });
+}
+
+function saveSession(req: Request): Promise<void> {
+  return new Promise((resolve, reject) => {
+    req.session.save((error) => error ? reject(error) : resolve());
+  });
+}
+
+async function establishCustomerSession(req: Request, account: typeof rentalCustomerAccountsTable.$inferSelect) {
+  await regenerateSession(req);
+  const session = req.session as unknown as Record<string, unknown>;
+  session[customerSessionKey] = account.id;
+  session.rentalCustomerEmail = account.email;
+  delete session.rentalCustomerBookingId;
+  await saveSession(req);
+}
+
 async function bookingsForEmail(email: string) {
   const drivers = await db.select({ id: rentalDriversTable.id }).from(rentalDriversTable).where(eq(rentalDriversTable.email, email));
   const driverIds = drivers.map((driver) => driver.id);
@@ -97,9 +118,11 @@ router.post("/rental/account/register", async (req, res): Promise<void> => {
     preferredLanguage: parsed.data.preferredLanguage,
   }).returning();
 
-  const session = req.session as unknown as Record<string, unknown>;
-  session[customerSessionKey] = account.id;
-  session.rentalCustomerEmail = account.email;
+  try {
+    await establishCustomerSession(req, account);
+  } catch {
+    return void res.status(500).json({ error: "Could not establish customer session" });
+  }
   res.status(201).json({ account: publicAccount(account), bookings: await bookingsForEmail(account.email) });
 });
 
@@ -113,10 +136,11 @@ router.post("/rental/account/login", async (req, res): Promise<void> => {
   }
 
   const [updated] = await db.update(rentalCustomerAccountsTable).set({ lastLoginAt: new Date(), updatedAt: new Date() }).where(eq(rentalCustomerAccountsTable.id, account.id)).returning();
-  const session = req.session as unknown as Record<string, unknown>;
-  session[customerSessionKey] = account.id;
-  session.rentalCustomerEmail = account.email;
-  delete session.rentalCustomerBookingId;
+  try {
+    await establishCustomerSession(req, updated);
+  } catch {
+    return void res.status(500).json({ error: "Could not establish customer session" });
+  }
   res.json({ account: publicAccount(updated), bookings: await bookingsForEmail(updated.email) });
 });
 
@@ -159,19 +183,22 @@ router.post("/rental/account/google", async (req, res): Promise<void> => {
     }).where(eq(rentalCustomerAccountsTable.id, account.id)).returning();
   }
 
-  const session = req.session as unknown as Record<string, unknown>;
-  session[customerSessionKey] = account.id;
-  session.rentalCustomerEmail = account.email;
-  delete session.rentalCustomerBookingId;
+  try {
+    await establishCustomerSession(req, account);
+  } catch {
+    return void res.status(500).json({ error: "Could not establish customer session" });
+  }
   res.json({ account: publicAccount(account), bookings: await bookingsForEmail(account.email) });
 });
 
 router.post("/rental/account/logout", (req, res): void => {
-  const session = req.session as unknown as Record<string, unknown>;
-  delete session[customerSessionKey];
-  delete session.rentalCustomerEmail;
-  delete session.rentalCustomerBookingId;
-  res.status(204).end();
+  req.session.destroy((error) => {
+    if (error) {
+      res.status(500).json({ error: "Could not end customer session" });
+      return;
+    }
+    res.status(204).end();
+  });
 });
 
 router.get("/rental/account/me", async (req, res): Promise<void> => {

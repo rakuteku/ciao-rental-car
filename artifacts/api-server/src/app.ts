@@ -34,7 +34,21 @@ app.use(
     },
   }),
 );
-app.use(cors({ origin: true, credentials: true }));
+const corsAllowedOrigins = new Set(
+  (process.env.CORS_ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+);
+
+if (corsAllowedOrigins.size > 0) {
+  app.use(cors({
+    origin(origin, callback) {
+      callback(null, Boolean(origin && corsAllowedOrigins.has(origin)));
+    },
+    credentials: true,
+  }));
+}
 app.post(
   "/api/rental/stripe/webhook",
   express.raw({ type: "application/json" }),
@@ -52,6 +66,7 @@ app.use(
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000,
     },
   }),

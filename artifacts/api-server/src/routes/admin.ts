@@ -1,4 +1,5 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { count, sum, eq } from "drizzle-orm";
 import { db, carsTable, bookingsTable } from "@workspace/db";
 import {
@@ -31,6 +32,24 @@ function isRateLimited(ip: string) {
   return false;
 }
 
+function passwordMatches(candidate: string, expected: string): boolean {
+  const candidateDigest = createHash("sha256").update(candidate).digest();
+  const expectedDigest = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(candidateDigest, expectedDigest);
+}
+
+function regenerateSession(req: Request): Promise<void> {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((error) => error ? reject(error) : resolve());
+  });
+}
+
+function saveSession(req: Request): Promise<void> {
+  return new Promise((resolve, reject) => {
+    req.session.save((error) => error ? reject(error) : resolve());
+  });
+}
+
 router.post("/admin/login", async (req, res): Promise<void> => {
   if (isRateLimited(req.ip || "unknown")) {
     res.status(429).json({ error: "Too many login attempts. Try again later." });
@@ -42,12 +61,19 @@ router.post("/admin/login", async (req, res): Promise<void> => {
     return;
   }
 
-  if (!ADMIN_PASSWORD || body.data.username !== ADMIN_USERNAME || body.data.password !== ADMIN_PASSWORD) {
+  if (!ADMIN_PASSWORD || body.data.username !== ADMIN_USERNAME || !passwordMatches(body.data.password, ADMIN_PASSWORD)) {
     res.status(401).json({ error: "Invalid credentials" });
     return;
   }
 
-  (req.session as unknown as Record<string, unknown>).admin = { username: body.data.username };
+  try {
+    await regenerateSession(req);
+    (req.session as unknown as Record<string, unknown>).admin = { username: body.data.username };
+    await saveSession(req);
+  } catch {
+    res.status(500).json({ error: "Could not establish admin session" });
+    return;
+  }
   res.json(AdminLoginResponse.parse({ authenticated: true, username: body.data.username }));
 });
 

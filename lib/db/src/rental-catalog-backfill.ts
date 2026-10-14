@@ -250,7 +250,8 @@ export async function runRentalCatalogBackfill(
     for (const mapping of vehicleMappings) {
       const legacy = legacyByName.get(normalize(mapping.legacyName));
       if (!legacy) {
-        throw new Error(`Legacy car "${mapping.legacyName}" was not found`);
+        log(`Rental catalog backfill warning: legacy car "${mapping.legacyName}" was not found; skipping it.`);
+        continue;
       }
 
       const existing =
@@ -403,7 +404,10 @@ export async function runRentalCatalogBackfill(
        }
     }
 
-    for (const addonDefault of addonDefaults) {
+    // A new installation has no legacy catalogue to migrate. Keep startup
+    // limited to tenancy/settings in that case; the explicit seed command is
+    // responsible for creating its demo catalogue.
+    for (const addonDefault of legacyCars.length > 0 ? addonDefaults : []) {
       const [existing] = await tx
         .select()
         .from(rentalAddonsTable)
