@@ -83,12 +83,12 @@ const apiProxy = apiProxyTarget
       "/sitemap.xml": {
         target: apiProxyTarget,
         changeOrigin: false,
-        rewrite: (path) => path.replace(/^\/sitemap\.xml/, "/api/sitemap.xml"),
+        rewrite: (p: string) => p.replace(/^\/sitemap\.xml/, "/api/sitemap.xml"),
       },
       "/robots.txt": {
         target: apiProxyTarget,
         changeOrigin: false,
-        rewrite: (path) => path.replace(/^\/robots\.txt/, "/api/robots.txt"),
+        rewrite: (p: string) => p.replace(/^\/robots\.txt/, "/api/robots.txt"),
       },
     }
   : undefined;
