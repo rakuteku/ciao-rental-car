@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { hashHoldToken, holdTokenSchema } from "../lib/hold-token";
 import { Router, type IRouter, type Request as ExpressRequest, type Response as ExpressResponse } from "express";
 import { createHash } from "node:crypto";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
@@ -76,6 +77,7 @@ const LeadSchema = z.object({
 }).strict();
 const CreateRequestSchema = z.object({
   holdId: z.coerce.number().int().positive(),
+  holdToken: holdTokenSchema,
   vehicleId: z.coerce.number().int().positive(),
   pickupLocation: z.string().trim().min(1).max(300),
   returnLocation: z.string().trim().min(1).max(300),
@@ -226,11 +228,12 @@ router.post("/rental/requests", async (req, res): Promise<void> => {
   }
   const [hold] = await db.select().from(rentalReservationHoldsTable).where(and(
     eq(rentalReservationHoldsTable.id, data.holdId),
-    eq(rentalReservationHoldsTable.sessionToken, req.sessionID),
+    eq(rentalReservationHoldsTable.holdTokenHash, hashHoldToken(data.holdToken)),
     eq(rentalReservationHoldsTable.vehicleId, data.vehicleId),
     isNull(rentalReservationHoldsTable.releasedAt),
   ));
-  if (!hold || hold.heldUntil <= new Date()) return void res.status(409).json({ error: "Hold is invalid or expired" });
+  if (!hold) return void res.status(400).json({ error: "Invalid hold token" });
+  if (hold.heldUntil <= new Date()) return void res.status(409).json({ error: "Hold is invalid or expired" });
   const pickup = hold.pickupAt;
   const returnAt = hold.returnAt;
   if (returnAt <= pickup) {
@@ -262,7 +265,7 @@ router.post("/rental/requests", async (req, res): Promise<void> => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(${vehicle.id})`);
       const [lockedHold] = await tx.select().from(rentalReservationHoldsTable).where(and(
         eq(rentalReservationHoldsTable.id, hold.id),
-        eq(rentalReservationHoldsTable.sessionToken, req.sessionID),
+        eq(rentalReservationHoldsTable.holdTokenHash, hashHoldToken(data.holdToken)),
         isNull(rentalReservationHoldsTable.releasedAt),
       ));
       if (!lockedHold || lockedHold.heldUntil <= new Date()) {

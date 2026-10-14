@@ -1620,7 +1620,6 @@ export const CreateRentalHoldBody = zod.object({
       }),
     )
     .optional(),
-  sessionToken: zod.string().optional(),
 });
 
 /**
@@ -1628,6 +1627,12 @@ export const CreateRentalHoldBody = zod.object({
  */
 export const GetRentalHoldParams = zod.object({
   holdId: zod.coerce.number(),
+});
+
+export const getRentalHoldHeaderXHoldTokenRegExp = new RegExp("^[a-f0-9]{64}$");
+
+export const GetRentalHoldHeader = zod.object({
+  "X-Hold-Token": zod.string().regex(getRentalHoldHeaderXHoldTokenRegExp),
 });
 
 export const GetRentalHoldResponse = zod.object({
@@ -1648,6 +1653,7 @@ export const GetRentalHoldResponse = zod.object({
  */
 export const CreateRentalReservationBody = zod.object({
   holdId: zod.number(),
+  holdToken: zod.string(),
   vehicleId: zod.number(),
   pickupAt: zod.string(),
   returnAt: zod.string(),
@@ -3168,6 +3174,7 @@ export const DeleteAdminRentalAddonResponse = zod.object({
  */
 export const CreateRentalRequestBody = zod.object({
   holdId: zod.number(),
+  holdToken: zod.string(),
   vehicleId: zod.number(),
   pickupLocation: zod.string(),
   returnLocation: zod.string(),

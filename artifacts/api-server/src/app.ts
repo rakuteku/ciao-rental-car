@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
+import { PostgresSessionStore } from "./lib/postgres-session-store";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { rentalStripeWebhookHandler } from "./routes/rental-finance";
@@ -59,6 +60,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
+    store: new PostgresSessionStore(),
     resave: false,
     saveUninitialized: false,
     cookie: {

@@ -185,6 +185,7 @@ export function CarDetailPage() {
           pickupLocation: data.pickupLocation,
           returnLocation: data.returnLocation,
           holdId: hold.holdId,
+          holdToken: hold.holdToken,
           heldUntil: hold.heldUntil,
           addons: Object.entries(selectedAddons)
             .filter(([, qty]) => qty > 0)

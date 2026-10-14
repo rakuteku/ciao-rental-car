@@ -152,3 +152,12 @@ link reconciliation, and rollback counterparts remain present:
 ```sh
 pnpm --filter @workspace/db run test:migrations
 ```
+## Persistent sessions and hold tokens (migration 0033)
+
+Apply `0033_persistent_sessions_and_hold_tokens.up.sql` before starting an API
+version that uses the PostgreSQL session store. The matching Drizzle schema is
+used by managed schema publishing. Keep `SESSION_SECRET` the same on every API
+instance and across restarts so existing signed session cookies can be read.
+Expired rows in `app_sessions` are ignored on read and pruned every 15 minutes
+by a running API instance. Existing holds have no `hold_token_hash`; they remain
+in inventory until their normal expiry, but cannot be used for checkout.

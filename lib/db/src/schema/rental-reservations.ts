@@ -121,6 +121,7 @@ export const rentalReservationHoldsTable = pgTable(
     heldUntil: timestamp("held_until", { withTimezone: true }).notNull(),
     releasedAt: timestamp("released_at", { withTimezone: true }),
     sessionToken: text("session_token"),
+    holdTokenHash: text("hold_token_hash"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
