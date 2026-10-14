@@ -76,13 +76,22 @@ if (!basePath) {
   );
 }
 
+const apiProxyTarget = process.env.API_PROXY_TARGET;
+const apiProxy = apiProxyTarget
+  ? {
+      "/api": { target: apiProxyTarget, changeOrigin: true },
+      "/sitemap.xml": { target: apiProxyTarget, changeOrigin: true },
+      "/robots.txt": { target: apiProxyTarget, changeOrigin: true },
+    }
+  : undefined;
+
 export default defineConfig({
   base: basePath,
   plugins: [
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
-    seoWellKnownFiles(),
+    ...(apiProxyTarget ? [] : [seoWellKnownFiles()]),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
@@ -114,6 +123,7 @@ export default defineConfig({
     strictPort: true,
     host: "0.0.0.0",
     allowedHosts: true,
+    proxy: apiProxy,
     fs: {
       strict: true,
     },
@@ -122,5 +132,6 @@ export default defineConfig({
     port,
     host: "0.0.0.0",
     allowedHosts: true,
+    proxy: apiProxy,
   },
 });
