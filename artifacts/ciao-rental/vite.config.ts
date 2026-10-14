@@ -80,18 +80,26 @@ const apiProxyTarget = process.env.API_PROXY_TARGET;
 const apiProxy = apiProxyTarget
   ? {
       "/api": { target: apiProxyTarget, changeOrigin: true },
-      "/sitemap.xml": { target: apiProxyTarget, changeOrigin: true },
-      "/robots.txt": { target: apiProxyTarget, changeOrigin: true },
+      "/sitemap.xml": {
+        target: apiProxyTarget,
+        changeOrigin: false,
+        rewrite: (path) => path.replace(/^\/sitemap\.xml/, "/api/sitemap.xml"),
+      },
+      "/robots.txt": {
+        target: apiProxyTarget,
+        changeOrigin: false,
+        rewrite: (path) => path.replace(/^\/robots\.txt/, "/api/robots.txt"),
+      },
     }
   : undefined;
 
-export default defineConfig({
+export default defineConfig(async ({ command }) => ({
   base: basePath,
   plugins: [
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
-    ...(apiProxyTarget ? [] : [seoWellKnownFiles()]),
+    ...(!apiProxyTarget || command !== "serve" ? [seoWellKnownFiles()] : []),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
@@ -134,4 +142,4 @@ export default defineConfig({
     allowedHosts: true,
     proxy: apiProxy,
   },
-});
+}));
