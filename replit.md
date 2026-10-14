@@ -26,6 +26,27 @@ Full-stack all-in-one Hokkaido travel site for CIAO, a Sapporo-based building of
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - After codegen: fix `lib/api-zod/src/index.ts` — must only export `./generated/api` (orval adds `./generated/api.schemas` which doesn't exist)
 
+## Local development
+
+Run PostgreSQL locally, then set these environment variables before starting the
+API: `DATABASE_URL`, `SESSION_SECRET`, and `PORT`. For the web app set `PORT`
+and `BASE_PATH` (normally `/`); set `API_PROXY_TARGET` to the local API origin
+(for example `http://localhost:3000`) to proxy `/api`, `/sitemap.xml`, and
+`/robots.txt` in Vite dev and preview. Leave `API_PROXY_TARGET` unset for the
+Replit setup.
+
+```sh
+export DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/ciao_rental
+export SESSION_SECRET=dev-secret-0123456789abcdef
+export PORT=3000
+npx -y pnpm@10 --filter @workspace/db run push-force
+npx -y pnpm@10 --filter @workspace/scripts run seed-rental
+npx -y pnpm@10 --filter @workspace/api-server run dev
+```
+
+In a second terminal, run the web app with `PORT=5000 BASE_PATH=/ API_PROXY_TARGET=http://localhost:3000 npx -y pnpm@10 --filter @workspace/ciao-rental run dev`.
+Run the checks with `npx -y pnpm@10 run typecheck`, `npx -y pnpm@10 --filter @workspace/db exec sh -c 'node --test --test-concurrency=1 ./migrations/*.test.mjs'`, and `npx -y pnpm@10 --filter @workspace/api-server exec sh -c 'node --test --test-concurrency=1 ./test/*.test.mjs ./src/lib/*.test.mjs'` (with `DATABASE_URL` and `SESSION_SECRET` exported).
+
 ## Admin Credentials
 
 - Username: `ADMIN_USERNAME` (defaults to `admin`)
