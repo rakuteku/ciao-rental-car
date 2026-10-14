@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ArrowLeft, CheckCircle2, CircleAlert, ShieldCheck } from "lucide-react";
 import { useRentalTripAction } from "@/hooks/use-rental-operations";
+import { formatTokyo } from "@/lib/rental-marketplace";
 
 type Scope = "partner" | "admin";
 type Driver = { id?: number; fullName?: string; originalsVerifiedAt?: string | null };
@@ -476,7 +477,7 @@ export function TripWorkflow({ id, scope, trip, mode, onDone }: {
     <button data-testid={`button-submit-${mode}-${id}`} type="submit" disabled={action.isPending} className="min-h-12 w-full rounded-md bg-slate-900 px-5 text-base font-semibold text-white disabled:opacity-50">
       {action.isPending ? "Uploading private evidence and saving…" : mode === "pickup" ? "Complete pickup inspection" : "Complete return inspection"}
     </button>
-    {completed && <p role="status" className="text-sm text-emerald-800">Inspection already recorded at {completed.completedAt ? new Date(completed.completedAt).toLocaleString() : "—"}.</p>}
+    {completed && <p role="status" className="text-sm text-emerald-800">Inspection already recorded at {completed.completedAt ? formatTokyo(completed.completedAt) : "—"}.</p>}
   </form>;
 }
 
@@ -486,7 +487,7 @@ export function TripRecordSummary({ trip }: { trip: TripData }) {
     {inspections.map(([title, inspection]) => <section key={title} className="rounded-lg border p-4">
       <h3 className="font-semibold">{title}</h3>
       {inspection ? <dl className="mt-2 grid gap-x-5 gap-y-1 text-sm sm:grid-cols-2">
-        <dt className="text-slate-500">Recorded</dt><dd>{inspection.completedAt ? new Date(inspection.completedAt).toLocaleString() : "—"}</dd>
+        <dt className="text-slate-500">Recorded</dt><dd>{inspection.completedAt ? formatTokyo(inspection.completedAt) : "—"}</dd>
         <dt className="text-slate-500">Odometer</dt><dd>{inspection.mileage ?? "—"}</dd>
         <dt className="text-slate-500">Fuel</dt><dd>{inspection.fuelLevel ?? "—"}</dd>
         <dt className="text-slate-500">Location</dt><dd>{inspection.location ?? "—"}</dd>

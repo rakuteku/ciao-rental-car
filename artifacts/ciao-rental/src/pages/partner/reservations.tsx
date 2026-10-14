@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { CalendarClock, CarFront, ChevronRight, RefreshCw } from "lucide-react";
 import { usePartnerReservations } from "@/hooks/use-rental-operations";
 import { arrayFrom, record, usePartnerText } from "./shared";
+import { formatTokyo } from "@/lib/rental-marketplace";
 
 export function PartnerReservationsPage() {
   const text = usePartnerText();
@@ -40,7 +41,7 @@ export function PartnerReservationsPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="flex items-center gap-2 text-sm font-semibold"><CarFront className="h-4 w-4" />{text("Reservation", "予約")} #{id} · {reservation.status ?? "unknown"}</p>
-                    <p className="mt-2 flex items-center gap-2 text-sm text-slate-600"><CalendarClock className="h-4 w-4" />{reservation.pickupAt ? new Date(reservation.pickupAt).toLocaleString() : "—"} → {reservation.returnAt ? new Date(reservation.returnAt).toLocaleString() : "—"}</p>
+                    <p className="mt-2 flex items-center gap-2 text-sm text-slate-600"><CalendarClock className="h-4 w-4" />{reservation.pickupAt ? formatTokyo(reservation.pickupAt) : "—"} → {reservation.returnAt ? formatTokyo(reservation.returnAt) : "—"}</p>
                     <p className="mt-1 text-sm text-slate-600">{reservation.pickupLocation ?? "—"} → {reservation.returnLocation ?? "—"}</p>
                     {driverNames && <p className="mt-2 text-sm text-slate-700">{text("Drivers", "運転者")}: {driverNames}</p>}
                   </div>

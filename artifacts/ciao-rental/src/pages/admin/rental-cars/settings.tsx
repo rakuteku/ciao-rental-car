@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 import { DEFAULT_RENTAL_LOCATIONS, normalizeRentalLocations, type RentalLocation } from "@/lib/rental-locations";
+import { formatTokyo } from "@/lib/rental-marketplace";
 
 const policyFields = [
   ["marketplaceCommissionPercent", "Commission (%)", "number"],
@@ -170,7 +171,7 @@ function AdminFinanceReconciliation() {
               {unresolvedFailures.length ? unresolvedFailures.map((failure: any) => <div key={failure.id} className="rounded-md border border-red-200 bg-red-50 p-4 text-sm">
                 <p className="font-semibold">{failure.failureType || "Reconciliation failure"} · #{failure.id}</p>
                 <p className="mt-1">{String(redactSnapshot(failure.message))}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Payment #{failure.paymentId ?? "unmatched"} · Stripe event {failure.stripeEventId || "not linked"} · {failure.createdAt ? new Date(failure.createdAt).toLocaleString() : "Date unavailable"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Payment #{failure.paymentId ?? "unmatched"} · Stripe event {failure.stripeEventId || "not linked"} · {failure.createdAt ? formatTokyo(failure.createdAt) : "Date unavailable"}</p>
                 {failure.details && <p className="mt-2 break-words text-xs text-muted-foreground">Reference details: {JSON.stringify(redactSnapshot(failure.details))}</p>}
               </div>) : <p className="text-sm text-muted-foreground">No unresolved reconciliation failures.</p>}
             </CardContent>
@@ -180,7 +181,7 @@ function AdminFinanceReconciliation() {
             {event => <div className="space-y-1 text-sm">
               <p className="font-semibold">{event.eventType || "Stripe event"} · {event.status}</p>
               <p className="break-all text-xs text-muted-foreground">Event {event.id} · object {event.objectId || "unmatched"} · attempts {event.attempts ?? "—"}</p>
-              <p className="text-xs text-muted-foreground">Received {event.receivedAt ? new Date(event.receivedAt).toLocaleString() : "—"}{event.processedAt ? ` · Last processed ${new Date(event.processedAt).toLocaleString()}` : ""}</p>
+              <p className="text-xs text-muted-foreground">Received {event.receivedAt ? formatTokyo(event.receivedAt) : "—"}{event.processedAt ? ` · Last processed ${formatTokyo(event.processedAt)}` : ""}</p>
               <p className="text-xs text-red-700">Event processing failed. Review the linked reconciliation failure.</p>
             </div>}
           </FinanceCollection>
@@ -208,13 +209,13 @@ function AdminFinanceReconciliation() {
 
           <div className="grid gap-6 lg:grid-cols-2">
             <FinanceCollection title="Refunds" rows={refunds} emptyText="No refunds.">
-              {refund => <div className="space-y-1 text-sm"><p className="font-semibold">Refund #{refund.id} · {refund.status} · {refund.currency || "JPY"} {Number(refund.amount || 0).toLocaleString()}</p><p className="break-all text-xs text-muted-foreground">Payment #{refund.paymentId} · Stripe refund {refund.stripeRefundId || "not assigned"}</p><p className="text-xs text-muted-foreground">{refund.reason || ""}{refund.createdAt ? ` · ${new Date(refund.createdAt).toLocaleString()}` : ""}</p></div>}
+              {refund => <div className="space-y-1 text-sm"><p className="font-semibold">Refund #{refund.id} · {refund.status} · {refund.currency || "JPY"} {Number(refund.amount || 0).toLocaleString()}</p><p className="break-all text-xs text-muted-foreground">Payment #{refund.paymentId} · Stripe refund {refund.stripeRefundId || "not assigned"}</p><p className="text-xs text-muted-foreground">{refund.reason || ""}{refund.createdAt ? ` · ${formatTokyo(refund.createdAt)}` : ""}</p></div>}
             </FinanceCollection>
             <FinanceCollection title="Disputes" rows={disputes} emptyText="No disputes.">
-              {dispute => <div className="space-y-1 text-sm"><p className="font-semibold">Dispute #{dispute.id} · {dispute.status} · {dispute.currency || "JPY"} {Number(dispute.amount || 0).toLocaleString()}</p><p className="break-all text-xs text-muted-foreground">Payment #{dispute.paymentId} · Stripe dispute {dispute.stripeDisputeId}</p><p className="text-xs text-muted-foreground">{dispute.reason || ""}{dispute.evidenceDueAt ? ` · Evidence due ${new Date(dispute.evidenceDueAt).toLocaleString()}` : ""}</p></div>}
+              {dispute => <div className="space-y-1 text-sm"><p className="font-semibold">Dispute #{dispute.id} · {dispute.status} · {dispute.currency || "JPY"} {Number(dispute.amount || 0).toLocaleString()}</p><p className="break-all text-xs text-muted-foreground">Payment #{dispute.paymentId} · Stripe dispute {dispute.stripeDisputeId}</p><p className="text-xs text-muted-foreground">{dispute.reason || ""}{dispute.evidenceDueAt ? ` · Evidence due ${formatTokyo(dispute.evidenceDueAt)}` : ""}</p></div>}
             </FinanceCollection>
             <FinanceCollection title="Payouts" rows={payouts} emptyText="No payouts reported.">
-              {payout => <div className="space-y-1 text-sm"><p className="font-semibold">Payout #{payout.id} · {payout.status} · {payout.currency || "JPY"} {Number(payout.amount || 0).toLocaleString()}</p><p className="break-all text-xs text-muted-foreground">Payment #{payout.paymentId} · Reference: {payout.reference || "—"}</p><p className="text-xs text-muted-foreground">{payout.reportedAt ? `Reported ${new Date(payout.reportedAt).toLocaleString()}` : ""}</p></div>}
+              {payout => <div className="space-y-1 text-sm"><p className="font-semibold">Payout #{payout.id} · {payout.status} · {payout.currency || "JPY"} {Number(payout.amount || 0).toLocaleString()}</p><p className="break-all text-xs text-muted-foreground">Payment #{payout.paymentId} · Reference: {payout.reference || "—"}</p><p className="text-xs text-muted-foreground">{payout.reportedAt ? `Reported ${formatTokyo(payout.reportedAt)}` : ""}</p></div>}
             </FinanceCollection>
           </div>
         </>}
@@ -258,7 +259,7 @@ function NotificationDeliveryRow({ notification, uncertain, inFlight, onRetry }:
       <div className="space-y-1 text-sm">
         <p className="font-semibold">Notification #{notification.id} · {notification.eventType} · <span className="capitalize">{notification.deliveryStatus}</span></p>
         <p className="text-muted-foreground">Recipient: {notification.email || "Unavailable"} · Attempts: {notification.attemptCount ?? 0}</p>
-        <p className="text-xs text-muted-foreground">Created {notification.createdAt ? new Date(notification.createdAt).toLocaleString() : "—"}{notification.lastAttemptAt ? ` · Last attempt ${new Date(notification.lastAttemptAt).toLocaleString()}` : ""}{notification.nextAttemptAt ? ` · Next attempt ${new Date(notification.nextAttemptAt).toLocaleString()}` : ""}</p>
+        <p className="text-xs text-muted-foreground">Created {notification.createdAt ? formatTokyo(notification.createdAt) : "—"}{notification.lastAttemptAt ? ` · Last attempt ${formatTokyo(notification.lastAttemptAt)}` : ""}{notification.nextAttemptAt ? ` · Next attempt ${formatTokyo(notification.nextAttemptAt)}` : ""}</p>
         {uncertain && <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
           <label className="flex items-start gap-2"><input type="checkbox" checked={confirmDuplicateRisk} onChange={event => setConfirmDuplicateRisk(event.target.checked)} className="mt-1" /><span><strong>Possible uncertain SMTP DATA submission:</strong> message data was already handed to SMTP, but delivery confirmation is missing. Retrying may send a duplicate; explicitly confirm that risk to proceed.</span></label>
         </div>}

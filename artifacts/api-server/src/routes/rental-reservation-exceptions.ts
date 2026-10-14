@@ -27,6 +27,7 @@ import {
 } from "../lib/rental-exception-policy.mjs";
 import { calculatePrice } from "../lib/rental-pricing";
 import { queueRentalNotification } from "../lib/rental-events";
+import { formatTokyo } from "../lib/rental-time.mjs";
 import { logger } from "../lib/logger";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { authenticatePartner, partnerIdentity } from "./partner";
@@ -167,14 +168,14 @@ export async function dispatchOverdueAlerts(now = new Date()) {
       ? await db.select().from(rentalOperatorsTable).where(eq(rentalOperatorsTable.id, reservation.operatorId))
       : [];
     const key = `rental-overdue-${reservation.id}-${reservation.returnAt.getTime()}-${day}`;
-    const common = `Reservation #${reservation.id} was due back at ${reservation.returnAt.toISOString()}.`;
+    const common = `Reservation #${reservation.id} was due back at ${formatTokyo(reservation.returnAt)}.`;
     await Promise.all([
       queueOverdueNotice({
         email: driver?.email ?? null,
         key: `${key}:customer`,
         bookingId: reservation.id,
         role: "customer",
-        message: `Your rental was due back at ${reservation.returnAt.toISOString()}. Please contact the operator immediately.`,
+        message: `Your rental was due back at ${formatTokyo(reservation.returnAt)}. Please contact the operator immediately.`,
       }),
       queueOverdueNotice({
         email: operator?.contactEmail ?? null,
@@ -1629,7 +1630,7 @@ router.post("/rental/exceptions/reservations/:id/overdue-alert", async (req, res
     eventType: "overdue_alert",
     bookingId: reservation.id,
     dedupeKey: `rental-overdue-${reservation.id}-${reservation.returnAt.getTime()}-${new Date().toISOString().slice(0, 10)}:customer`,
-    extra: { message: `Your rental was due back at ${reservation.returnAt.toISOString()}. Contact the operator immediately.` },
+    extra: { message: `Your rental was due back at ${formatTokyo(reservation.returnAt)}. Contact the operator immediately.` },
   });
   res.status(202).json({ alerted: true, notificationStatus: notice.deliveryStatus });
 });

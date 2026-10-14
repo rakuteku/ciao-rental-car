@@ -1,5 +1,5 @@
 import { useGetAdminBookings, getGetAdminBookingsQueryKey } from "@workspace/api-client-react";
-import { format } from "date-fns";
+import { formatTokyo } from "@/lib/rental-marketplace";
 import {
   Table,
   TableBody,
@@ -60,8 +60,8 @@ export function AdminBookings() {
                 </TableCell>
                 <TableCell className="font-medium">{booking.carName}</TableCell>
                 <TableCell className="text-sm">
-                  <div>{format(new Date(booking.pickupDate), "MMM d, yyyy")}</div>
-                  <div className="text-muted-foreground">to {format(new Date(booking.returnDate), "MMM d, yyyy")}</div>
+                  <div>{formatTokyo(booking.pickupDate)}</div>
+                  <div className="text-muted-foreground">to {formatTokyo(booking.returnDate)}</div>
                 </TableCell>
                 <TableCell className="text-sm">
                   <div><span className="text-muted-foreground">From:</span> {booking.pickupLocation}</div>

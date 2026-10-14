@@ -38,7 +38,7 @@ function PartnerEarnings({ authenticated }: { authenticated: boolean }) {
           {rows.length > 0 ? <div className="divide-y rounded-md border">{rows.map((entry, index) => {
             const row = record(entry);
             return <div key={row.id ?? row.paymentId ?? row.payoutId ?? index} className="flex flex-wrap justify-between gap-2 p-3 text-sm">
-              <span>{row.type || row.kind || row.status || t("Earning", "収益")}{row.reference ? ` · ${row.reference}` : ""}{row.createdAt ? ` · ${new Date(row.createdAt).toLocaleDateString()}` : ""}</span>
+              <span>{row.type || row.kind || row.status || t("Earning", "収益")}{row.reference ? ` · ${row.reference}` : ""}{row.createdAt ? ` · ${formatTokyo(row.createdAt)}` : ""}</span>
               {row.amount != null && <strong>{row.currency || "JPY"} {Number(row.amount).toLocaleString()}</strong>}
             </div>;
           })}</div> : totals.length === 0 && <p className="text-sm text-slate-500">{t("No earnings data has been reported yet.", "収益データはまだありません。")}</p>}

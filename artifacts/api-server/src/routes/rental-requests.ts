@@ -20,6 +20,7 @@ import { z } from "zod/v4";
 import { calculatePrice } from "../lib/rental-pricing";
 import { marketplacePolicy } from "../lib/marketplace-policy";
 import { isMarketplaceEnabled, isRentalRequestExpired, mayAcceptAlternateOffer } from "../lib/rental-request-policy.mjs";
+import { formatTokyo } from "../lib/rental-time.mjs";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { queueRentalNotification, retryRentalNotification, type RentalNotificationEvent } from "../lib/rental-events";
 import { authenticatePartner, partnerIdentity } from "./partner";
@@ -328,13 +329,13 @@ router.post("/rental/requests", async (req, res): Promise<void> => {
         ? String((result.request.driver as Record<string, unknown>).email) : null,
       eventType: "request",
       bookingId: result.request.id,
-      extra: { respondBy: result.request.respondBy.toISOString() },
+      extra: { respondBy: formatTokyo(result.request.respondBy, requestLocale(req)) },
     });
     notifyRequest(req, {
       email: operator.contactEmail,
       eventType: "alert",
       bookingId: result.request.id,
-      extra: { message: `A new rental request requires a response by ${result.request.respondBy.toISOString()}.` },
+      extra: { message: `A new rental request requires a response by ${formatTokyo(result.request.respondBy)}.` },
     });
     res.status(201).json({
       ...serializeRequest(result.request),
@@ -510,13 +511,14 @@ router.post("/rental/requests/:id/accept-offer", async (req, res): Promise<void>
       );
       return { reservation: created, deadline };
     });
+    const locale = existing.locale === "ja" ? "ja" : existing.locale === "zh-TW" ? "zh-TW" : "en";
     notifyRequest(req, {
       email: typeof (existing.driver as Record<string, unknown>).email === "string"
         ? String((existing.driver as Record<string, unknown>).email) : null,
       eventType: "acceptance",
       bookingId: id,
-      locale: existing.locale === "ja" ? "ja" : existing.locale === "zh-TW" ? "zh-TW" : "en",
-      extra: { paymentDeadline: reservation.deadline.toISOString(), panelUrl: customerPanelUrl(req, existing.locale) },
+      locale,
+      extra: { paymentDeadline: formatTokyo(reservation.deadline, locale), panelUrl: customerPanelUrl(req, existing.locale) },
     });
     res.json({
       id,
@@ -666,13 +668,14 @@ router.post("/partner/rental/requests/:id/accept", authenticatePartner, async (r
       );
       return result;
     });
+    const locale = request.locale === "ja" ? "ja" : request.locale === "zh-TW" ? "zh-TW" : "en";
     notifyRequest(req, {
       email: typeof (request.driver as Record<string, unknown>).email === "string"
         ? String((request.driver as Record<string, unknown>).email) : null,
       eventType: "acceptance",
       bookingId: request.id,
-      locale: request.locale === "ja" ? "ja" : request.locale === "zh-TW" ? "zh-TW" : "en",
-      extra: { paymentDeadline: deadline.toISOString(), panelUrl: customerPanelUrl(req, request.locale) },
+      locale,
+      extra: { paymentDeadline: formatTokyo(deadline, locale), panelUrl: customerPanelUrl(req, request.locale) },
     });
     res.json({ id: request.id, status: "awaiting_payment", reservationId: reservation.id, paymentDeadline: deadline.toISOString(), price: reservation.finalTotal });
   } catch (error) {
@@ -858,7 +861,7 @@ async function submitOffer(req: ExpressRequest, res: ExpressResponse, isAdmin: b
     bookingId: updated.id,
     locale: updated.locale === "ja" ? "ja" : "en",
     extra: {
-      message: `An alternate rental offer is ready for review. Please respond by ${updated.respondBy.toISOString()}.`,
+      message: `An alternate rental offer is ready for review. Please respond by ${formatTokyo(updated.respondBy, updated.locale === "ja" ? "ja" : updated.locale === "zh-TW" ? "zh-TW" : "en")}.`,
     },
   });
   res.json(serializeRequest(updated));
@@ -972,7 +975,7 @@ async function createStaffQuote(req: ExpressRequest, res: ExpressResponse, opera
       bookingId: request.id,
       locale: request.locale === "ja" ? "ja" : "en",
       extra: {
-        message: `Your rental quote is ready for review. Please respond by ${request.respondBy.toISOString()}.`,
+        message: `Your rental quote is ready for review. Please respond by ${formatTokyo(request.respondBy, request.locale === "ja" ? "ja" : request.locale === "zh-TW" ? "zh-TW" : "en")}.`,
       },
     });
     res.status(201).json({ ...serializeRequest(request), customerAccessToken: token });

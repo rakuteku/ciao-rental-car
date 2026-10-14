@@ -1,6 +1,7 @@
 import { useAdminAudit } from "@/hooks/use-rental-operations";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { formatTokyo } from "@/lib/rental-marketplace";
 
 export function AdminAudit() {
   const { data, isLoading } = useAdminAudit();
@@ -33,7 +34,7 @@ export function AdminAudit() {
               logs.map((log: any) => (
                 <TableRow key={log.id}>
                   <TableCell className="whitespace-nowrap text-muted-foreground text-sm">
-                    {new Date(log.createdAt).toLocaleString()}
+                    {formatTokyo(log.createdAt)}
                   </TableCell>
                   <TableCell>{log.adminUser || "System"}</TableCell>
                   <TableCell><Badge variant="outline">{log.action}</Badge></TableCell>

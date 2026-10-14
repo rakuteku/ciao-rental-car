@@ -20,6 +20,7 @@ import {
   type RentalVehiclePricing,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
+import { formatTokyo } from "@/lib/rental-marketplace";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1739,11 +1740,11 @@ export function AdminRentalCarEdit({ isNew = false }: EditPageProps) {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Created</p>
-                  <p>{new Date(vehicleDetail.createdAt).toLocaleDateString()}</p>
+                  <p>{formatTokyo(vehicleDetail.createdAt)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Last Updated</p>
-                  <p>{new Date(vehicleDetail.updatedAt).toLocaleDateString()}</p>
+                  <p>{formatTokyo(vehicleDetail.updatedAt)}</p>
                 </div>
               </div>
             </>

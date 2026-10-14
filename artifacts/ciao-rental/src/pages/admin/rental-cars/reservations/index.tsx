@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAdminReservations, useAdminReservationAction, useCreateAdminReservation } from "@/hooks/use-rental-operations";
 import { useToast } from "@/hooks/use-toast";
+import { formatTokyo } from "@/lib/rental-marketplace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,8 +111,8 @@ export function AdminReservations() {
                 <TableRow key={r.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => setLocation(`/admin/rental-cars/reservations/${r.id}`)}>
                   <TableCell className="font-mono">#{r.id}</TableCell>
                   <TableCell>
-                    <div className="text-sm font-medium">{new Date(r.pickupAt).toLocaleDateString()}</div>
-                    <div className="text-xs text-muted-foreground">to {new Date(r.returnAt).toLocaleDateString()}</div>
+                    <div className="text-sm font-medium">{formatTokyo(r.pickupAt)}</div>
+                    <div className="text-xs text-muted-foreground">to {formatTokyo(r.returnAt)}</div>
                   </TableCell>
                   <TableCell>{r.driver?.fullName || "N/A"}</TableCell>
                   <TableCell>#{r.vehicleId}</TableCell>

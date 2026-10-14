@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatTokyo } from "@/lib/rental-marketplace";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export function AdminRentalCustomers() {
@@ -42,7 +43,7 @@ export function AdminRentalCustomers() {
         <TableCell><p className="font-semibold">{customer.fullName}</p><p className="text-sm text-muted-foreground">{customer.email}</p>{customer.phone && <p className="text-xs text-muted-foreground">{customer.phone}</p>}</TableCell>
         <TableCell>{customer.preferredLanguage}</TableCell>
         <TableCell><div className="space-y-1"><span className="font-semibold">{customer.bookings?.length ?? 0}</span>{customer.bookings?.slice(0, 2).map((booking: Record<string, any>) => <Link key={booking.id} href={`/admin/rental-cars/reservations/${booking.id}`} className="block text-xs text-primary underline">#{booking.id} · {booking.vehicleTitle}</Link>)}</div></TableCell>
-        <TableCell>{customer.lastLoginAt ? new Date(customer.lastLoginAt).toLocaleString() : t("Never", "未ログイン")}</TableCell>
+        <TableCell>{customer.lastLoginAt ? formatTokyo(customer.lastLoginAt) : t("Never", "未ログイン")}</TableCell>
         <TableCell><Badge variant={customer.status === "active" ? "default" : "destructive"}>{customer.status}</Badge></TableCell>
         <TableCell className="text-right"><Button variant="outline" size="sm" onClick={() => changeStatus(customer)} disabled={updateCustomer.isPending}>{customer.status === "active" ? <><UserRoundX className="mr-2 size-4" />{t("Suspend", "停止")}</> : <><ShieldCheck className="mr-2 size-4" />{t("Activate", "有効化")}</>}</Button></TableCell>
       </TableRow>)}</TableBody></Table>
