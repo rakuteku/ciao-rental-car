@@ -24,6 +24,7 @@ import { MyBookings } from "@/pages/rentalcar/my-bookings/index";
 import { MyBookingDetail } from "@/pages/rentalcar/my-bookings/detail";
 import { CmsPage } from "@/pages/cms-page";
 import { PrivacyPolicyPage } from "@/pages/privacy-policy";
+import { TermsPage } from "@/pages/terms";
 
 import { AdminLogin } from "@/pages/admin/login";
 import { AdminDashboard } from "@/pages/admin/dashboard";
@@ -87,6 +88,7 @@ function Router() {
       <Route path="/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
       <Route path="/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
       <Route path="/privacy-policy" component={() => <MainLayout><PrivacyPolicyPage /></MainLayout>} />
+      <Route path="/terms" component={() => <MainLayout><TermsPage /></MainLayout>} />
       <Route path="/partner/apply" component={PartnerApplyPage} />
       <Route path="/partner/inventory" component={PartnerInventoryPage} />
       <Route path="/partner/reservations" component={PartnerReservationsPage} />
@@ -144,6 +146,7 @@ function Router() {
       <Route path="/:language/rentalcar" component={() => <MainLayout><RentalCarHome /></MainLayout>} />
       <Route path="/:language/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
       <Route path="/:language/privacy-policy" component={() => <MainLayout><PrivacyPolicyPage /></MainLayout>} />
+      <Route path="/:language/terms" component={() => <MainLayout><TermsPage /></MainLayout>} />
       <Route path="/:language" component={() => <MainLayout><Home /></MainLayout>} />
       <Route path="/:language/:slug" component={() => <MainLayout><CmsPage /></MainLayout>} />
 

@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ChevronRight, ArrowLeft, CreditCard, Car, Clock, MapPin } from "lucide-react";
+import { Check, ChevronRight, ArrowLeft, Mail, Car, Clock, MapPin } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -647,7 +647,7 @@ function LegacyCheckout() {
                 <Card>
                   <CardContent className="p-8 flex flex-col items-center justify-center text-center space-y-4">
                     <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                      <CreditCard className="w-8 h-8" />
+                      <Mail className="w-8 h-8" />
                     </div>
                     <h3 className="font-bold text-xl">{payment.title}</h3>
                     <p className="text-muted-foreground max-w-sm">
@@ -656,7 +656,7 @@ function LegacyCheckout() {
                     <div className="w-full max-w-sm rounded-lg bg-muted/50 px-4 py-3 text-left">
                       <div className="flex items-center justify-between gap-4 font-semibold">
                         <span>{payment.total}</span>
-                        <span className="tabular-nums">¥{priceData?.finalTotal.toLocaleString() || "..."}</span>
+                        <span className="tabular-nums">{priceData ? `¥${priceData.finalTotal.toLocaleString()}` : copy.calculating}</span>
                       </div>
                     </div>
                     
@@ -664,7 +664,7 @@ function LegacyCheckout() {
                       <div className="flex items-start gap-3">
                         <Checkbox id="terms" checked={agreedTerms} onCheckedChange={(c) => setAgreedTerms(!!c)} />
                         <label htmlFor="terms" className="text-sm text-muted-foreground leading-snug">
-                          {payment.consentBefore}<a href={`/${language}/terms`} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">{payment.terms}</a>{payment.consentBetween}<a href={localizedPath("/privacy-policy", language)} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">{payment.privacy}</a>{payment.consentAfter}
+                          {payment.consentBefore}<a href={localizedPath("/terms", language)} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">{payment.terms}</a>{payment.consentBetween}<a href={localizedPath("/privacy-policy", language)} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">{payment.privacy}</a>{payment.consentAfter}
                         </label>
                       </div>
                     </div>
@@ -683,7 +683,7 @@ function LegacyCheckout() {
                   Continue <ChevronRight className="w-4 h-4" />
                 </Button>
               ) : (
-                <Button onClick={handleConfirm} disabled={!agreedTerms || createReservation.isPending || isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig} className="gap-2 px-8" size="lg">
+                <Button onClick={handleConfirm} disabled={!agreedTerms || !priceData || createReservation.isPending || isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig} className="gap-2 px-8" size="lg">
                   {createReservation.isPending ? payment.submitting : payment.submit} <Check className="w-4 h-4" />
                 </Button>
               )}
