@@ -1,8 +1,8 @@
 import { Link, useSearch } from "wouter";
 import { CheckCircle2, MapPin, Upload, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
 import { localizedPath, useLanguage } from "@/lib/language";
+import { formatTokyo } from "@/lib/rental-marketplace";
 
 export function BookingSuccessPage() {
   const search = useSearch();
@@ -73,8 +73,8 @@ export function BookingSuccessPage() {
           <div className="space-y-4 rounded-lg border p-5">
             <h2 className="font-serif text-xl font-bold">{confirmation?.vehicle?.title ?? "Your CIAO vehicle"}</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div><p className="text-xs uppercase text-muted-foreground">Pickup</p><p>{confirmation?.draft?.pickupAt ? format(new Date(confirmation.draft.pickupAt), "MMM d, yyyy · HH:mm") : "See booking email"}</p><p className="text-muted-foreground">{confirmation?.draft?.pickupLocation}</p></div>
-              <div><p className="text-xs uppercase text-muted-foreground">Return</p><p>{confirmation?.draft?.returnAt ? format(new Date(confirmation.draft.returnAt), "MMM d, yyyy · HH:mm") : "See booking email"}</p><p className="text-muted-foreground">{confirmation?.draft?.returnLocation}</p></div>
+              <div><p className="text-xs uppercase text-muted-foreground">Pickup</p><p>{confirmation?.draft?.pickupAt ? formatTokyo(confirmation.draft.pickupAt, language) : "See booking email"}</p><p className="text-muted-foreground">{confirmation?.draft?.pickupLocation}</p></div>
+              <div><p className="text-xs uppercase text-muted-foreground">Return</p><p>{confirmation?.draft?.returnAt ? formatTokyo(confirmation.draft.returnAt, language) : "See booking email"}</p><p className="text-muted-foreground">{confirmation?.draft?.returnLocation}</p></div>
             </div>
              {confirmation?.pricing?.addons && confirmation.pricing.addons.length > 0 && (
                <div className="border-t pt-4 text-sm">

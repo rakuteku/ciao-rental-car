@@ -37,6 +37,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { tokyoParts } from "@/lib/rental-marketplace";
 import {
   Sheet,
   SheetContent,
@@ -111,8 +112,8 @@ function startOfWeek(value: Date) {
 }
 
 function datetimeInputValue(value: Date) {
-  const pad = (number: number) => String(number).padStart(2, "0");
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+  const { date, time } = tokyoParts(value.toISOString());
+  return `${date}T${time}`;
 }
 
 function readInitialVehicleId() {
@@ -122,7 +123,7 @@ function readInitialVehicleId() {
 }
 
 function formatDate(value: Date, options: Intl.DateTimeFormatOptions) {
-  return new Intl.DateTimeFormat("en-JP", options).format(value);
+  return new Intl.DateTimeFormat("en-JP", { ...options, timeZone: "Asia/Tokyo" }).format(value);
 }
 
 function overlaps(event: CalendarEvent, start: Date, end: Date) {

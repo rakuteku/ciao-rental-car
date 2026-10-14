@@ -45,9 +45,29 @@ export function tokyoParts(instant: string): { date: string; time: string } {
   return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${get("hour")}:${get("minute")}` };
 }
 
-export function formatTokyo(instant: string, language: string): string {
+/** Formats an instant for rental UI. Never rely on the browser's local timezone. */
+export function formatTokyo(instant: string | Date, language: string = "en"): string {
   const date = new Date(instant);
-  return Number.isNaN(date.getTime()) ? instant : new Intl.DateTimeFormat(language === "ja" ? "ja-JP" : "en-GB", { timeZone: "Asia/Tokyo", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date) + " JST";
+  if (Number.isNaN(date.getTime())) return String(instant);
+  const locale = language === "ja" ? "ja-JP" : language === "zh-TW" ? "zh-TW" : "en-GB";
+  const zoneLabel = language === "ja" || language === "zh-TW" ? "日本時間" : "JST";
+  return `${new Intl.DateTimeFormat(locale, { timeZone: "Asia/Tokyo", year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date)} ${zoneLabel}`;
+}
+
+export function formatTokyoDate(instant: string | Date, language: string = "en"): string {
+  const date = new Date(instant);
+  if (Number.isNaN(date.getTime())) return String(instant);
+  const locale = language === "ja" ? "ja-JP" : language === "zh-TW" ? "zh-TW" : "en-GB";
+  return new Intl.DateTimeFormat(locale, { timeZone: "Asia/Tokyo", month: "short", day: "numeric" }).format(date);
+}
+
+/** Tokyo clock hour for business-hour decisions; independent of the browser timezone. */
+export function tokyoHour(instant: string | Date): number | null {
+  const date = new Date(instant);
+  if (Number.isNaN(date.getTime())) return null;
+  const hour = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Tokyo", hour: "2-digit", hourCycle: "h23" })
+    .formatToParts(date).find(part => part.type === "hour")?.value;
+  return hour === undefined ? null : Number(hour);
 }
 
 export interface RentalRequest {

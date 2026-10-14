@@ -20,6 +20,7 @@ import { localizedPath, useLanguage, type Language } from "@/lib/language";
 import { Ledger, TripRecordSummary } from "@/components/rental/TripWorkflow";
 import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
 import { usesMarketplaceExceptions } from "@/lib/rental-exception-rollout.mjs";
+import { formatTokyo } from "@/lib/rental-marketplace";
 
 const copy = {
   en: { loading: "Loading booking details...", missing: "Booking not found or the account does not match.", booking: "Booking", itinerary: "Itinerary details", pickup: "Pickup", return: "Return", payment: "Payment summary", base: "Base rate", addons: "Add-ons", taxes: "Insurance, taxes & fees", total: "Booking total", upload: "Upload ID", required: "Required before pickup.", documentType: "Document type", passport: "Passport", licence: "Driver's licence", internationalLicence: "International driving permit", driver: "Authorized driver", selectDriver: "Select driver", submit: "Submit document", cancel: "Cancel booking", cancellationFee: "Cancellation fees may apply.", trip: "Trip condition & receipt", tripNote: "Inspection evidence and ledger entries are shown as recorded. A provisional amount is not a collected payment.", provisional: "Provisional charges - not collected", operator: "Rental operator contact" },
@@ -150,12 +151,12 @@ export function MyBookingDetail() {
             <div className="grid grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">{t.pickup}</p>
-                <p className="font-medium text-lg">{new Date(res.pickupAt).toLocaleString()}</p>
+                <p className="font-medium text-lg">{formatTokyo(res.pickupAt, language)}</p>
                 <p className="text-sm">{res.pickupLocation}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">{t.return}</p>
-                <p className="font-medium text-lg">{new Date(res.returnAt).toLocaleString()}</p>
+                <p className="font-medium text-lg">{formatTokyo(res.returnAt, language)}</p>
                 <p className="text-sm">{res.returnLocation}</p>
               </div>
             </div>

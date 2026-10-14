@@ -14,6 +14,7 @@ import { requireAdminAuth } from "../middlewares/admin-auth";
 import { logRentalAudit } from "../lib/rental-events";
 import { marketplacePolicy, marketplacePolicyKeys } from "../lib/marketplace-policy";
 import { calculatePrice } from "../lib/rental-pricing";
+import { formatTokyo } from "../lib/rental-time.mjs";
 
 const router: IRouter = Router();
 
@@ -313,7 +314,7 @@ router.get("/admin/rental/dashboard", requireAdminAuth, async (_req, res): Promi
     activeVehicles: vehicles.filter((v) => v.operationalStatus === "in_use").length,
     pendingReservations: reservations.filter((r) => ["inquiry", "quote_sent", "pending_payment"].includes(r.status)).length,
     mtdRevenue: reservations.filter((r) => r.createdAt.getMonth() === now.getMonth() && r.createdAt.getFullYear() === now.getFullYear()).reduce((total, r) => total + r.paidAmount, 0),
-    recentActivity: reservations.slice(0, 5).map((r) => ({ title: `Reservation #${r.id}`, description: `Status: ${r.status}`, time: r.updatedAt.toISOString() })),
+    recentActivity: reservations.slice(0, 5).map((r) => ({ title: `Reservation #${r.id}`, description: `Status: ${r.status}`, time: formatTokyo(r.updatedAt) })),
   });
 });
 

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { localizeVehicle, rentalCopy } from "@/lib/rental-localization";
-import { captureRentalAttribution } from "@/lib/rental-marketplace";
+import { captureRentalAttribution, formatTokyoDate, tokyoInstant } from "@/lib/rental-marketplace";
 import { useRentalTrip, useStickySummaryVisible } from "@/components/rental/RentalNavigation";
 import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
 import { formatRentalTime } from "@/lib/rental-time";
@@ -87,7 +87,7 @@ export function CarsPage() {
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
   const pickupLabel = language === "ja" ? "受取" : language === "zh-TW" ? "取車" : "Pickup";
   const returnLabel = language === "ja" ? "返却" : language === "zh-TW" ? "還車" : "Return";
-  const tripDate = (value?: string) => value ? new Intl.DateTimeFormat(language, { month: "short", day: "numeric", timeZone: "Asia/Tokyo" }).format(new Date(`${value}T12:00:00+09:00`)) : copy.selectDates;
+  const tripDate = (value?: string) => value ? formatTokyoDate(tokyoInstant(value, "12:00"), language) : copy.selectDates;
 
   return (
     <div className="min-h-[100dvh] flex flex-col">

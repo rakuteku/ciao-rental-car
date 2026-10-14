@@ -8,6 +8,7 @@ import { useState, useEffect, useRef, type FormEvent } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
+import { formatTokyo } from "@/lib/rental-marketplace";
 
 function financeRows(value: any): any[] {
   if (Array.isArray(value)) return value;
@@ -48,7 +49,7 @@ function FinanceLedgerRow({ payment }: { payment: any }) {
   return <div className="space-y-3 rounded-md border p-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div><p className="font-semibold">Payment #{paymentId || "—"}</p><p className="text-sm text-muted-foreground">{payment.type || payment.kind || "Payment"} · {payment.status || "Status unavailable"}</p></div>
-      <div className="text-right"><p className="font-semibold">{payment.currency || "JPY"} {payment.amount == null ? "—" : Number(payment.amount).toLocaleString()}</p>{payment.createdAt && <p className="text-xs text-muted-foreground">{new Date(payment.createdAt).toLocaleString()}</p>}</div>
+      <div className="text-right"><p className="font-semibold">{payment.currency || "JPY"} {payment.amount == null ? "—" : Number(payment.amount).toLocaleString()}</p>{payment.createdAt && <p className="text-xs text-muted-foreground">{formatTokyo(payment.createdAt)}</p>}</div>
     </div>
     {(payment.stripePaymentIntentId || payment.stripeCheckoutSessionId || payment.reference) && <p className="break-all text-xs text-muted-foreground">{payment.stripePaymentIntentId || payment.stripeCheckoutSessionId || payment.reference}</p>}
     {paymentId > 0 && <div className="grid gap-4 border-t pt-3 lg:grid-cols-2">
@@ -110,7 +111,7 @@ export function AdminReservationDetail() {
             <h1 className="text-2xl font-serif font-bold">Reservation #{res.id}</h1>
             <Badge variant={res.status === 'confirmed' || res.status === 'in_rental' ? 'default' : res.status === 'cancelled' ? 'destructive' : 'secondary'}>{res.status}</Badge>
           </div>
-          <p className="text-muted-foreground text-sm">Created {new Date(res.createdAt).toLocaleString()}</p>
+          <p className="text-muted-foreground text-sm">Created {formatTokyo(res.createdAt)}</p>
         </div>
       </div>
 
@@ -123,12 +124,12 @@ export function AdminReservationDetail() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Pickup</p>
-                <p className="font-medium">{new Date(res.pickupAt).toLocaleString()}</p>
+                <p className="font-medium">{formatTokyo(res.pickupAt)}</p>
                 <p className="text-sm">{res.pickupLocation}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Return</p>
-                <p className="font-medium">{new Date(res.returnAt).toLocaleString()}</p>
+                <p className="font-medium">{formatTokyo(res.returnAt)}</p>
                 <p className="text-sm">{res.returnLocation}</p>
               </div>
             </div>

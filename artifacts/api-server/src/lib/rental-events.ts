@@ -11,6 +11,7 @@ import {
 } from "@workspace/db";
 import { and, asc, eq, gt, inArray, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { logger } from "./logger";
+import { formatTokyo } from "./rental-time.mjs";
 
 type AuditValue = Record<string, unknown> | null | undefined;
 type Locale = "en" | "ja" | "zh-TW";
@@ -502,10 +503,10 @@ async function queueReservationReminders(eventType: "pickup_reminder" | "return_
       email: driver.email,
       eventType,
       bookingId: reservation.id,
-      locale: request.locale === "ja" ? "ja" : "en",
+      locale: request.locale === "ja" || request.locale === "zh-TW" ? request.locale : "en",
       dedupeKey: `reservation:${reservation.id}:${eventType}`,
       dispatch: false,
-      extra: { scheduledAt: actualScheduledAt.toISOString() },
+      extra: { scheduledAt: formatTokyo(actualScheduledAt, request.locale === "ja" || request.locale === "zh-TW" ? request.locale : "en") },
     });
     await queueRentalNotification({
       email: operator.contactEmail,
@@ -516,7 +517,7 @@ async function queueReservationReminders(eventType: "pickup_reminder" | "return_
       dispatch: false,
       extra: {
         scheduledAt: actualScheduledAt.toISOString(),
-        message: `Reminder for booking #${reservation.id}. Customer: ${driver.fullName}; pickup ${reservation.pickupAt.toISOString()}, return ${reservation.returnAt.toISOString()}. Contact the customer through their confirmed booking details.`,
+        message: `Reminder for booking #${reservation.id}. Customer: ${driver.fullName}; pickup ${formatTokyo(reservation.pickupAt)}, return ${formatTokyo(reservation.returnAt)}. Contact the customer through their confirmed booking details.`,
       },
     });
   }

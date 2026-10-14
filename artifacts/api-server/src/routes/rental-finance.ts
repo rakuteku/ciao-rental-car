@@ -24,6 +24,7 @@ import { requireAdminAuth } from "../middlewares/admin-auth";
 import { authenticatePartner, partnerIdentity } from "./partner";
 import { isVehicleAvailable } from "./rental-vehicles";
 import { retryRentalNotification } from "../lib/rental-events";
+import { formatTokyo } from "../lib/rental-time.mjs";
 import {
   reconcileRentalExceptionCheckout,
   reconcileRentalExceptionRefund,
@@ -171,8 +172,8 @@ async function enqueueConfirmedBookingNotifications(
   const voucherUrl = baseUrl
     ? new URL(`/rentalcar/requests/${request.id}?accessCode=${encodeURIComponent(request.customerAccessToken)}`, baseUrl).toString()
     : "the booking page";
-  const pickup = reservation.pickupAt.toISOString();
-  const returnAt = reservation.returnAt.toISOString();
+  const pickup = formatTokyo(reservation.pickupAt, locale);
+  const returnAt = formatTokyo(reservation.returnAt, locale);
   const contact = [
     operator?.name ?? "Rental operator",
     operator?.contactEmail ? `email ${operator.contactEmail}` : null,
@@ -1216,7 +1217,7 @@ router.post("/rental/requests/:id/checkout", async (req, res): Promise<void> => 
       ? await stripe.products.retrieve(payment.stripeProductId)
       : await stripe.products.create({
         name: `Rental reservation ${reservation.id}`,
-        description: `${reservation.pickupAt.toISOString()} – ${reservation.returnAt.toISOString()}`,
+        description: `${formatTokyo(reservation.pickupAt)} – ${formatTokyo(reservation.returnAt)}`,
         metadata: {
           rentalPaymentId: String(payment.id),
           rentalReservationId: String(reservation.id),

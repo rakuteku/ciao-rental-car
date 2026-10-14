@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useBookingLookup, useCustomerAccount, useCustomerLogin, useCustomerLogout, useCustomerRegister, useGoogleCustomerConfig, useGoogleCustomerLogin } from "@/hooks/use-rental-operations";
 import { localizedPath, useLanguage, type Language } from "@/lib/language";
+import { formatTokyo } from "@/lib/rental-marketplace";
 
 const copy = {
   en: { title: "My bookings", subtitle: "Sign in to see every CIAO rental booking linked to your email.", signIn: "Sign in", create: "Create account", guest: "Guest lookup", email: "Email address", password: "Password", name: "Full name", phone: "Phone number", register: "Create my account", noBookings: "No bookings are linked to this account yet.", upcoming: "Your bookings", logout: "Log out", booking: "Booking", pickup: "Pickup", return: "Return", view: "View booking", accessCode: "Booking access code", bookingId: "Booking ID", lookup: "Look up booking", passwordHint: "Use at least 8 characters.", accountIntro: "Customer account", guestIntro: "You can still open an existing reservation without creating an account." },
@@ -78,7 +79,7 @@ export function MyBookings() {
       <h2 className="mb-4 text-xl font-semibold">{t.upcoming}</h2>
       {bookings.length === 0 ? <div className="border py-12 text-center text-muted-foreground">{t.noBookings}</div> : <div className="space-y-3">{bookings.map((booking) => <article key={booking.id} className="grid gap-4 border p-5 md:grid-cols-[1fr_1fr_auto] md:items-center">
         <div><p className="text-xs uppercase text-muted-foreground">{t.booking} #{booking.id}</p><p className="mt-1 font-semibold">{booking.vehicleTitle}</p><Badge className="mt-2" variant="secondary">{booking.status}</Badge></div>
-        <div className="grid grid-cols-2 gap-4 text-sm"><div><p className="text-muted-foreground">{t.pickup}</p><p>{new Date(booking.pickupAt).toLocaleString()}</p></div><div><p className="text-muted-foreground">{t.return}</p><p>{new Date(booking.returnAt).toLocaleString()}</p></div></div>
+        <div className="grid grid-cols-2 gap-4 text-sm"><div><p className="text-muted-foreground">{t.pickup}</p><p>{formatTokyo(booking.pickupAt, language)}</p></div><div><p className="text-muted-foreground">{t.return}</p><p>{formatTokyo(booking.returnAt, language)}</p></div></div>
         <Link href={localizedPath(`/rentalcar/my-bookings/${booking.id}`, language)}><Button>{t.view}</Button></Link>
       </article>)}</div>}
     </div>;

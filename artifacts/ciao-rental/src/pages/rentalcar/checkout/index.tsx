@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Check, ChevronRight, ArrowLeft, CreditCard, Car, Clock, MapPin } from "lucide-react";
-import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import { localizedPath, useLanguage } from "@/lib/language";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeAddon, localizeVehicle, rentalCopy } from "@/lib/rental-localization";
 import { DEFAULT_RENTAL_LOCATIONS, rentalLocationLabel, useRentalLocations } from "@/lib/rental-locations";
+import { formatTokyo, tokyoHour } from "@/lib/rental-marketplace";
 import {
   useGetRentalAddons,
   useGetRentalVehicle,
@@ -348,7 +348,7 @@ function LegacyCheckout() {
                     I need a different return location. Our team will confirm any applicable delivery fee before pickup.
                   </label>
                 </div>
-                {(new Date(draft.pickupAt).getHours() < 8 || new Date(draft.pickupAt).getHours() >= 19) && (
+                {((tokyoHour(draft.pickupAt) ?? 10) < 8 || (tokyoHour(draft.pickupAt) ?? 10) >= 19) && (
                   <div className="rounded-lg border border-amber-400 bg-amber-50 p-4 text-sm">
                     Your pickup is outside normal desk hours. An after-hours service fee may apply.
                   </div>
@@ -357,14 +357,14 @@ function LegacyCheckout() {
                   <Card>
                     <CardContent className="p-6 space-y-2">
                       <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Pickup</div>
-                      <div className="font-bold text-lg">{format(new Date(draft.pickupAt), "MMM d, yyyy")}</div>
+                      <div className="font-bold text-lg">{formatTokyo(draft.pickupAt, language)}</div>
                       <div className="text-sm text-muted-foreground">{locationLabel(draft.pickupLocation)}</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-6 space-y-2">
                       <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Return</div>
-                      <div className="font-bold text-lg">{format(new Date(draft.returnAt), "MMM d, yyyy")}</div>
+                      <div className="font-bold text-lg">{formatTokyo(draft.returnAt, language)}</div>
                       <div className="text-sm text-muted-foreground">{locationLabel(draft.returnLocation)}</div>
                     </CardContent>
                   </Card>
@@ -552,12 +552,12 @@ function LegacyCheckout() {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-muted-foreground block text-xs">Pickup</span>
-                            <span className="font-medium">{format(new Date(draft.pickupAt), "MMM d, yyyy")}</span><br/>
+                            <span className="font-medium">{formatTokyo(draft.pickupAt, language)}</span><br/>
                             <span className="text-xs text-muted-foreground">{locationLabel(draft.pickupLocation)}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground block text-xs">Return</span>
-                            <span className="font-medium">{format(new Date(draft.returnAt), "MMM d, yyyy")}</span><br/>
+                            <span className="font-medium">{formatTokyo(draft.returnAt, language)}</span><br/>
                             <span className="text-xs text-muted-foreground">{locationLabel(draft.returnLocation)}</span>
                           </div>
                         </div>

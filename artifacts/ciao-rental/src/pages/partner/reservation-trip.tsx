@@ -5,6 +5,7 @@ import { usePartnerReservationTrip, useRentalMarketplaceConfig } from "@/hooks/u
 import { TripPageFrame, TripRecordSummary, TripWorkflow } from "@/components/rental/TripWorkflow";
 import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
 import { partnerRequest } from "./shared";
+import { formatTokyo } from "@/lib/rental-marketplace";
 
 function DriverDocumentReview({ id, trip }: { id: number; trip: Record<string, any> }) {
   const queryClient = useQueryClient();
@@ -47,7 +48,7 @@ function DriverDocumentReview({ id, trip }: { id: number; trip: Record<string, a
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <p className="font-semibold">{driverName} · {String(doc.docType ?? "Document").replaceAll("_", " ")}</p>
-              <p className="mt-1 text-xs text-slate-600">Review status: <strong>{doc.status ?? "submitted"}</strong>{doc.createdAt ? ` · Submitted ${new Date(doc.createdAt).toLocaleString()}` : ""}</p>
+              <p className="mt-1 text-xs text-slate-600">Review status: <strong>{doc.status ?? "submitted"}</strong>{doc.createdAt ? ` · Submitted ${formatTokyo(doc.createdAt)}` : ""}</p>
             </div>
             <a data-testid={`link-private-driver-document-${doc.id ?? index}`} className="text-sm font-medium text-amber-800 underline" href={`/api/partner/rental/reservations/${id}/driver-documents/${documentId}/content`} target="_blank" rel="noreferrer">Open private document</a>
           </div>
@@ -93,8 +94,8 @@ export function PartnerReservationTripPage() {
       <dl className="mt-4 grid gap-4 border-t pt-4 text-sm sm:grid-cols-2">
         <div><dt className="text-slate-500">Vehicle</dt><dd className="font-medium">{[trip.vehicle?.make, trip.vehicle?.model, trip.vehicle?.registration].filter(Boolean).join(" · ") || "Vehicle details unavailable"}</dd></div>
         <div><dt className="text-slate-500">Driver(s)</dt><dd className="font-medium">{(trip.drivers ?? []).map((driver: any) => driver.fullName).filter(Boolean).join(", ") || "No driver details"}</dd></div>
-        <div><dt className="text-slate-500">Pickup</dt><dd>{reservation.pickupAt ? new Date(reservation.pickupAt).toLocaleString() : "—"} · {reservation.pickupLocation ?? "—"}</dd></div>
-        <div><dt className="text-slate-500">Return</dt><dd>{reservation.returnAt ? new Date(reservation.returnAt).toLocaleString() : "—"} · {reservation.returnLocation ?? "—"}</dd></div>
+        <div><dt className="text-slate-500">Pickup</dt><dd>{reservation.pickupAt ? formatTokyo(reservation.pickupAt) : "—"} · {reservation.pickupLocation ?? "—"}</dd></div>
+        <div><dt className="text-slate-500">Return</dt><dd>{reservation.returnAt ? formatTokyo(reservation.returnAt) : "—"} · {reservation.returnLocation ?? "—"}</dd></div>
       </dl>
     </header>
     <DriverDocumentReview id={id} trip={trip} />
