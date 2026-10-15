@@ -10,15 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
 import { formatTokyo } from "@/lib/rental-marketplace";
 import { openStaffDocument } from "@/lib/rental-document-view";
-
-const documentTypeLabels: Record<string, string> = {
-  drivers_license: "Driver's licence", passport: "Passport", international_license: "International driving permit",
-  insurance: "Insurance document", credit_card: "Credit card", other: "Other document",
-};
-const documentStatusLabels: Record<string, string> = {
-  pending: "Pending upload", submitted: "Submitted", approved: "Approved", rejected: "Rejected",
-  resubmit_required: "Resubmission requested",
-};
+import { documentStatusLabels, documentTypeLabels } from "@/lib/rental-document-labels";
 
 function financeRows(value: any): any[] {
   if (Array.isArray(value)) return value;

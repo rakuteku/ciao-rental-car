@@ -90,9 +90,15 @@ const paymentCopy = {
 } as const;
 
 const documentCopy = {
-  en: { title: "Required documents", upload: "After booking, upload PDF, JPEG, or PNG files securely from your booking details.", pickup: "Original documents are checked at pickup. Staff will contact you about the documents needed.", driversLicence: "Driver's licence", japaneseLicense: "Japanese driver's licence", creditCard: "Credit card", insurance: "Insurance document", checking: "Checking secure upload…", retry: "Could not check secure upload. Please try again.", foreignLicense: "Foreign driver's licence", idp: "International driving permit", passport: "Passport", residenceCard: "Residence card", selfie: "Identity photo", additionalDrivers: "Additional driver's documents", other: "Other document" },
-  ja: { title: "必要書類", upload: "予約後、予約詳細から PDF・JPEG・PNG 形式の書類を安全にアップロードできます。", pickup: "原本は貸出時に確認します。必要書類についてスタッフからご連絡します。", driversLicence: "運転免許証", japaneseLicense: "日本の運転免許証", creditCard: "クレジットカード", insurance: "保険書類", checking: "安全なアップロードを確認しています…", retry: "安全なアップロードを確認できませんでした。もう一度お試しください。", foreignLicense: "外国の運転免許証", idp: "国際運転免許証", passport: "パスポート", residenceCard: "在留カード", selfie: "本人確認用写真", additionalDrivers: "追加運転者の書類", other: "その他の書類" },
-  "zh-TW": { title: "所需文件", upload: "預訂後可在預訂詳情安全上傳 PDF、JPEG 或 PNG 文件。", pickup: "取車時會查驗文件正本。工作人員將聯絡您確認所需文件。", driversLicence: "駕駛執照", japaneseLicense: "日本駕駛執照", creditCard: "信用卡", insurance: "保險文件", checking: "正在確認安全上傳…", retry: "無法確認安全上傳，請重試。", foreignLicense: "外國駕駛執照", idp: "國際駕駛許可證", passport: "護照", residenceCard: "在留卡", selfie: "身分確認照片", additionalDrivers: "其他駕駛人的文件", other: "其他文件" },
+  en: { title: "Documents", upload: "After booking, upload PDF, JPEG, or PNG files securely from your booking details.", pickup: "Original documents are checked at pickup. Staff will contact you about the documents needed.", driversLicence: "Driver's licence", japaneseLicense: "Japanese driver's licence", creditCard: "Credit card", insurance: "Insurance document", checking: "Checking secure upload…", retry: "Could not check secure upload. Please try again.", tryAgain: "Try again", foreignLicense: "Foreign driver's licence", idp: "International driving permit", passport: "Passport", residenceCard: "Residence card", selfie: "Identity photo", additionalDrivers: "Additional driver's documents", other: "Other document" },
+  ja: { title: "書類", upload: "予約後、予約詳細から PDF・JPEG・PNG 形式の書類を安全にアップロードできます。", pickup: "原本は貸出時に確認します。必要書類についてスタッフからご連絡します。", driversLicence: "運転免許証", japaneseLicense: "日本の運転免許証", creditCard: "クレジットカード", insurance: "保険書類", checking: "安全なアップロードを確認しています…", retry: "安全なアップロードを確認できませんでした。もう一度お試しください。", tryAgain: "再試行", foreignLicense: "外国の運転免許証", idp: "国際運転免許証", passport: "パスポート", residenceCard: "在留カード", selfie: "本人確認用写真", additionalDrivers: "追加運転者の書類", other: "その他の書類" },
+  "zh-TW": { title: "文件", upload: "預訂後可在預訂詳情安全上傳 PDF、JPEG 或 PNG 文件。", pickup: "取車時會查驗文件正本。工作人員將聯絡您確認所需文件。", driversLicence: "駕駛執照", japaneseLicense: "日本駕駛執照", creditCard: "信用卡", insurance: "保險文件", checking: "正在確認安全上傳…", retry: "無法確認安全上傳，請重試。", tryAgain: "重試", foreignLicense: "外國駕駛執照", idp: "國際駕駛許可證", passport: "護照", residenceCard: "在留卡", selfie: "身分確認照片", additionalDrivers: "其他駕駛人的文件", other: "其他文件" },
+} as const;
+
+const checkoutStepCopy = {
+  en: { addons: "Add-ons", driverInfo: "Driver Info", pickupDetails: "Pickup Details", summary: "Summary" },
+  ja: { addons: "追加オプション", driverInfo: "運転者情報", pickupDetails: "貸出詳細", summary: "概要" },
+  "zh-TW": { addons: "加購項目", driverInfo: "駕駛人資料", pickupDetails: "取車詳情", summary: "摘要" },
 } as const;
 
 function documentName(value: string, language: keyof typeof documentCopy): string {
@@ -137,6 +143,7 @@ function LegacyCheckout() {
   const { language } = useLanguage();
   const copy = rentalCopy(language);
   const payment = paymentCopy[language];
+  const stepCopy = checkoutStepCopy[language];
   const customer = useCustomerAccount().data?.account as { email?: string; fullName?: string; phone?: string } | undefined;
   const { data: configuredLocations } = useRentalLocations();
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
@@ -167,7 +174,7 @@ function LegacyCheckout() {
       ? Object.fromEntries(Object.entries(current).filter(([id]) => available.has(Number(id))))
       : current);
   }, [addons]);
-  const { data: marketplaceConfig, isLoading: isMarketplaceConfigLoading, isError: isMarketplaceConfigError } = useRentalMarketplaceConfig();
+  const { data: marketplaceConfig, isLoading: isMarketplaceConfigLoading, isError: isMarketplaceConfigError, refetch: refetchMarketplaceConfig } = useRentalMarketplaceConfig();
   const { data: car } = useGetRentalVehicle(draft?.vehicleSlug || "", {
     query: { enabled: !!draft?.vehicleSlug, queryKey: getGetRentalVehicleQueryKey(draft?.vehicleSlug || "") }
   });
@@ -262,14 +269,6 @@ function LegacyCheckout() {
         setStep(3);
       })();
     } else if (step === 3) {
-      if (isMarketplaceConfigLoading || !marketplaceConfig) {
-        toast({
-          title: "Document settings unavailable",
-          description: isMarketplaceConfigError ? "Could not check secure document settings. Please try again." : "Checking document settings. Please try again shortly.",
-          variant: "destructive",
-        });
-        return;
-      }
       setStep(4);
     } else if (step === 4) {
       updateDraft({ differentReturnLocation });
@@ -338,11 +337,11 @@ function LegacyCheckout() {
   };
 
   const steps = [
-    "Add-ons",
-    "Driver Info",
+    stepCopy.addons,
+    stepCopy.driverInfo,
     documentCopy[language].title,
-    "Pickup Details",
-    "Summary",
+    stepCopy.pickupDetails,
+    stepCopy.summary,
     payment.step
   ];
   const secondsRemaining = draft.heldUntil
@@ -389,7 +388,7 @@ function LegacyCheckout() {
             {step === 4 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">Pickup Details</h2>
+                  <h2 className="text-2xl font-serif font-bold">{stepCopy.pickupDetails}</h2>
                   <p className="text-muted-foreground">Confirm your locations, times, and delivery notes.</p>
                 </div>
                 <div className="flex items-start gap-3 rounded-lg border bg-background p-4">
@@ -440,7 +439,7 @@ function LegacyCheckout() {
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">{copy.enhanceTrip}</h2>
+                  <h2 className="text-2xl font-serif font-bold">{stepCopy.addons}</h2>
                   <p className="text-muted-foreground">{copy.enhanceTripHelp}</p>
                 </div>
                 <div className="space-y-4">
@@ -458,7 +457,7 @@ function LegacyCheckout() {
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">Driver Information</h2>
+                  <h2 className="text-2xl font-serif font-bold">{stepCopy.driverInfo}</h2>
                   <p className="text-muted-foreground">Please provide details for the primary driver.</p>
                 </div>
                 <Card>
@@ -525,6 +524,7 @@ function LegacyCheckout() {
                 <div>
                   <h2 className="text-2xl font-serif font-bold">{documentCopy[language].title}</h2>
                   <p className="text-muted-foreground">{isMarketplaceConfigLoading ? documentCopy[language].checking : isMarketplaceConfigError ? documentCopy[language].retry : marketplaceConfig?.privateDocumentUploadAvailable ? documentCopy[language].upload : documentCopy[language].pickup}</p>
+                  {isMarketplaceConfigError && <Button className="mt-3" size="sm" variant="outline" onClick={() => void refetchMarketplaceConfig()}>{documentCopy[language].tryAgain}</Button>}
                 </div>
                 {(car?.requiredDocuments?.length ? car.requiredDocuments : ["drivers_license", "passport"]).map((document, index) => (
                   <Card key={`${document}-${index}`}>
@@ -538,7 +538,7 @@ function LegacyCheckout() {
             {step === 5 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">Review & Confirm</h2>
+                  <h2 className="text-2xl font-serif font-bold">{stepCopy.summary}</h2>
                   <p className="text-muted-foreground">Please review your booking details.</p>
                 </div>
 
@@ -652,7 +652,7 @@ function LegacyCheckout() {
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
               {step < 6 ? (
-                <Button onClick={handleNext} className="gap-2" size="lg" disabled={step === 3 && (isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig)}>
+                <Button onClick={handleNext} className="gap-2" size="lg">
                   Continue <ChevronRight className="w-4 h-4" />
                 </Button>
               ) : (
