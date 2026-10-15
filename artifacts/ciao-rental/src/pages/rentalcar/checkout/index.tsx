@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ChevronRight, ArrowLeft, CreditCard, Car, Clock, MapPin } from "lucide-react";
+import { Check, ChevronRight, ArrowLeft, Mail, Car, Clock, MapPin } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,48 @@ const driverSchema = z.object({
   accommodation: z.string().optional(),
 });
 
+const paymentCopy = {
+  en: {
+    step: "Payment",
+    title: "Payment instructions",
+    message: "No online payment is taken now. We will confirm your booking and send payment instructions by email.",
+    total: "Total (tax included)",
+    consentBefore: "I agree to the ",
+    terms: "Terms of Service",
+    consentBetween: " and ",
+    privacy: "Privacy Policy",
+    consentAfter: ".",
+    submit: "Submit booking",
+    submitting: "Submitting...",
+  },
+  ja: {
+    step: "お支払い",
+    title: "お支払いのご案内",
+    message: "現時点でオンライン決済は行いません。予約内容を確認のうえ、お支払い方法をメールでご案内します。",
+    total: "合計（税込）",
+    consentBefore: "",
+    terms: "利用規約",
+    consentBetween: "および",
+    privacy: "プライバシーポリシー",
+    consentAfter: "に同意します。",
+    submit: "予約を送信",
+    submitting: "送信中...",
+  },
+  "zh-TW": {
+    step: "付款",
+    title: "付款方式",
+    message: "目前不會在線上收費。我們確認預約後，會以電子郵件寄送付款方式。",
+    total: "總計（含稅）",
+    consentBefore: "我同意",
+    terms: "服務條款",
+    consentBetween: "及",
+    privacy: "隱私權政策",
+    consentAfter: "。",
+    submit: "送出預訂",
+    submitting: "送出中...",
+  },
+} as const;
+
 export function CheckoutPage() {
   const { language } = useLanguage();
   const account = useCustomerAccount();
@@ -72,6 +114,7 @@ function LegacyCheckout() {
   const { toast } = useToast();
   const { language } = useLanguage();
   const copy = rentalCopy(language);
+  const payment = paymentCopy[language];
   const customer = useCustomerAccount().data?.account as { email?: string; fullName?: string; phone?: string } | undefined;
   const { data: configuredLocations } = useRentalLocations();
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
@@ -293,7 +336,7 @@ function LegacyCheckout() {
     "Documents",
     "Pickup Details",
     "Summary",
-    "Payment"
+    payment.step
   ];
   const secondsRemaining = draft.heldUntil
     ? Math.max(0, Math.ceil((new Date(draft.heldUntil).getTime() - now) / 1_000))
@@ -588,12 +631,6 @@ function LegacyCheckout() {
                           </div>
                         </div>
                       )}
-                      <div className="flex items-start gap-3 border-t pt-5">
-                        <Checkbox id="rental-agreement" checked={agreedTerms} onCheckedChange={(checked) => setAgreedTerms(Boolean(checked))} />
-                        <label htmlFor="rental-agreement" className="text-sm text-muted-foreground">
-                          I have reviewed and agree to the rental agreement, insurance summary, cancellation policy, and security deposit terms.
-                        </label>
-                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -604,25 +641,30 @@ function LegacyCheckout() {
             {step === 6 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">Payment</h2>
-                  <p className="text-muted-foreground">Secure your booking (Simulated).</p>
+                  <h2 className="text-2xl font-serif font-bold">{payment.step}</h2>
                 </div>
                 
                 <Card>
                   <CardContent className="p-8 flex flex-col items-center justify-center text-center space-y-4">
                     <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                      <CreditCard className="w-8 h-8" />
+                      <Mail className="w-8 h-8" />
                     </div>
-                    <h3 className="font-bold text-xl">Pay at Pickup</h3>
+                    <h3 className="font-bold text-xl">{payment.title}</h3>
                     <p className="text-muted-foreground max-w-sm">
-                      No payment is required right now. You will pay the full amount of <strong className="text-foreground">¥{priceData?.finalTotal.toLocaleString() || '...'}</strong> when you pick up your vehicle at the counter.
+                      {payment.message}
                     </p>
+                    <div className="w-full max-w-sm rounded-lg bg-muted/50 px-4 py-3 text-left">
+                      <div className="flex items-center justify-between gap-4 font-semibold">
+                        <span>{payment.total}</span>
+                        <span className="tabular-nums">{priceData ? `¥${priceData.finalTotal.toLocaleString()}` : copy.calculating}</span>
+                      </div>
+                    </div>
                     
                     <div className="pt-6 w-full max-w-sm text-left">
                       <div className="flex items-start gap-3">
                         <Checkbox id="terms" checked={agreedTerms} onCheckedChange={(c) => setAgreedTerms(!!c)} />
                         <label htmlFor="terms" className="text-sm text-muted-foreground leading-snug">
-                          I agree to the rental terms and conditions, and acknowledge the cancellation policy.
+                          {payment.consentBefore}<a href={localizedPath("/terms", language)} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">{payment.terms}</a>{payment.consentBetween}<a href={localizedPath("/privacy-policy", language)} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-foreground">{payment.privacy}</a>{payment.consentAfter}
                         </label>
                       </div>
                     </div>
@@ -641,8 +683,8 @@ function LegacyCheckout() {
                   Continue <ChevronRight className="w-4 h-4" />
                 </Button>
               ) : (
-                <Button onClick={handleConfirm} disabled={!agreedTerms || createReservation.isPending || isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig} className="gap-2 px-8" size="lg">
-                  {createReservation.isPending ? "Confirming..." : "Confirm Booking"} <Check className="w-4 h-4" />
+                <Button onClick={handleConfirm} disabled={!agreedTerms || !priceData || createReservation.isPending || isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig} className="gap-2 px-8" size="lg">
+                  {createReservation.isPending ? payment.submitting : payment.submit} <Check className="w-4 h-4" />
                 </Button>
               )}
             </div>
@@ -709,7 +751,7 @@ function LegacyCheckout() {
                       {(priceData as any).oneWayFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">One-way Fee</span><span>¥{(priceData as any).oneWayFee.toLocaleString()}</span></div>}
                       <Separator className="my-2" />
                       <div className="flex justify-between font-bold text-lg">
-                        <span>{copy.total}</span>
+                        <span>{payment.total}</span>
                         <span>¥{priceData.finalTotal.toLocaleString()}</span>
                       </div>
                     </>
