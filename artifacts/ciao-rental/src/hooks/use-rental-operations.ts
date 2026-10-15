@@ -504,22 +504,8 @@ export const useBookingLookup = () => useMutation({
 
 export const useRentalMarketplaceConfig = () => useQuery({
   queryKey: ["rental", "marketplace", "config"],
-  queryFn: () => fetchWithAuth(`/rental/marketplace/config`) as Promise<{ enabled: boolean }>,
+  queryFn: () => fetchWithAuth(`/rental/marketplace/config`) as Promise<{ enabled: boolean; privateDocumentUploadAvailable: boolean }>,
 });
-
-export const useSubmitBookingDocuments = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
-      fetchWithAuth(`/rental/my-bookings/${id}/documents`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ["my-bookings", id] });
-    },
-  });
-};
 
 export const useUploadPrivateBookingDocument = () => {
   const queryClient = useQueryClient();

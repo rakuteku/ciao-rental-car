@@ -882,23 +882,6 @@ export interface CreateReservationDriverBody {
   accommodation?: string;
 }
 
-export type CreateReservationDocumentBodyDocType =
-  (typeof CreateReservationDocumentBodyDocType)[keyof typeof CreateReservationDocumentBodyDocType];
-
-export const CreateReservationDocumentBodyDocType = {
-  drivers_license: "drivers_license",
-  passport: "passport",
-  international_license: "international_license",
-  insurance: "insurance",
-  credit_card: "credit_card",
-  other: "other",
-} as const;
-
-export interface CreateReservationDocumentBody {
-  docType: CreateReservationDocumentBodyDocType;
-  fileUrl: string;
-}
-
 export type CreateReservationBodyAdditionalDriversItem = {
   fullName: string;
   email: string;
@@ -916,7 +899,6 @@ export interface CreateReservationBody {
   driver: CreateReservationDriverBody;
   addons?: CreateReservationAddonBody[];
   additionalDrivers?: CreateReservationBodyAdditionalDriversItem[];
-  documents?: CreateReservationDocumentBody[];
   source?: string;
 }
 
@@ -1419,6 +1401,7 @@ export interface RentalRequestAcceptance {
 
 export interface RentalMarketplaceConfig {
   enabled: boolean;
+  privateDocumentUploadAvailable: boolean;
 }
 
 export type RentalMarketplacePolicyValues = { [key: string]: unknown };
@@ -1539,6 +1522,91 @@ export type GetAdminRentalReservationsParams = {
 export type DeleteAdminRentalAddon200 = {
   message: string;
 };
+
+export type RequestRentalPrivateDocumentUploadBodyDocType =
+  (typeof RequestRentalPrivateDocumentUploadBodyDocType)[keyof typeof RequestRentalPrivateDocumentUploadBodyDocType];
+
+export const RequestRentalPrivateDocumentUploadBodyDocType = {
+  drivers_license: "drivers_license",
+  passport: "passport",
+  international_license: "international_license",
+  insurance: "insurance",
+  credit_card: "credit_card",
+  other: "other",
+} as const;
+
+export type RequestRentalPrivateDocumentUploadBodyContentType =
+  (typeof RequestRentalPrivateDocumentUploadBodyContentType)[keyof typeof RequestRentalPrivateDocumentUploadBodyContentType];
+
+export const RequestRentalPrivateDocumentUploadBodyContentType = {
+  "application/pdf": "application/pdf",
+  "image/jpeg": "image/jpeg",
+  "image/png": "image/png",
+} as const;
+
+export type RequestRentalPrivateDocumentUploadBody = {
+  docType: RequestRentalPrivateDocumentUploadBodyDocType;
+  contentType: RequestRentalPrivateDocumentUploadBodyContentType;
+  driverId?: number;
+};
+
+export type RequestRentalPrivateDocumentUpload201Method =
+  (typeof RequestRentalPrivateDocumentUpload201Method)[keyof typeof RequestRentalPrivateDocumentUpload201Method];
+
+export const RequestRentalPrivateDocumentUpload201Method = {
+  PUT: "PUT",
+} as const;
+
+export type RequestRentalPrivateDocumentUpload201 = {
+  documentId: number;
+  uploadPath: string;
+  method: RequestRentalPrivateDocumentUpload201Method;
+  contentType: string;
+  maxBytes: number;
+};
+
+export type UploadRentalPrivateDocumentContentParams = {
+  driverId?: number;
+};
+
+export type GetAdminRentalDocumentContentParams = {
+  link?: GetAdminRentalDocumentContentLink;
+  expires?: number;
+  signature?: string;
+};
+
+export type GetAdminRentalDocumentContentLink =
+  (typeof GetAdminRentalDocumentContentLink)[keyof typeof GetAdminRentalDocumentContentLink];
+
+export const GetAdminRentalDocumentContentLink = {
+  NUMBER_1: "1",
+} as const;
+
+export type GetOperatorRentalDocumentContentParams = {
+  link?: GetOperatorRentalDocumentContentLink;
+  expires?: number;
+  signature?: string;
+};
+
+export type GetOperatorRentalDocumentContentLink =
+  (typeof GetOperatorRentalDocumentContentLink)[keyof typeof GetOperatorRentalDocumentContentLink];
+
+export const GetOperatorRentalDocumentContentLink = {
+  NUMBER_1: "1",
+} as const;
+
+export type GetPartnerRentalDocumentContentParams = {
+  link?: GetPartnerRentalDocumentContentLink;
+  expires?: number;
+  signature?: string;
+};
+
+export type GetPartnerRentalDocumentContentLink =
+  (typeof GetPartnerRentalDocumentContentLink)[keyof typeof GetPartnerRentalDocumentContentLink];
+
+export const GetPartnerRentalDocumentContentLink = {
+  NUMBER_1: "1",
+} as const;
 
 export type GetRentalRequestParams = {
   accessCode: string;

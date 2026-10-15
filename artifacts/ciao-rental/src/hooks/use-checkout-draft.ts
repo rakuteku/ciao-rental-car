@@ -11,7 +11,6 @@ export interface CheckoutDraft {
   holdToken?: string;
   heldUntil?: string;
   addons: { addonId: number; qty: number }[];
-  documents?: Record<string, string>;
   differentReturnLocation?: boolean;
   additionalDrivers?: boolean;
   selectedRoom?: {
@@ -62,7 +61,13 @@ export function useCheckoutDraft() {
   const [draft, setDraftState] = useState<CheckoutDraft | null>(() => {
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) return null;
+      const parsed = JSON.parse(stored) as CheckoutDraft & { documents?: unknown };
+      if ("documents" in parsed) {
+        delete parsed.documents;
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      }
+      return parsed;
     } catch {
       return null;
     }

@@ -10,24 +10,25 @@ import {
   rentalVehiclesTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { createDocumentViewLink, validDocumentViewLink } from "../lib/rental-document-view-links";
 import {
   createRentalDocumentToken,
   receiveRentalDocumentUpload,
   rentalDocumentObjectName,
+  rentalPrivateDocumentStorageConfigured,
   streamRentalDocument,
   sweepExpiredRentalDocuments,
 } from "../lib/rental-private-documents";
 import {
   isAllowedRentalDocumentContentType,
   parseRentalPrivateReference,
-  rentalMarketplaceEnabled,
   rentalPrivateReference,
 } from "../lib/rental-private-document-policy.mjs";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { getOperatorIdentity, requireOperatorAuth } from "../middlewares/operator-auth";
 
 const router: IRouter = Router();
-if (rentalMarketplaceEnabled()) {
+if (rentalPrivateDocumentStorageConfigured()) {
   const retentionTimer = setInterval(() => {
     void sweepExpiredRentalDocuments().catch((error) =>
       logger.error({ err: error, action: "rental_driver_document_retention_sweep_failed" }),
@@ -46,8 +47,8 @@ const uploadBodySchema = z.object({
 });
 
 function featureEnabled(res: Response): boolean {
-  if (rentalMarketplaceEnabled()) return true;
-  res.status(404).json({ error: "Rental marketplace is disabled" });
+  if (rentalPrivateDocumentStorageConfigured()) return true;
+  res.status(503).json({ error: "Private document storage is unavailable" });
   return false;
 }
 
@@ -182,10 +183,8 @@ router.post("/rental/my-bookings/:id/documents/upload-request", async (req, res)
   }
 });
 
-// Shadow the legacy fileUrl submission handler without editing that route: callers
-// must use the private upload flow, and arbitrary public URLs are never persisted.
-router.post("/rental/my-bookings/:id/documents", (_req, res, next): void => {
-  if (!rentalMarketplaceEnabled()) return next();
+// Public document URLs are never accepted, regardless of the marketplace flag.
+router.post("/rental/my-bookings/:id/documents", (_req, res): void => {
   res.status(410).json({ error: "Public document URLs are not accepted; use the private document upload flow" });
 });
 
@@ -271,11 +270,32 @@ router.get("/rental/my-bookings/:id/documents/:documentId/content", async (req, 
   await streamDocument(req, res, reservationId, documentId, "customer");
 });
 
+async function staffDocumentView(req: Request, res: Response, reservationId: number, documentId: number, actor: string, scope: "admin" | "operator") {
+  if (!process.env.SESSION_SECRET) {
+    res.status(503).json({ error: "Document view links are unavailable: SESSION_SECRET is not configured" });
+    return;
+  }
+  if (req.query.link === "1") {
+    if (!await documentForReservation(reservationId, documentId)) {
+      res.status(404).json({ error: "Document not found" });
+      return;
+    }
+    res.set("Cache-Control", "no-store");
+    res.json(createDocumentViewLink(scope, reservationId, documentId, `${req.baseUrl}${req.path}`));
+    return;
+  }
+  if (!validDocumentViewLink(scope, reservationId, documentId, req.query.expires, req.query.signature)) {
+    res.status(403).json({ error: "Document view link is invalid or expired" });
+    return;
+  }
+  res.set("Cache-Control", "private, no-store");
+  await streamDocument(req, res, reservationId, documentId, actor);
+}
+
 router.get(
   "/operator/rental/reservations/:id/driver-documents/:documentId/content",
   requireOperatorAuth,
   async (req, res, next): Promise<void> => {
-    if (!featureEnabled(res)) return;
     const reservationId = Number(req.params.id);
     const documentId = Number(req.params.documentId);
     if (!Number.isSafeInteger(reservationId) || reservationId <= 0 || !Number.isSafeInteger(documentId) || documentId <= 0) {
@@ -296,7 +316,9 @@ router.get(
         res.status(404).json({ error: "Document not found" });
         return;
       }
-      await streamDocument(req, res, reservationId, documentId, `operator:${identity.staffId}`);
+      // Tenant check first, so another operator's reservation is a 404 even when storage is off.
+      if (!featureEnabled(res)) return;
+      await staffDocumentView(req, res, reservationId, documentId, `operator:${identity.staffId}`, "operator");
     } catch (error) {
       next(error);
     }
@@ -314,7 +336,7 @@ router.get(
       res.status(404).json({ error: "Document not found" });
       return;
     }
-    await streamDocument(req, res, reservationId, documentId, "admin");
+    await staffDocumentView(req, res, reservationId, documentId, "admin", "admin");
   },
 );
 

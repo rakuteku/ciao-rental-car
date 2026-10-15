@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useParams, Link } from "wouter";
 import {
   useMyBookingDetail,
-  useSubmitBookingDocuments,
   useUploadPrivateBookingDocument,
   useCancelBookingRequest,
   useRentalMarketplaceConfig,
@@ -25,9 +24,9 @@ import { rentalReservationStatusLabel } from "@/lib/rental-localization";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 
 const copy = {
-  en: { loading: "Loading booking details...", missing: "Booking not found or the account does not match.", booking: "Booking", itinerary: "Itinerary details", pickup: "Pickup", return: "Return", payment: "Payment summary", base: "Base rate", addons: "Add-ons", taxes: "Insurance, taxes & fees", total: "Booking total", upload: "Upload ID", required: "Required before pickup.", documentType: "Document type", passport: "Passport", licence: "Driver's licence", internationalLicence: "International driving permit", driver: "Authorized driver", selectDriver: "Select driver", submit: "Submit document", cancel: "Cancel booking", cancellationFee: "Cancellation fees may apply.", trip: "Trip condition & receipt", tripNote: "Inspection evidence and ledger entries are shown as recorded. A provisional amount is not a collected payment.", provisional: "Provisional charges - not collected", operator: "Rental operator contact" },
-  ja: { loading: "予約詳細を読み込んでいます...", missing: "予約が見つからないか、アカウント情報が一致しません。", booking: "予約", itinerary: "ご利用内容", pickup: "貸出", return: "返却", payment: "料金明細", base: "基本料金", addons: "追加オプション", taxes: "保険・税金・手数料", total: "予約合計", upload: "本人確認書類", required: "貸出前に提出が必要です。", documentType: "書類の種類", passport: "パスポート", licence: "運転免許証", internationalLicence: "国際運転免許証", driver: "登録運転者", selectDriver: "運転者を選択", submit: "書類を提出", cancel: "予約をキャンセル", cancellationFee: "キャンセル料が発生する場合があります。", trip: "車両状態・ご利用明細", tripNote: "点検記録と明細を記録どおりに表示します。仮請求額は決済済みの金額ではありません。", provisional: "仮請求額（未決済）", operator: "レンタカー事業者連絡先" },
-  "zh-TW": { loading: "正在載入預訂詳情...", missing: "找不到預訂，或帳戶資料不符。", booking: "預訂", itinerary: "行程詳情", pickup: "取車", return: "還車", payment: "費用明細", base: "基本費用", addons: "加購項目", taxes: "保險、稅金與手續費", total: "預訂總額", upload: "上傳身分證明", required: "取車前必須提交。", documentType: "文件類型", passport: "護照", licence: "駕駛執照", internationalLicence: "國際駕駛許可證", driver: "登記駕駛人", selectDriver: "選擇駕駛人", submit: "提交文件", cancel: "取消預訂", cancellationFee: "可能需支付取消費用。", trip: "車況與收據", tripNote: "檢查證明與帳目會依記錄顯示。暫定金額並不代表已完成付款。", provisional: "暫定費用（尚未收取）", operator: "租車業者聯絡方式" },
+  en: { loading: "Loading booking details...", missing: "Booking not found or the account does not match.", booking: "Booking", itinerary: "Itinerary details", pickup: "Pickup", return: "Return", payment: "Payment summary", base: "Base rate", addons: "Add-ons", taxes: "Insurance, taxes & fees", total: "Booking total", upload: "Upload ID", documents: "Documents", driverNote: "Submit each driver’s documents under that authorized driver. Originals are checked at pickup.", missingDrivers: "Authorized drivers are unavailable. Contact the rental operator before uploading documents.", required: "Required before pickup.", documentType: "Document type", passport: "Passport", licence: "Driver's licence", internationalLicence: "International driving permit", driver: "Authorized driver", selectDriver: "Select driver", submit: "Submit document", cancel: "Cancel booking", cancellationFee: "Cancellation fees may apply.", trip: "Trip condition & receipt", tripNote: "Inspection evidence and ledger entries are shown as recorded. A provisional amount is not a collected payment.", provisional: "Provisional charges - not collected", operator: "Rental operator contact", checking: "Checking secure upload…", retry: "Could not check secure upload. Please try again.", pickupCheck: "Original documents are checked at pickup. Staff will contact you about the documents needed.", documentFile: "Document file", fileLimit: "PDF, JPEG, or PNG; maximum 10 MB.", unsupportedFile: "Choose a PDF, JPEG, or PNG file", fileTooLarge: "Documents must be 10 MB or smaller", uploaded: "Document submitted", uploadFailed: "Upload failed" },
+  ja: { loading: "予約詳細を読み込んでいます...", missing: "予約が見つからないか、アカウント情報が一致しません。", booking: "予約", itinerary: "ご利用内容", pickup: "貸出", return: "返却", payment: "料金明細", base: "基本料金", addons: "追加オプション", taxes: "保険・税金・手数料", total: "予約合計", upload: "本人確認書類", documents: "必要書類", driverNote: "運転者ごとに書類を提出してください。原本は貸出時に確認します。", missingDrivers: "登録運転者を確認できません。アップロード前にレンタカー事業者へご連絡ください。", required: "貸出前に提出が必要です。", documentType: "書類の種類", passport: "パスポート", licence: "運転免許証", internationalLicence: "国際運転免許証", driver: "登録運転者", selectDriver: "運転者を選択", submit: "書類を提出", cancel: "予約をキャンセル", cancellationFee: "キャンセル料が発生する場合があります。", trip: "車両状態・ご利用明細", tripNote: "点検記録と明細を記録どおりに表示します。仮請求額は決済済みの金額ではありません。", provisional: "仮請求額（未決済）", operator: "レンタカー事業者連絡先", checking: "安全なアップロードを確認しています…", retry: "安全なアップロードを確認できませんでした。もう一度お試しください。", pickupCheck: "原本は貸出時に確認します。必要書類についてスタッフからご連絡します。", documentFile: "書類ファイル", fileLimit: "PDF・JPEG・PNG、最大 10 MB。", unsupportedFile: "PDF・JPEG・PNG のファイルを選択してください", fileTooLarge: "書類は 10 MB 以下にしてください", uploaded: "書類を提出しました", uploadFailed: "アップロードに失敗しました" },
+  "zh-TW": { loading: "正在載入預訂詳情...", missing: "找不到預訂，或帳戶資料不符。", booking: "預訂", itinerary: "行程詳情", pickup: "取車", return: "還車", payment: "費用明細", base: "基本費用", addons: "加購項目", taxes: "保險、稅金與手續費", total: "預訂總額", upload: "上傳身分證明", documents: "所需文件", driverNote: "請依每位登記駕駛人分別提交文件。取車時仍會查驗正本。", missingDrivers: "無法確認登記駕駛人。上傳前請聯絡租車業者。", required: "取車前必須提交。", documentType: "文件類型", passport: "護照", licence: "駕駛執照", internationalLicence: "國際駕駛許可證", driver: "登記駕駛人", selectDriver: "選擇駕駛人", submit: "提交文件", cancel: "取消預訂", cancellationFee: "可能需支付取消費用。", trip: "車況與收據", tripNote: "檢查證明與帳目會依記錄顯示。暫定金額並不代表已完成付款。", provisional: "暫定費用（尚未收取）", operator: "租車業者聯絡方式", checking: "正在確認安全上傳…", retry: "無法確認安全上傳，請重試。", pickupCheck: "取車時會查驗文件正本。工作人員將聯絡您確認所需文件。", documentFile: "文件檔案", fileLimit: "PDF、JPEG 或 PNG，最大 10 MB。", unsupportedFile: "請選擇 PDF、JPEG 或 PNG 檔案", fileTooLarge: "文件不得超過 10 MB", uploaded: "文件已提交", uploadFailed: "上傳失敗" },
 } satisfies Record<Language, Record<string, string>>;
 
 export function MyBookingDetail() {
@@ -45,7 +44,6 @@ export function MyBookingDetail() {
   });
   
   const { data: res, isLoading } = useMyBookingDetail(id);
-  const docMut = useSubmitBookingDocuments();
   const privateDocMut = useUploadPrivateBookingDocument();
   const cancelMut = useCancelBookingRequest();
   const acknowledgeChargesMut = useAcknowledgeTripCharges();
@@ -54,7 +52,6 @@ export function MyBookingDetail() {
 
   const [docType, setDocType] = useState<"passport" | "drivers_license" | "international_license">("passport");
   const [selectedDriverId, setSelectedDriverId] = useState("");
-  const [fileUrl, setFileUrl] = useState("");
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [chargeAcknowledgements, setChargeAcknowledgements] = useState<Record<string, boolean>>({});
 
@@ -67,48 +64,24 @@ export function MyBookingDetail() {
   // The flag does not turn existing website/manual bookings into marketplace bookings.
   const isMarketplaceBooking = res.source === "marketplace_request";
   const marketplaceBookingEnabled = usesMarketplaceExceptions(marketplaceConfig?.enabled, res.source);
+  const privateUploadAvailable = marketplaceConfig?.privateDocumentUploadAvailable === true;
 
   const handleDocSubmit = () => {
-    if (isMarketplaceBooking && (isMarketplaceConfigLoading || !marketplaceConfig)) {
-      toast({
-        title: "Document upload unavailable",
-        description: isMarketplaceConfigError ? "Could not check secure upload availability. Please try again." : "Checking secure upload availability. Please try again shortly.",
-        variant: "destructive",
-      });
+    if (!privateUploadAvailable || !documentFile) return;
+    if (!["application/pdf", "image/jpeg", "image/png"].includes(documentFile.type)) {
+      toast({ title: t.unsupportedFile, variant: "destructive" });
       return;
     }
-    if (marketplaceBookingEnabled) {
-      if (!documentFile) {
-        toast({ title: "Choose a document file", variant: "destructive" });
-        return;
-      }
-      if (!["application/pdf", "image/jpeg", "image/png"].includes(documentFile.type)) {
-        toast({ title: "Unsupported file type", description: "Choose a PDF, JPEG, or PNG file.", variant: "destructive" });
-        return;
-      }
-      if (documentFile.size > 10 * 1024 * 1024) {
-        toast({ title: "File is too large", description: "Documents must be 10 MB or smaller.", variant: "destructive" });
-        return;
-      }
-      privateDocMut.mutate({ id, driverId: uploadDriverId, docType, file: documentFile }, {
-        onSuccess: () => {
-          toast({ title: "Document submitted" });
-          setDocumentFile(null);
-        },
-        onError: (err: Error) => toast({ title: "Upload failed", description: err.message, variant: "destructive" })
-      });
+    if (documentFile.size > 10 * 1024 * 1024) {
+      toast({ title: t.fileTooLarge, variant: "destructive" });
       return;
     }
-    if (!fileUrl) {
-      toast({ title: "Provide a document URL", variant: "destructive" });
-      return;
-    }
-    docMut.mutate({ id, data: { docType, fileUrl } }, {
+    privateDocMut.mutate({ id, driverId: uploadDriverId || undefined, docType, file: documentFile }, {
       onSuccess: () => {
-        toast({ title: "Document submitted" });
-        setFileUrl("");
+        toast({ title: t.uploaded });
+        setDocumentFile(null);
       },
-      onError: (err: any) => toast({ title: "Upload failed", description: err.message, variant: "destructive" })
+      onError: (err: Error) => toast({ title: t.uploadFailed, description: err.message, variant: "destructive" }),
     });
   };
 
@@ -190,12 +163,12 @@ export function MyBookingDetail() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-primary" /> {t.upload}
+                <FileCheck className="w-5 h-5 text-primary" /> {privateUploadAvailable ? t.upload : t.documents}
               </CardTitle>
-              <CardDescription>{t.required}</CardDescription>
+              <CardDescription>{isMarketplaceConfigLoading ? t.checking : isMarketplaceConfigError ? t.retry : privateUploadAvailable ? t.required : t.pickupCheck}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
+              {privateUploadAvailable && <><div className="space-y-2">
                 <Label>{t.documentType}</Label>
                 <Select
                   value={docType}
@@ -209,43 +182,30 @@ export function MyBookingDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              {marketplaceBookingEnabled && authorizedDrivers.length > 0 && <div className="space-y-2">
+              {authorizedDrivers.length > 0 && <div className="space-y-2">
                 <Label htmlFor="booking-document-driver">{t.driver}</Label>
                 <Select value={String(uploadDriverId)} onValueChange={setSelectedDriverId}>
                   <SelectTrigger id="booking-document-driver" data-testid="select-booking-document-driver"><SelectValue placeholder={t.selectDriver} /></SelectTrigger>
                   <SelectContent>{authorizedDrivers.map((authorizedDriver: Record<string, any>) => <SelectItem key={authorizedDriver.id} value={String(authorizedDriver.id)}>{authorizedDriver.fullName || `Driver #${authorizedDriver.id}`}</SelectItem>)}</SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">Submit each driver’s documents under that authorized driver. Originals are still checked in person at pickup.</p>
+                <p className="text-xs text-muted-foreground">{t.driverNote}</p>
               </div>}
-              {marketplaceBookingEnabled && authorizedDrivers.length === 0 && <p role="alert" className="text-sm text-destructive">Authorized drivers are unavailable. Contact the rental operator before uploading documents.</p>}
+              {isMarketplaceBooking && authorizedDrivers.length === 0 && <p role="alert" className="text-sm text-destructive">{t.missingDrivers}</p>}
               <div className="space-y-2">
-                {isMarketplaceBooking && isMarketplaceConfigLoading ? (
-                  <p className="text-sm text-muted-foreground">Checking secure document upload...</p>
-                ) : isMarketplaceBooking && (isMarketplaceConfigError || !marketplaceConfig) ? (
-                  <p className="text-sm text-destructive">Secure document upload availability could not be checked. Please refresh and try again.</p>
-                ) : marketplaceBookingEnabled ? (
-                  <>
-                    <Label htmlFor="booking-document-file">Document file</Label>
-                    <Input
-                      id="booking-document-file"
-                      data-testid="input-booking-document-file"
-                      type="file"
-                      accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
-                      onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)}
-                    />
-                    <p className="text-xs text-muted-foreground">PDF, JPEG, or PNG; maximum 10 MB.</p>
-                    {documentFile && <p className="text-sm text-muted-foreground">{documentFile.name}</p>}
-                  </>
-                ) : (
-                  <>
-                    <Label>File URL (Demo)</Label>
-                    <Input value={fileUrl} onChange={e => setFileUrl(e.target.value)} placeholder="https://..." />
-                  </>
-                )}
+                <Label htmlFor="booking-document-file">{t.documentFile}</Label>
+                <Input
+                  id="booking-document-file"
+                  data-testid="input-booking-document-file"
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+                  onChange={(event) => setDocumentFile(event.target.files?.[0] ?? null)}
+                />
+                <p className="text-xs text-muted-foreground">{t.fileLimit}</p>
+                {documentFile && <p className="text-sm text-muted-foreground">{documentFile.name}</p>}
               </div>
-              <Button className="w-full" onClick={handleDocSubmit} disabled={docMut.isPending || privateDocMut.isPending || (isMarketplaceBooking && (isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig || !uploadDriverId))}>
+              <Button className="w-full" onClick={handleDocSubmit} disabled={privateDocMut.isPending || !documentFile || (isMarketplaceBooking && !uploadDriverId)}>
                 {t.submit}
-              </Button>
+              </Button></>}
             </CardContent>
           </Card>
 

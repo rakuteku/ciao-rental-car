@@ -89,6 +89,28 @@ const paymentCopy = {
   },
 } as const;
 
+const documentCopy = {
+  en: { title: "Required documents", upload: "After booking, upload PDF, JPEG, or PNG files securely from your booking details.", pickup: "Original documents are checked at pickup. Staff will contact you about the documents needed.", driversLicence: "Driver's licence", japaneseLicense: "Japanese driver's licence", creditCard: "Credit card", insurance: "Insurance document", checking: "Checking secure upload…", retry: "Could not check secure upload. Please try again.", foreignLicense: "Foreign driver's licence", idp: "International driving permit", passport: "Passport", residenceCard: "Residence card", selfie: "Identity photo", additionalDrivers: "Additional driver's documents", other: "Other document" },
+  ja: { title: "必要書類", upload: "予約後、予約詳細から PDF・JPEG・PNG 形式の書類を安全にアップロードできます。", pickup: "原本は貸出時に確認します。必要書類についてスタッフからご連絡します。", driversLicence: "運転免許証", japaneseLicense: "日本の運転免許証", creditCard: "クレジットカード", insurance: "保険書類", checking: "安全なアップロードを確認しています…", retry: "安全なアップロードを確認できませんでした。もう一度お試しください。", foreignLicense: "外国の運転免許証", idp: "国際運転免許証", passport: "パスポート", residenceCard: "在留カード", selfie: "本人確認用写真", additionalDrivers: "追加運転者の書類", other: "その他の書類" },
+  "zh-TW": { title: "所需文件", upload: "預訂後可在預訂詳情安全上傳 PDF、JPEG 或 PNG 文件。", pickup: "取車時會查驗文件正本。工作人員將聯絡您確認所需文件。", driversLicence: "駕駛執照", japaneseLicense: "日本駕駛執照", creditCard: "信用卡", insurance: "保險文件", checking: "正在確認安全上傳…", retry: "無法確認安全上傳，請重試。", foreignLicense: "外國駕駛執照", idp: "國際駕駛許可證", passport: "護照", residenceCard: "在留卡", selfie: "身分確認照片", additionalDrivers: "其他駕駛人的文件", other: "其他文件" },
+} as const;
+
+function documentName(value: string, language: keyof typeof documentCopy): string {
+  const names = documentCopy[language];
+  const key = value.toLowerCase().replaceAll(/[\s'-]+/g, "_");
+  if (key === "japanese_license") return names.japaneseLicense;
+  if (key === "drivers_license" || key === "driver_s_license") return names.driversLicence;
+  if (key === "foreign_license") return names.foreignLicense;
+  if (key === "idp" || key === "international_license") return names.idp;
+  if (key.includes("passport")) return names.passport;
+  if (key === "residence_card") return names.residenceCard;
+  if (key === "selfie") return names.selfie;
+  if (key === "additional_driver_docs") return names.additionalDrivers;
+  if (key === "credit_card") return names.creditCard;
+  if (key === "insurance") return names.insurance;
+  return names.other;
+}
+
 export function CheckoutPage() {
   const { language } = useLanguage();
   const account = useCustomerAccount();
@@ -131,7 +153,6 @@ function LegacyCheckout() {
   const [now, setNow] = useState(Date.now());
   const [holdExpired, setHoldExpired] = useState(false);
   const [differentReturnLocation, setDifferentReturnLocation] = useState(draft?.differentReturnLocation ?? false);
-  const [documents, setDocuments] = useState<Record<string, string>>(draft?.documents ?? {});
   const [additionalDriver, setAdditionalDriver] = useState({ fullName: "", email: "", phone: "" });
   const [selectedAddons, setSelectedAddons] = useState<Record<number, number>>(
     draft?.addons.reduce((acc, curr) => ({ ...acc, [curr.addonId]: curr.qty }), {}) || {}
@@ -249,12 +270,6 @@ function LegacyCheckout() {
         });
         return;
       }
-      if (marketplaceConfig.enabled) {
-        setDocuments({});
-        updateDraft({ documents: {} });
-      } else {
-        updateDraft({ documents });
-      }
       setStep(4);
     } else if (step === 4) {
       updateDraft({ differentReturnLocation });
@@ -293,14 +308,6 @@ function LegacyCheckout() {
         returnLocation: draft.returnLocation,
         driver: draft.driver,
         additionalDrivers: draft.additionalDrivers ? [additionalDriver] : [],
-        ...(!marketplaceConfig.enabled ? {
-          documents: Object.entries(documents)
-            .filter(([, fileUrl]) => Boolean(fileUrl))
-            .map(([document, fileUrl]) => ({
-              docType: document.toLowerCase().includes("passport") ? "passport" : document.toLowerCase().includes("international") ? "international_license" : document.toLowerCase().includes("insurance") ? "insurance" : document.toLowerCase().includes("credit") ? "credit_card" : document.toLowerCase().includes("license") ? "drivers_license" : "other",
-              fileUrl,
-            })),
-        } : {}),
          addons: Object.entries(selectedAddons)
            .filter(([, qty]) => qty > 0)
            .map(([id, qty]) => ({ addonId: parseInt(id), qty })),
@@ -333,7 +340,7 @@ function LegacyCheckout() {
   const steps = [
     "Add-ons",
     "Driver Info",
-    "Documents",
+    documentCopy[language].title,
     "Pickup Details",
     "Summary",
     payment.step
@@ -516,48 +523,14 @@ function LegacyCheckout() {
             {step === 3 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">Required Documents</h2>
-                  <p className="text-muted-foreground">
-                    {marketplaceConfig?.enabled
-                      ? "For your privacy, upload required documents securely from your booking details after confirming."
-                      : "Add a file or secure document link now. You can also finish this after booking."}
-                  </p>
+                  <h2 className="text-2xl font-serif font-bold">{documentCopy[language].title}</h2>
+                  <p className="text-muted-foreground">{isMarketplaceConfigLoading ? documentCopy[language].checking : isMarketplaceConfigError ? documentCopy[language].retry : marketplaceConfig?.privateDocumentUploadAvailable ? documentCopy[language].upload : documentCopy[language].pickup}</p>
                 </div>
-                {marketplaceConfig?.enabled ? (
-                  <Card>
-                    <CardContent className="p-5 text-sm text-muted-foreground">
-                      No document links are submitted with your booking. After booking, upload PDF, JPEG, or PNG documents securely from your booking details.
-                    </CardContent>
+                {(car?.requiredDocuments?.length ? car.requiredDocuments : ["drivers_license", "passport"]).map((document, index) => (
+                  <Card key={`${document}-${index}`}>
+                    <CardContent className="p-5 font-medium">{documentName(document, language)}</CardContent>
                   </Card>
-                ) : isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig ? (
-                  <Card>
-                    <CardContent className="p-5 text-sm text-muted-foreground">
-                      {isMarketplaceConfigLoading ? "Checking secure document settings..." : "Document settings could not be checked. Please refresh before continuing."}
-                    </CardContent>
-                  </Card>
-                ) : (
-                  (car?.requiredDocuments?.length ? car.requiredDocuments : ["Driver's license", "Passport or photo ID"]).map((document, index) => (
-                    <Card key={document}>
-                      <CardContent className="p-5 flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <div className="flex-1">
-                          <p className="font-medium">{document}</p>
-                          <p className="text-xs text-muted-foreground">{index === 0 ? "Required before pickup" : "Required for international rentals"}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            aria-label={`${document} link`}
-                            placeholder="Image/PDF URL"
-                            value={documents[document] ?? ""}
-                            onChange={(event) => setDocuments((current) => ({ ...current, [document]: event.target.value }))}
-                          />
-                        </div>
-                        <span className={`text-xs font-medium ${documents[document] ? "text-emerald-700" : "text-muted-foreground"}`}>
-                          {documents[document] ? "Ready to submit" : "Not submitted"}
-                        </span>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
+                ))}
               </div>
             )}
 

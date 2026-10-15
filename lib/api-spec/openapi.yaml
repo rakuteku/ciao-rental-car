@@ -1945,6 +1945,188 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /rental/my-bookings/{id}/documents/upload-request:
+    post:
+      operationId: requestRentalPrivateDocumentUpload
+      tags: [rental]
+      summary: Request a private document upload for a booking in the customer session
+      description: Available when private object storage is configured, independently of the marketplace flag. The customer session must own the booking.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                docType:
+                  type: string
+                  enum: [drivers_license, passport, international_license, insurance, credit_card, other]
+                contentType:
+                  type: string
+                  enum: [application/pdf, image/jpeg, image/png]
+                driverId: { type: integer }
+              required: [docType, contentType]
+      responses:
+        "201":
+          description: Private upload path and 10 MB limit
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documentId: { type: integer }
+                  uploadPath: { type: string }
+                  method: { type: string, enum: [PUT] }
+                  contentType: { type: string }
+                  maxBytes: { type: integer }
+                required: [documentId, uploadPath, method, contentType, maxBytes]
+        "401": { description: Booking session is missing or does not own the booking }
+        "503": { description: Private document storage is unavailable }
+
+  /rental/my-bookings/{id}/documents/{documentId}/content:
+    put:
+      operationId: uploadRentalPrivateDocumentContent
+      tags: [rental]
+      summary: Upload a PDF, JPEG, or PNG private document (maximum 10 MB)
+      description: The customer session must own the booking and the pending document must belong to it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: documentId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: driverId
+          in: query
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/pdf:
+            schema: { type: string, format: binary }
+          image/jpeg:
+            schema: { type: string, format: binary }
+          image/png:
+            schema: { type: string, format: binary }
+      responses:
+        "204": { description: Private document uploaded }
+        "401": { description: Booking session is missing or does not own the booking }
+        "413": { description: Document exceeds 10 MB }
+        "415": { description: Unsupported document type }
+        "503": { description: Private document storage is unavailable }
+
+  /rental/my-bookings/{id}/documents:
+    post:
+      operationId: rejectRentalDocumentUrl
+      tags: [rental]
+      summary: Legacy public document URL submission is disabled
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "410": { description: Public document URLs are not accepted }
+
+  /admin/rental/reservations/{id}/driver-documents/{documentId}/content:
+    get:
+      operationId: getAdminRentalDocumentContent
+      tags: [rental]
+      summary: Issue a two-minute staff view link or stream a private document with its signature
+      description: Requires an admin session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: documentId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: link
+          in: query
+          schema: { type: string, enum: ["1"] }
+        - name: expires
+          in: query
+          schema: { type: integer }
+        - name: signature
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Signed view link as JSON when link=1, otherwise private document bytes
+        "403":
+          description: Invalid or expired view link
+
+  /operator/rental/reservations/{id}/driver-documents/{documentId}/content:
+    get:
+      operationId: getOperatorRentalDocumentContent
+      tags: [rental]
+      summary: Issue a two-minute operator view link or stream a private document with its signature
+      description: Requires an authorized operator session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: documentId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: link
+          in: query
+          schema: { type: string, enum: ["1"] }
+        - name: expires
+          in: query
+          schema: { type: integer }
+        - name: signature
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Signed view link as JSON when link=1, otherwise private document bytes
+        "403":
+          description: Invalid or expired view link
+
+  /partner/rental/reservations/{id}/driver-documents/{documentId}/content:
+    get:
+      operationId: getPartnerRentalDocumentContent
+      tags: [rental]
+      summary: Issue a two-minute partner view link or stream a private document with its signature
+      description: Requires an authenticated partner session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: documentId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: link
+          in: query
+          schema: { type: string, enum: ["1"] }
+        - name: expires
+          in: query
+          schema: { type: integer }
+        - name: signature
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Signed view link as JSON when link=1, otherwise private document bytes
+        "401":
+          description: Partner authentication required
+        "403":
+          description: Invalid or expired view link
+
   /rental/marketplace/config:
     get:
       operationId: getRentalMarketplaceConfig
@@ -4121,17 +4303,6 @@ components:
         - addonId
         - qty
 
-    CreateReservationDocumentBody:
-      type: object
-      properties:
-        docType:
-          type: string
-          enum: [drivers_license, passport, international_license, insurance, credit_card, other]
-        fileUrl:
-          type: string
-          format: uri
-      required: [docType, fileUrl]
-
     CreateReservationBody:
       type: object
       properties:
@@ -4167,10 +4338,6 @@ components:
               phone:
                 type: string
             required: [fullName, email, phone]
-        documents:
-          type: array
-          items:
-            $ref: "#/components/schemas/CreateReservationDocumentBody"
         source:
           type: string
       required:
@@ -4933,7 +5100,9 @@ components:
       properties:
         enabled:
           type: boolean
-      required: [enabled]
+        privateDocumentUploadAvailable:
+          type: boolean
+      required: [enabled, privateDocumentUploadAvailable]
 
     RentalMarketplacePolicy:
       type: object

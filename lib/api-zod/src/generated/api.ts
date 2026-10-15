@@ -1689,21 +1689,6 @@ export const CreateRentalReservationBody = zod.object({
       }),
     )
     .optional(),
-  documents: zod
-    .array(
-      zod.object({
-        docType: zod.enum([
-          "drivers_license",
-          "passport",
-          "international_license",
-          "insurance",
-          "credit_card",
-          "other",
-        ]),
-        fileUrl: zod.string().url(),
-      }),
-    )
-    .optional(),
   source: zod.string().optional(),
 });
 
@@ -3226,10 +3211,97 @@ export const CreateRentalRequestBody = zod.object({
 });
 
 /**
+ * Available when private object storage is configured, independently of the marketplace flag. The customer session must own the booking.
+ * @summary Request a private document upload for a booking in the customer session
+ */
+export const RequestRentalPrivateDocumentUploadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RequestRentalPrivateDocumentUploadBody = zod.object({
+  docType: zod.enum([
+    "drivers_license",
+    "passport",
+    "international_license",
+    "insurance",
+    "credit_card",
+    "other",
+  ]),
+  contentType: zod.enum(["application/pdf", "image/jpeg", "image/png"]),
+  driverId: zod.number().optional(),
+});
+
+/**
+ * The customer session must own the booking and the pending document must belong to it.
+ * @summary Upload a PDF, JPEG, or PNG private document (maximum 10 MB)
+ */
+export const UploadRentalPrivateDocumentContentParams = zod.object({
+  id: zod.coerce.number(),
+  documentId: zod.coerce.number(),
+});
+
+export const UploadRentalPrivateDocumentContentQueryParams = zod.object({
+  driverId: zod.coerce.number().optional(),
+});
+
+/**
+ * @summary Legacy public document URL submission is disabled
+ */
+export const RejectRentalDocumentUrlParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * Requires an admin session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+ * @summary Issue a two-minute staff view link or stream a private document with its signature
+ */
+export const GetAdminRentalDocumentContentParams = zod.object({
+  id: zod.coerce.number(),
+  documentId: zod.coerce.number(),
+});
+
+export const GetAdminRentalDocumentContentQueryParams = zod.object({
+  link: zod.enum(["1"]).optional(),
+  expires: zod.coerce.number().optional(),
+  signature: zod.coerce.string().optional(),
+});
+
+/**
+ * Requires an authorized operator session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+ * @summary Issue a two-minute operator view link or stream a private document with its signature
+ */
+export const GetOperatorRentalDocumentContentParams = zod.object({
+  id: zod.coerce.number(),
+  documentId: zod.coerce.number(),
+});
+
+export const GetOperatorRentalDocumentContentQueryParams = zod.object({
+  link: zod.enum(["1"]).optional(),
+  expires: zod.coerce.number().optional(),
+  signature: zod.coerce.string().optional(),
+});
+
+/**
+ * Requires an authenticated partner session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+ * @summary Issue a two-minute partner view link or stream a private document with its signature
+ */
+export const GetPartnerRentalDocumentContentParams = zod.object({
+  id: zod.coerce.number(),
+  documentId: zod.coerce.number(),
+});
+
+export const GetPartnerRentalDocumentContentQueryParams = zod.object({
+  link: zod.enum(["1"]).optional(),
+  expires: zod.coerce.number().optional(),
+  signature: zod.coerce.string().optional(),
+});
+
+/**
  * @summary Get the marketplace feature flag state
  */
 export const GetRentalMarketplaceConfigResponse = zod.object({
   enabled: zod.boolean(),
+  privateDocumentUploadAvailable: zod.boolean(),
 });
 
 /**
