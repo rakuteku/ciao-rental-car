@@ -36,6 +36,7 @@ test("legacy bookings reject document URLs and limit private uploads to their bo
   const originalBucket = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
   const originalDir = process.env.PRIVATE_OBJECT_DIR;
   const originalFlag = process.env.RENTAL_MARKETPLACE_ENABLED;
+  const originalSecret = process.env.SESSION_SECRET;
   const temp = await mkdtemp(path.join(apiDir.pathname, ".rental-documents-"));
   let routePool;
   let server;
@@ -55,6 +56,7 @@ test("legacy bookings reject document URLs and limit private uploads to their bo
     isolated.searchParams.set("options", `-csearch_path=${schema},public`);
     process.env.DATABASE_URL = isolated.toString();
     process.env.RENTAL_MARKETPLACE_ENABLED = "false";
+    process.env.SESSION_SECRET = "document-boundary-test-secret";
     delete process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
     delete process.env.PRIVATE_OBJECT_DIR;
     const entry = `
@@ -102,8 +104,20 @@ test("legacy bookings reject document URLs and limit private uploads to their bo
     const base = `http://127.0.0.1:${server.address().port}/api`;
     const post = (route, actor, body) => fetch(`${base}${route}`, { method: "POST", headers: { "Content-Type": "application/json", "x-test-actor": actor }, body: JSON.stringify(body) });
 
-    const legacyUrl = await post("/rental/reservations", "owner", { documents: [{ docType: "passport", fileUrl: "https://example.invalid/id.jpg" }] });
+    const reservationBody = {
+      holdId: 123, holdToken: "a".repeat(64), vehicleId: id + 3,
+      pickupLocation: "Pickup", returnLocation: "Return",
+      driver: { fullName: "Owner", email: "owner@example.invalid", phone: "1234567890" },
+    };
+    const validShape = await post("/rental/reservations", "owner", reservationBody);
+    assert.equal(validShape.status, 401, "without documents, the body passes validation and reaches account auth");
+    const legacyUrl = await post("/rental/reservations", "owner", { ...reservationBody, documents: [{ docType: "passport", fileUrl: "https://example.invalid/id.jpg" }] });
     assert.equal(legacyUrl.status, 400);
+    assert.match((await legacyUrl.json()).error, /documents/);
+    const { rows: [reservationCount] } = await root.query(`SELECT count(*)::int AS count FROM "${schema}".rental_reservations`);
+    assert.equal(reservationCount.count, 2);
+    const { rows: [documentCount] } = await root.query(`SELECT count(*)::int AS count FROM "${schema}".rental_driver_documents`);
+    assert.equal(documentCount.count, 0);
     const directUrl = await post(`/rental/my-bookings/${id + 4}/documents`, "owner", { docType: "passport", fileUrl: "https://example.invalid/id.jpg" });
     assert.equal(directUrl.status, 410);
     assert.equal(routes.rentalPrivateDocumentStorageConfigured(), false);
@@ -160,7 +174,7 @@ test("legacy bookings reject document URLs and limit private uploads to their bo
     if (server) await new Promise(resolve => server.close(resolve));
     if (routePool) await routePool.end();
     process.env.DATABASE_URL = originalUrl;
-    for (const [key, value] of [["DEFAULT_OBJECT_STORAGE_BUCKET_ID", originalBucket], ["PRIVATE_OBJECT_DIR", originalDir], ["RENTAL_MARKETPLACE_ENABLED", originalFlag]]) {
+    for (const [key, value] of [["DEFAULT_OBJECT_STORAGE_BUCKET_ID", originalBucket], ["PRIVATE_OBJECT_DIR", originalDir], ["RENTAL_MARKETPLACE_ENABLED", originalFlag], ["SESSION_SECRET", originalSecret]]) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
     }
     await root.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);

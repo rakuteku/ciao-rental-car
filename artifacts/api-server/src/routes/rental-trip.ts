@@ -32,6 +32,7 @@ import {
   streamRentalDocument,
 } from "../lib/rental-private-documents";
 import { parseRentalPrivateReference } from "../lib/rental-private-document-policy.mjs";
+import { createDocumentViewLink, validDocumentViewLink } from "../lib/rental-document-view-links";
 import { calculateTripSettlement } from "../lib/rental-trip-settlement";
 
 const router: IRouter = Router();
@@ -477,6 +478,19 @@ router.get("/partner/rental/reservations/:id/driver-documents/:documentId/conten
   }
   const token = parseRentalPrivateReference(document.fileUrl);
   if (!token) { res.status(404).json({ error: "Document not found" }); return; }
+  if (!process.env.SESSION_SECRET) {
+    res.status(503).json({ error: "Document view links are unavailable: SESSION_SECRET is not configured" });
+    return;
+  }
+  if (req.query.link === "1") {
+    res.set("Cache-Control", "no-store");
+    res.json(createDocumentViewLink("partner", reservation.id, document.id, `${req.baseUrl}${req.path}`));
+    return;
+  }
+  if (!validDocumentViewLink("partner", reservation.id, document.id, req.query.expires, req.query.signature)) {
+    res.status(403).json({ error: "Document view link is invalid or expired" });
+    return;
+  }
   await db.insert(rentalAuditLogTable).values({
     adminUser: `partner:${current.staffId}`,
     action: "partner_driver_document_access",

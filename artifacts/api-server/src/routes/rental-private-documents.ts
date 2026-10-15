@@ -1,4 +1,3 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod/v4";
@@ -11,6 +10,7 @@ import {
   rentalVehiclesTable,
 } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { createDocumentViewLink, validDocumentViewLink } from "../lib/rental-document-view-links";
 import {
   createRentalDocumentToken,
   receiveRentalDocumentUpload,
@@ -270,35 +270,21 @@ router.get("/rental/my-bookings/:id/documents/:documentId/content", async (req, 
   await streamDocument(req, res, reservationId, documentId, "customer");
 });
 
-const STAFF_LINK_LIFETIME_MS = 2 * 60 * 1000;
-
-function staffLinkSignature(scope: "admin" | "operator", reservationId: number, documentId: number, expires: number): string {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error("SESSION_SECRET is required for document view links");
-  return createHmac("sha256", secret).update(`${scope}:${reservationId}:${documentId}:${expires}`).digest("hex");
-}
-
 async function staffDocumentView(req: Request, res: Response, reservationId: number, documentId: number, actor: string, scope: "admin" | "operator") {
+  if (!process.env.SESSION_SECRET) {
+    res.status(503).json({ error: "Document view links are unavailable: SESSION_SECRET is not configured" });
+    return;
+  }
   if (req.query.link === "1") {
     if (!await documentForReservation(reservationId, documentId)) {
       res.status(404).json({ error: "Document not found" });
       return;
     }
-    const expires = Date.now() + STAFF_LINK_LIFETIME_MS;
-    const signature = staffLinkSignature(scope, reservationId, documentId, expires);
     res.set("Cache-Control", "no-store");
-    res.json({ url: `${req.baseUrl}${req.path}?expires=${expires}&signature=${signature}`, expiresAt: new Date(expires).toISOString() });
+    res.json(createDocumentViewLink(scope, reservationId, documentId, `${req.baseUrl}${req.path}`));
     return;
   }
-  const expires = Number(req.query.expires);
-  const signature = req.query.signature;
-  if (!Number.isSafeInteger(expires) || expires <= Date.now() || expires > Date.now() + STAFF_LINK_LIFETIME_MS ||
-      typeof signature !== "string" || !/^[a-f0-9]{64}$/.test(signature)) {
-    res.status(403).json({ error: "Document view link is invalid or expired" });
-    return;
-  }
-  const expected = staffLinkSignature(scope, reservationId, documentId, expires);
-  if (!timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) {
+  if (!validDocumentViewLink(scope, reservationId, documentId, req.query.expires, req.query.signature)) {
     res.status(403).json({ error: "Document view link is invalid or expired" });
     return;
   }

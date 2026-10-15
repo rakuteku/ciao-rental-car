@@ -51,7 +51,7 @@ function DriverDocumentReview({ id, trip }: { id: number; trip: Record<string, a
               <p className="font-semibold">{driverName} · {String(doc.docType ?? "Document").replaceAll("_", " ")}</p>
               <p className="mt-1 text-xs text-slate-600">Review status: <strong>{doc.status ?? "submitted"}</strong>{doc.createdAt ? ` · Submitted ${formatTokyo(doc.createdAt)}` : ""}</p>
             </div>
-            <button data-testid={`link-private-driver-document-${doc.id ?? index}`} type="button" className="text-sm font-medium text-amber-800 underline" onClick={() => void openStaffDocument(`/api/operator/rental/reservations/${id}/driver-documents/${documentId}/content`).catch((failure: Error) => setError(failure.message))}>Open private document</button>
+            <button data-testid={`link-private-driver-document-${doc.id ?? index}`} type="button" className="text-sm font-medium text-amber-800 underline" onClick={() => void openStaffDocument(`/api/partner/rental/reservations/${id}/driver-documents/${documentId}/content`).catch((failure: Error) => setError(failure.message))}>Open private document</button>
           </div>
           <label className="mt-3 block space-y-1 text-sm font-medium">Review note
             <textarea data-testid={`input-driver-document-note-${documentId}`} className="min-h-16 w-full rounded-md border px-3 py-2" value={notes[documentId] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [documentId]: event.target.value }))} placeholder="Optional note for the customer" />

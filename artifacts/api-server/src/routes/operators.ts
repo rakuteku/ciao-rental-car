@@ -16,7 +16,6 @@ import {
   requireOperatorAuth,
   type OperatorStaffRole,
 } from "../middlewares/operator-auth";
-
 import { rentalPrivateDocumentStorageConfigured } from "../lib/rental-private-documents";
 
 const router: IRouter = Router();

@@ -1595,6 +1595,19 @@ export const GetOperatorRentalDocumentContentLink = {
   NUMBER_1: "1",
 } as const;
 
+export type GetPartnerRentalDocumentContentParams = {
+  link?: GetPartnerRentalDocumentContentLink;
+  expires?: number;
+  signature?: string;
+};
+
+export type GetPartnerRentalDocumentContentLink =
+  (typeof GetPartnerRentalDocumentContentLink)[keyof typeof GetPartnerRentalDocumentContentLink];
+
+export const GetPartnerRentalDocumentContentLink = {
+  NUMBER_1: "1",
+} as const;
+
 export type GetRentalRequestParams = {
   accessCode: string;
 };

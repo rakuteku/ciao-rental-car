@@ -3282,6 +3282,21 @@ export const GetOperatorRentalDocumentContentQueryParams = zod.object({
 });
 
 /**
+ * Requires an authenticated partner session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+ * @summary Issue a two-minute partner view link or stream a private document with its signature
+ */
+export const GetPartnerRentalDocumentContentParams = zod.object({
+  id: zod.coerce.number(),
+  documentId: zod.coerce.number(),
+});
+
+export const GetPartnerRentalDocumentContentQueryParams = zod.object({
+  link: zod.enum(["1"]).optional(),
+  expires: zod.coerce.number().optional(),
+  signature: zod.coerce.string().optional(),
+});
+
+/**
  * @summary Get the marketplace feature flag state
  */
 export const GetRentalMarketplaceConfigResponse = zod.object({

@@ -53,6 +53,7 @@ import type {
   GetAdminRentalTurnaroundBuffer200,
   GetCarAvailabilityParams,
   GetOperatorRentalDocumentContentParams,
+  GetPartnerRentalDocumentContentParams,
   GetRentalRequestParams,
   GetRentalRequestPaymentParams,
   GetRoomsParams,
@@ -6944,6 +6945,137 @@ export function useGetOperatorRentalDocumentContent<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetOperatorRentalDocumentContentQueryOptions(
+    id,
+    documentId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Requires an authenticated partner session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+ * @summary Issue a two-minute partner view link or stream a private document with its signature
+ */
+export const getGetPartnerRentalDocumentContentUrl = (
+  id: number,
+  documentId: number,
+  params?: GetPartnerRentalDocumentContentParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/partner/rental/reservations/${id}/driver-documents/${documentId}/content?${stringifiedParams}`
+    : `/api/partner/rental/reservations/${id}/driver-documents/${documentId}/content`;
+};
+
+export const getPartnerRentalDocumentContent = async (
+  id: number,
+  documentId: number,
+  params?: GetPartnerRentalDocumentContentParams,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(
+    getGetPartnerRentalDocumentContentUrl(id, documentId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetPartnerRentalDocumentContentQueryKey = (
+  id: number,
+  documentId: number,
+  params?: GetPartnerRentalDocumentContentParams,
+) => {
+  return [
+    `/api/partner/rental/reservations/${id}/driver-documents/${documentId}/content`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetPartnerRentalDocumentContentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPartnerRentalDocumentContent>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  documentId: number,
+  params?: GetPartnerRentalDocumentContentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPartnerRentalDocumentContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetPartnerRentalDocumentContentQueryKey(id, documentId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPartnerRentalDocumentContent>>
+  > = ({ signal }) =>
+    getPartnerRentalDocumentContent(id, documentId, params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(id && documentId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPartnerRentalDocumentContent>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPartnerRentalDocumentContentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPartnerRentalDocumentContent>>
+>;
+export type GetPartnerRentalDocumentContentQueryError = ErrorType<void>;
+
+/**
+ * @summary Issue a two-minute partner view link or stream a private document with its signature
+ */
+
+export function useGetPartnerRentalDocumentContent<
+  TData = Awaited<ReturnType<typeof getPartnerRentalDocumentContent>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  documentId: number,
+  params?: GetPartnerRentalDocumentContentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPartnerRentalDocumentContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPartnerRentalDocumentContentQueryOptions(
     id,
     documentId,
     params,

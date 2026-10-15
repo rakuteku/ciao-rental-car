@@ -2095,6 +2095,38 @@ paths:
         "403":
           description: Invalid or expired view link
 
+  /partner/rental/reservations/{id}/driver-documents/{documentId}/content:
+    get:
+      operationId: getPartnerRentalDocumentContent
+      tags: [rental]
+      summary: Issue a two-minute partner view link or stream a private document with its signature
+      description: Requires an authenticated partner session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: documentId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: link
+          in: query
+          schema: { type: string, enum: ["1"] }
+        - name: expires
+          in: query
+          schema: { type: integer }
+        - name: signature
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Signed view link as JSON when link=1, otherwise private document bytes
+        "401":
+          description: Partner authentication required
+        "403":
+          description: Invalid or expired view link
+
   /rental/marketplace/config:
     get:
       operationId: getRentalMarketplaceConfig

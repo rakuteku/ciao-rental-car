@@ -7,6 +7,7 @@ import { build } from "esbuild";
 import express from "express";
 import { pathToFileURL } from "node:url";
 import { test } from "node:test";
+import { Readable } from "node:stream";
 
 const requireDb = createRequire(new URL("../../../lib/db/package.json", import.meta.url));
 const requireApi = createRequire(new URL("../package.json", import.meta.url));
@@ -37,6 +38,9 @@ test("customer acknowledgements gate close and the same payload persists reconci
   const rootPool = new Pool({ connectionString: process.env.DATABASE_URL });
   const originalDatabaseUrl = process.env.DATABASE_URL;
   const originalMarketplaceFlag = process.env.RENTAL_MARKETPLACE_ENABLED;
+  const originalSecret = process.env.SESSION_SECRET;
+  const originalBucket = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+  const originalPrivateDir = process.env.PRIVATE_OBJECT_DIR;
   const temporaryDir = await mkdtemp(path.join(apiDir.pathname, ".rental-trip-close-"));
   let routePool;
   let server;
@@ -54,6 +58,7 @@ test("customer acknowledgements gate close and the same payload persists reconci
       "rental_damages",
       "rental_reservation_drivers",
       "rental_driver_documents",
+      "rental_audit_log",
       "rental_trip_charge_approvals",
       "rental_payments",
       "rental_trip_ledger",
@@ -115,10 +120,14 @@ test("customer acknowledgements gate close and the same payload persists reconci
     isolatedUrl.searchParams.set("options", `-csearch_path=${schema},public`);
     process.env.DATABASE_URL = isolatedUrl.toString();
     process.env.RENTAL_MARKETPLACE_ENABLED = "true";
+    process.env.SESSION_SECRET = "partner-document-test-secret";
+    process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID = "partner-test-bucket";
+    process.env.PRIVATE_OBJECT_DIR = "/partner-test-bucket/private";
     const entry = `
       import rentalTrip from ${JSON.stringify(new URL("../src/routes/rental-trip.ts", import.meta.url).pathname)};
+      import { rentalDocumentStorage } from ${JSON.stringify(new URL("../src/lib/rental-private-documents.ts", import.meta.url).pathname)};
       import { pool } from ${JSON.stringify(dbEntry.pathname)};
-      export { rentalTrip, pool };
+      export { rentalTrip, pool, rentalDocumentStorage };
     `;
     const bundlePath = path.join(temporaryDir, "rental-trip.mjs");
     const isolatedNodeModules = path.join(temporaryDir, "node_modules");
@@ -150,14 +159,18 @@ test("customer acknowledgements gate close and the same payload persists reconci
         },
       }],
     });
-    const { rentalTrip, pool } = await import(pathToFileURL(bundlePath).href);
+    const { rentalTrip, pool, rentalDocumentStorage } = await import(pathToFileURL(bundlePath).href);
     routePool = pool;
+    rentalDocumentStorage.bucket = () => ({ file: () => ({
+      getMetadata: async () => [{ contentType: "image/jpeg", size: 10 }],
+      createReadStream: () => Readable.from("fake-image"),
+    }) });
     const app = express();
     app.use(express.json());
     app.use((req, _res, next) => {
       req.log = { warn() {}, error() {}, info() {} };
       req.session = {
-        partner: { operatorId, staffId, role: "owner" },
+        ...(req.get("x-test-actor") === "anonymous" ? {} : { partner: { operatorId, staffId, role: "owner" } }),
         rentalCustomerEmail: `customer-${schema}@example.invalid`,
         rentalCustomerBookingId: reservationId,
       };
@@ -167,6 +180,25 @@ test("customer acknowledgements gate close and the same payload persists reconci
     server = app.listen(0);
     await new Promise((resolve) => server.once("listening", resolve));
     const base = `http://127.0.0.1:${server.address().port}/api`;
+    const documentId = operatorId + 7;
+    await rootPool.query(`INSERT INTO "${schema}".rental_driver_documents
+      (id,operator_id,driver_id,reservation_id,doc_type,file_url,status)
+      VALUES ($1,$2,$3,$4,'passport',$5,'submitted')`,
+    [documentId, operatorId, driverId, reservationId, `rental-private://${randomUUID()}`]);
+    const documentPath = `/partner/rental/reservations/${reservationId}/driver-documents/${documentId}/content`;
+    assert.equal((await fetch(`${base}${documentPath}`)).status, 403);
+    assert.equal((await fetch(`${base}${documentPath}?link=1`, { headers: { "x-test-actor": "anonymous" } })).status, 401);
+    const documentLinkResponse = await fetch(`${base}${documentPath}?link=1`);
+    assert.equal(documentLinkResponse.status, 200);
+    const { url: documentLink } = await documentLinkResponse.json();
+    assert.match(documentLink, new RegExp(`^/api${documentPath}\\?`));
+    const documentView = await fetch(new URL(documentLink, base));
+    assert.equal(documentView.status, 200);
+    assert.equal(await documentView.text(), "fake-image");
+    assert.equal((await fetch(new URL(documentLink, base), { headers: { "x-test-actor": "anonymous" } })).status, 401);
+    const alteredLink = new URL(documentLink, base);
+    alteredLink.searchParams.set("signature", "0".repeat(64));
+    assert.equal((await fetch(alteredLink)).status, 403);
     const request = (route, method, body) => fetch(`${base}${route}`, {
       method,
       headers: { "content-type": "application/json" },
@@ -267,6 +299,9 @@ test("customer acknowledgements gate close and the same payload persists reconci
     process.env.DATABASE_URL = originalDatabaseUrl;
     if (originalMarketplaceFlag === undefined) delete process.env.RENTAL_MARKETPLACE_ENABLED;
     else process.env.RENTAL_MARKETPLACE_ENABLED = originalMarketplaceFlag;
+    for (const [key, value] of [["SESSION_SECRET", originalSecret], ["DEFAULT_OBJECT_STORAGE_BUCKET_ID", originalBucket], ["PRIVATE_OBJECT_DIR", originalPrivateDir]]) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
     await rootPool.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
     await rootPool.end();
     await rm(temporaryDir, { recursive: true, force: true });

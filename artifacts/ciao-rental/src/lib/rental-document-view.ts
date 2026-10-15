@@ -1,5 +1,6 @@
 export async function openStaffDocument(path: string): Promise<void> {
   const popup = window.open("about:blank", "_blank");
+  if (popup) popup.opener = null;
   try {
     const response = await fetch(`${path}?link=1`, { credentials: "include" });
     if (!response.ok) throw new Error("Could not open the private document.");
