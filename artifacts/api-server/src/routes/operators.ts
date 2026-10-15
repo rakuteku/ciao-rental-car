@@ -17,10 +17,12 @@ import {
   type OperatorStaffRole,
 } from "../middlewares/operator-auth";
 
+import { rentalPrivateDocumentStorageConfigured } from "../lib/rental-private-documents";
+
 const router: IRouter = Router();
 router.get("/rental/marketplace/config", (_req, res): void => {
   res.set("Cache-Control", "no-store");
-  res.json({ enabled: isRentalMarketplaceEnabled() });
+  res.json({ enabled: isRentalMarketplaceEnabled(), privateDocumentUploadAvailable: rentalPrivateDocumentStorageConfigured() });
 });
 const scrypt = promisify(scryptCallback);
 const failedLogins = new Map<string, number[]>();

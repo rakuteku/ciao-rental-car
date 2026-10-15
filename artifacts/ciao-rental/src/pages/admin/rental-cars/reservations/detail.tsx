@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel";
 import { formatTokyo } from "@/lib/rental-marketplace";
+import { openStaffDocument } from "@/lib/rental-document-view";
 
 function financeRows(value: any): any[] {
   if (Array.isArray(value)) return value;
@@ -153,7 +154,7 @@ export function AdminReservationDetail() {
           <CardContent className="space-y-3">
             {res.documents?.length ? res.documents.map((document: any) => (
               <div className="rounded border p-3 space-y-2" key={document.id}>
-                <div className="flex items-center justify-between gap-2"><a className="font-medium underline" href={typeof document.fileUrl === "string" && document.fileUrl.startsWith("rental-private://") ? `/api/admin/rental/reservations/${id}/driver-documents/${document.id}/content` : document.fileUrl} target="_blank" rel="noreferrer">{document.docType.replace("_", " ")}</a><Badge variant="outline">{document.status}</Badge></div>
+                <div className="flex items-center justify-between gap-2"><button type="button" className="font-medium underline" onClick={() => void openStaffDocument(`/api/admin/rental/reservations/${id}/driver-documents/${document.id}/content`).catch((error: Error) => toast({ title: "Document unavailable", description: error.message, variant: "destructive" }))}>{document.docType.replace("_", " ")}</button><Badge variant="outline">{document.status}</Badge></div>
                 {document.adminNotes && <p className="text-sm text-muted-foreground">{document.adminNotes}</p>}
                 <div className="flex gap-2">
                   <Button size="sm" onClick={() => reviewDocument.mutate({ id: document.id, data: { status: "approved" } }, { onSuccess: () => toast({ title: "Document approved" }) })}>Approve</Button>

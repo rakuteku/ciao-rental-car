@@ -231,10 +231,7 @@ const CreateReservationSchema = z.object({
     email: z.string().email(),
     phone: z.string().min(1),
   })).optional(),
-  documents: z.array(z.object({
-    docType: z.enum(["drivers_license", "passport", "international_license", "insurance", "credit_card", "other"]),
-    fileUrl: z.string().url(),
-  })).optional(),
+  documents: z.array(z.never()).max(0).optional(),
   addons: z
     .array(
       z.object({
@@ -271,11 +268,6 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
   }
 
   const vehicleId = body.data.vehicleId;
-  if (isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED) && body.data.documents?.length) {
-    res.status(400).json({ error: "Upload documents through the private booking document flow" });
-    return;
-  }
-
   const [preHold] = await db
     .select()
     .from(rentalReservationHoldsTable)
@@ -465,19 +457,6 @@ router.post("/rental/reservations", async (req, res): Promise<void> => {
             qty: a.qty,
             unitPrice: a.unitPrice,
             totalPrice: a.totalPrice,
-          })),
-        );
-      }
-
-      if (body.data.documents?.length) {
-        await tx.insert(rentalDriverDocumentsTable).values(
-          body.data.documents.map((document) => ({
-            operatorId: vehicle.operatorId,
-            driverId: driver.id,
-            reservationId: reservation.id,
-            docType: document.docType,
-            fileUrl: document.fileUrl,
-            status: "submitted" as const,
           })),
         );
       }
@@ -1017,28 +996,13 @@ router.get("/rental/my-bookings/:id", async (req, res): Promise<void> => {
     vehicle: vehicle ? serializePublicVehicle(vehicle) : null,
     documents: documents.map((document) => ({
       ...document,
-      fileUrl: reservation.source === "marketplace_request" && isMarketplaceEnabled(process.env.RENTAL_MARKETPLACE_ENABLED)
-        ? null : document.fileUrl,
+      fileUrl: null,
       createdAt: document.createdAt.toISOString(),
       updatedAt: document.updatedAt.toISOString(),
       reviewedAt: document.reviewedAt?.toISOString() ?? null,
     })),
     ...(trip ? { trip } : {}),
   });
-});
-
-router.post("/rental/my-bookings/:id/documents", async (req, res): Promise<void> => {
-  const id = parseReservationId(req.params.id);
-  const session = req.session as unknown as Record<string, unknown>;
-  const email = typeof session.rentalCustomerEmail === "string" ? session.rentalCustomerEmail : "";
-  const parsed = z.object({ docType: z.enum(["drivers_license", "passport", "international_license", "insurance", "credit_card", "other"]), fileUrl: z.string().url() }).safeParse(req.body);
-  if (!id || !email || ((session.rentalCustomerBookingId as number | undefined) && session.rentalCustomerBookingId !== id) || !parsed.success) return void res.status(401).json({ error: parsed.success ? "Please look up this booking first" : parsed.error.message });
-  const [reservation] = await db.select().from(rentalReservationsTable).where(eq(rentalReservationsTable.id, id));
-  if (!reservation?.primaryDriverId) return void res.status(404).json({ error: "Booking not found" });
-  const [driver] = await db.select().from(rentalDriversTable).where(and(eq(rentalDriversTable.id, reservation.primaryDriverId), eq(rentalDriversTable.email, email)));
-  if (!driver) return void res.status(404).json({ error: "Booking not found" });
-  const [document] = await db.insert(rentalDriverDocumentsTable).values({ operatorId: reservation.operatorId, driverId: driver.id, reservationId: id, docType: parsed.data.docType, fileUrl: parsed.data.fileUrl, status: "submitted" }).returning();
-  res.status(201).json({ ...document, createdAt: document.createdAt.toISOString(), updatedAt: document.updatedAt.toISOString() });
 });
 
 router.post("/rental/reservations/:id/cancel-request", async (req, res): Promise<void> => {

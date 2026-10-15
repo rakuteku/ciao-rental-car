@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { z } from "zod/v4";
@@ -14,20 +15,20 @@ import {
   createRentalDocumentToken,
   receiveRentalDocumentUpload,
   rentalDocumentObjectName,
+  rentalPrivateDocumentStorageConfigured,
   streamRentalDocument,
   sweepExpiredRentalDocuments,
 } from "../lib/rental-private-documents";
 import {
   isAllowedRentalDocumentContentType,
   parseRentalPrivateReference,
-  rentalMarketplaceEnabled,
   rentalPrivateReference,
 } from "../lib/rental-private-document-policy.mjs";
 import { requireAdminAuth } from "../middlewares/admin-auth";
 import { getOperatorIdentity, requireOperatorAuth } from "../middlewares/operator-auth";
 
 const router: IRouter = Router();
-if (rentalMarketplaceEnabled()) {
+if (rentalPrivateDocumentStorageConfigured()) {
   const retentionTimer = setInterval(() => {
     void sweepExpiredRentalDocuments().catch((error) =>
       logger.error({ err: error, action: "rental_driver_document_retention_sweep_failed" }),
@@ -46,8 +47,8 @@ const uploadBodySchema = z.object({
 });
 
 function featureEnabled(res: Response): boolean {
-  if (rentalMarketplaceEnabled()) return true;
-  res.status(404).json({ error: "Rental marketplace is disabled" });
+  if (rentalPrivateDocumentStorageConfigured()) return true;
+  res.status(503).json({ error: "Private document storage is unavailable" });
   return false;
 }
 
@@ -182,10 +183,8 @@ router.post("/rental/my-bookings/:id/documents/upload-request", async (req, res)
   }
 });
 
-// Shadow the legacy fileUrl submission handler without editing that route: callers
-// must use the private upload flow, and arbitrary public URLs are never persisted.
-router.post("/rental/my-bookings/:id/documents", (_req, res, next): void => {
-  if (!rentalMarketplaceEnabled()) return next();
+// Public document URLs are never accepted, regardless of the marketplace flag.
+router.post("/rental/my-bookings/:id/documents", (_req, res): void => {
   res.status(410).json({ error: "Public document URLs are not accepted; use the private document upload flow" });
 });
 
@@ -271,6 +270,42 @@ router.get("/rental/my-bookings/:id/documents/:documentId/content", async (req, 
   await streamDocument(req, res, reservationId, documentId, "customer");
 });
 
+const STAFF_LINK_LIFETIME_MS = 2 * 60 * 1000;
+
+function staffLinkSignature(scope: "admin" | "operator", reservationId: number, documentId: number, expires: number): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error("SESSION_SECRET is required for document view links");
+  return createHmac("sha256", secret).update(`${scope}:${reservationId}:${documentId}:${expires}`).digest("hex");
+}
+
+async function staffDocumentView(req: Request, res: Response, reservationId: number, documentId: number, actor: string, scope: "admin" | "operator") {
+  if (req.query.link === "1") {
+    if (!await documentForReservation(reservationId, documentId)) {
+      res.status(404).json({ error: "Document not found" });
+      return;
+    }
+    const expires = Date.now() + STAFF_LINK_LIFETIME_MS;
+    const signature = staffLinkSignature(scope, reservationId, documentId, expires);
+    res.set("Cache-Control", "no-store");
+    res.json({ url: `${req.baseUrl}${req.path}?expires=${expires}&signature=${signature}`, expiresAt: new Date(expires).toISOString() });
+    return;
+  }
+  const expires = Number(req.query.expires);
+  const signature = req.query.signature;
+  if (!Number.isSafeInteger(expires) || expires <= Date.now() || expires > Date.now() + STAFF_LINK_LIFETIME_MS ||
+      typeof signature !== "string" || !/^[a-f0-9]{64}$/.test(signature)) {
+    res.status(403).json({ error: "Document view link is invalid or expired" });
+    return;
+  }
+  const expected = staffLinkSignature(scope, reservationId, documentId, expires);
+  if (!timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"))) {
+    res.status(403).json({ error: "Document view link is invalid or expired" });
+    return;
+  }
+  res.set("Cache-Control", "private, no-store");
+  await streamDocument(req, res, reservationId, documentId, actor);
+}
+
 router.get(
   "/operator/rental/reservations/:id/driver-documents/:documentId/content",
   requireOperatorAuth,
@@ -296,7 +331,7 @@ router.get(
         res.status(404).json({ error: "Document not found" });
         return;
       }
-      await streamDocument(req, res, reservationId, documentId, `operator:${identity.staffId}`);
+      await staffDocumentView(req, res, reservationId, documentId, `operator:${identity.staffId}`, "operator");
     } catch (error) {
       next(error);
     }
@@ -314,7 +349,7 @@ router.get(
       res.status(404).json({ error: "Document not found" });
       return;
     }
-    await streamDocument(req, res, reservationId, documentId, "admin");
+    await staffDocumentView(req, res, reservationId, documentId, "admin", "admin");
   },
 );
 

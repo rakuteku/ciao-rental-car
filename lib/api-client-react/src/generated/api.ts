@@ -47,10 +47,12 @@ import type {
   DeleteAdminRoom200,
   ErrorResponse,
   GetAdminRentalAvailabilityBlocksParams,
+  GetAdminRentalDocumentContentParams,
   GetAdminRentalFinanceParams,
   GetAdminRentalReservationsParams,
   GetAdminRentalTurnaroundBuffer200,
   GetCarAvailabilityParams,
+  GetOperatorRentalDocumentContentParams,
   GetRentalRequestParams,
   GetRentalRequestPaymentParams,
   GetRoomsParams,
@@ -97,6 +99,8 @@ import type {
   ReorderAdminRooms200,
   ReorderImagesBody,
   ReorderRoomsBody,
+  RequestRentalPrivateDocumentUpload201,
+  RequestRentalPrivateDocumentUploadBody,
   Room,
   SearchRentalVehiclesParams,
   SetAvailabilityBody,
@@ -109,6 +113,7 @@ import type {
   UpdateRoomBody,
   UpdateVehicleImageBody,
   UpdateVehiclePricingBody,
+  UploadRentalPrivateDocumentContentParams,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -6369,6 +6374,588 @@ export const useCreateRentalRequest = <
 > => {
   return useMutation(getCreateRentalRequestMutationOptions(options));
 };
+
+/**
+ * Available when private object storage is configured, independently of the marketplace flag. The customer session must own the booking.
+ * @summary Request a private document upload for a booking in the customer session
+ */
+export const getRequestRentalPrivateDocumentUploadUrl = (id: number) => {
+  return `/api/rental/my-bookings/${id}/documents/upload-request`;
+};
+
+export const requestRentalPrivateDocumentUpload = async (
+  id: number,
+  requestRentalPrivateDocumentUploadBody: RequestRentalPrivateDocumentUploadBody,
+  options?: RequestInit,
+): Promise<RequestRentalPrivateDocumentUpload201> => {
+  return customFetch<RequestRentalPrivateDocumentUpload201>(
+    getRequestRentalPrivateDocumentUploadUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(requestRentalPrivateDocumentUploadBody),
+    },
+  );
+};
+
+export const getRequestRentalPrivateDocumentUploadMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestRentalPrivateDocumentUpload>>,
+    TError,
+    { id: number; data: BodyType<RequestRentalPrivateDocumentUploadBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestRentalPrivateDocumentUpload>>,
+  TError,
+  { id: number; data: BodyType<RequestRentalPrivateDocumentUploadBody> },
+  TContext
+> => {
+  const mutationKey = ["requestRentalPrivateDocumentUpload"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestRentalPrivateDocumentUpload>>,
+    { id: number; data: BodyType<RequestRentalPrivateDocumentUploadBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return requestRentalPrivateDocumentUpload(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestRentalPrivateDocumentUploadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestRentalPrivateDocumentUpload>>
+>;
+export type RequestRentalPrivateDocumentUploadMutationBody =
+  BodyType<RequestRentalPrivateDocumentUploadBody>;
+export type RequestRentalPrivateDocumentUploadMutationError = ErrorType<void>;
+
+/**
+ * @summary Request a private document upload for a booking in the customer session
+ */
+export const useRequestRentalPrivateDocumentUpload = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestRentalPrivateDocumentUpload>>,
+    TError,
+    { id: number; data: BodyType<RequestRentalPrivateDocumentUploadBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestRentalPrivateDocumentUpload>>,
+  TError,
+  { id: number; data: BodyType<RequestRentalPrivateDocumentUploadBody> },
+  TContext
+> => {
+  return useMutation(
+    getRequestRentalPrivateDocumentUploadMutationOptions(options),
+  );
+};
+
+/**
+ * The customer session must own the booking and the pending document must belong to it.
+ * @summary Upload a PDF, JPEG, or PNG private document (maximum 10 MB)
+ */
+export const getUploadRentalPrivateDocumentContentUrl = (
+  id: number,
+  documentId: number,
+  params?: UploadRentalPrivateDocumentContentParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/rental/my-bookings/${id}/documents/${documentId}/content?${stringifiedParams}`
+    : `/api/rental/my-bookings/${id}/documents/${documentId}/content`;
+};
+
+export const uploadRentalPrivateDocumentContent = async (
+  id: number,
+  documentId: number,
+  uploadRentalPrivateDocumentContentBody: Blob,
+  params?: UploadRentalPrivateDocumentContentParams,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(
+    getUploadRentalPrivateDocumentContentUrl(id, documentId, params),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/pdf", ...options?.headers },
+      body: JSON.stringify(uploadRentalPrivateDocumentContentBody),
+    },
+  );
+};
+
+export const getUploadRentalPrivateDocumentContentMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadRentalPrivateDocumentContent>>,
+    TError,
+    {
+      id: number;
+      documentId: number;
+      data: BodyType<Blob>;
+      params?: UploadRentalPrivateDocumentContentParams;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadRentalPrivateDocumentContent>>,
+  TError,
+  {
+    id: number;
+    documentId: number;
+    data: BodyType<Blob>;
+    params?: UploadRentalPrivateDocumentContentParams;
+  },
+  TContext
+> => {
+  const mutationKey = ["uploadRentalPrivateDocumentContent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadRentalPrivateDocumentContent>>,
+    {
+      id: number;
+      documentId: number;
+      data: BodyType<Blob>;
+      params?: UploadRentalPrivateDocumentContentParams;
+    }
+  > = (props) => {
+    const { id, documentId, data, params } = props ?? {};
+
+    return uploadRentalPrivateDocumentContent(
+      id,
+      documentId,
+      data,
+      params,
+      requestOptions,
+    );
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadRentalPrivateDocumentContentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadRentalPrivateDocumentContent>>
+>;
+export type UploadRentalPrivateDocumentContentMutationBody = BodyType<Blob>;
+export type UploadRentalPrivateDocumentContentMutationError = ErrorType<void>;
+
+/**
+ * @summary Upload a PDF, JPEG, or PNG private document (maximum 10 MB)
+ */
+export const useUploadRentalPrivateDocumentContent = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadRentalPrivateDocumentContent>>,
+    TError,
+    {
+      id: number;
+      documentId: number;
+      data: BodyType<Blob>;
+      params?: UploadRentalPrivateDocumentContentParams;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof uploadRentalPrivateDocumentContent>>,
+  TError,
+  {
+    id: number;
+    documentId: number;
+    data: BodyType<Blob>;
+    params?: UploadRentalPrivateDocumentContentParams;
+  },
+  TContext
+> => {
+  return useMutation(
+    getUploadRentalPrivateDocumentContentMutationOptions(options),
+  );
+};
+
+/**
+ * @summary Legacy public document URL submission is disabled
+ */
+export const getRejectRentalDocumentUrlUrl = (id: number) => {
+  return `/api/rental/my-bookings/${id}/documents`;
+};
+
+export const rejectRentalDocumentUrl = async (
+  id: number,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getRejectRentalDocumentUrlUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRejectRentalDocumentUrlMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectRentalDocumentUrl>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rejectRentalDocumentUrl>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["rejectRentalDocumentUrl"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rejectRentalDocumentUrl>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return rejectRentalDocumentUrl(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RejectRentalDocumentUrlMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rejectRentalDocumentUrl>>
+>;
+
+export type RejectRentalDocumentUrlMutationError = ErrorType<void>;
+
+/**
+ * @summary Legacy public document URL submission is disabled
+ */
+export const useRejectRentalDocumentUrl = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectRentalDocumentUrl>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rejectRentalDocumentUrl>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getRejectRentalDocumentUrlMutationOptions(options));
+};
+
+/**
+ * Requires an admin session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+ * @summary Issue a two-minute staff view link or stream a private document with its signature
+ */
+export const getGetAdminRentalDocumentContentUrl = (
+  id: number,
+  documentId: number,
+  params?: GetAdminRentalDocumentContentParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/admin/rental/reservations/${id}/driver-documents/${documentId}/content?${stringifiedParams}`
+    : `/api/admin/rental/reservations/${id}/driver-documents/${documentId}/content`;
+};
+
+export const getAdminRentalDocumentContent = async (
+  id: number,
+  documentId: number,
+  params?: GetAdminRentalDocumentContentParams,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(
+    getGetAdminRentalDocumentContentUrl(id, documentId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetAdminRentalDocumentContentQueryKey = (
+  id: number,
+  documentId: number,
+  params?: GetAdminRentalDocumentContentParams,
+) => {
+  return [
+    `/api/admin/rental/reservations/${id}/driver-documents/${documentId}/content`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetAdminRentalDocumentContentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAdminRentalDocumentContent>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  documentId: number,
+  params?: GetAdminRentalDocumentContentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminRentalDocumentContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetAdminRentalDocumentContentQueryKey(id, documentId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAdminRentalDocumentContent>>
+  > = ({ signal }) =>
+    getAdminRentalDocumentContent(id, documentId, params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(id && documentId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAdminRentalDocumentContent>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAdminRentalDocumentContentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAdminRentalDocumentContent>>
+>;
+export type GetAdminRentalDocumentContentQueryError = ErrorType<void>;
+
+/**
+ * @summary Issue a two-minute staff view link or stream a private document with its signature
+ */
+
+export function useGetAdminRentalDocumentContent<
+  TData = Awaited<ReturnType<typeof getAdminRentalDocumentContent>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  documentId: number,
+  params?: GetAdminRentalDocumentContentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAdminRentalDocumentContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAdminRentalDocumentContentQueryOptions(
+    id,
+    documentId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Requires an authorized operator session for both link issuance and document viewing. Use link=1 to receive a signed relative URL; that URL expires after two minutes.
+ * @summary Issue a two-minute operator view link or stream a private document with its signature
+ */
+export const getGetOperatorRentalDocumentContentUrl = (
+  id: number,
+  documentId: number,
+  params?: GetOperatorRentalDocumentContentParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/operator/rental/reservations/${id}/driver-documents/${documentId}/content?${stringifiedParams}`
+    : `/api/operator/rental/reservations/${id}/driver-documents/${documentId}/content`;
+};
+
+export const getOperatorRentalDocumentContent = async (
+  id: number,
+  documentId: number,
+  params?: GetOperatorRentalDocumentContentParams,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(
+    getGetOperatorRentalDocumentContentUrl(id, documentId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetOperatorRentalDocumentContentQueryKey = (
+  id: number,
+  documentId: number,
+  params?: GetOperatorRentalDocumentContentParams,
+) => {
+  return [
+    `/api/operator/rental/reservations/${id}/driver-documents/${documentId}/content`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetOperatorRentalDocumentContentQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOperatorRentalDocumentContent>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  documentId: number,
+  params?: GetOperatorRentalDocumentContentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOperatorRentalDocumentContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetOperatorRentalDocumentContentQueryKey(id, documentId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOperatorRentalDocumentContent>>
+  > = ({ signal }) =>
+    getOperatorRentalDocumentContent(id, documentId, params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(id && documentId),
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOperatorRentalDocumentContent>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOperatorRentalDocumentContentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOperatorRentalDocumentContent>>
+>;
+export type GetOperatorRentalDocumentContentQueryError = ErrorType<void>;
+
+/**
+ * @summary Issue a two-minute operator view link or stream a private document with its signature
+ */
+
+export function useGetOperatorRentalDocumentContent<
+  TData = Awaited<ReturnType<typeof getOperatorRentalDocumentContent>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  documentId: number,
+  params?: GetOperatorRentalDocumentContentParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOperatorRentalDocumentContent>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOperatorRentalDocumentContentQueryOptions(
+    id,
+    documentId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get the marketplace feature flag state

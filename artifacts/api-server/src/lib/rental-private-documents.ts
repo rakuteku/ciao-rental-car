@@ -45,6 +45,15 @@ function storageLocation(): { bucketName: string; privateRoot: string } {
   };
 }
 
+export function rentalPrivateDocumentStorageConfigured(): boolean {
+  try {
+    storageLocation();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function rentalInspectionObjectName(reservationId: number, token: string): string {
   if (!Number.isSafeInteger(reservationId) || reservationId <= 0 || !parseRentalPrivateReference(rentalPrivateReference(token))) {
     throw new Error("Invalid rental inspection evidence reference");
