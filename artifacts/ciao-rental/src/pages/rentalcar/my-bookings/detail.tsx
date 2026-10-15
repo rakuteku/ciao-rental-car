@@ -47,7 +47,7 @@ export function MyBookingDetail() {
   const privateDocMut = useUploadPrivateBookingDocument();
   const cancelMut = useCancelBookingRequest();
   const acknowledgeChargesMut = useAcknowledgeTripCharges();
-  const { data: marketplaceConfig, isLoading: isMarketplaceConfigLoading, isError: isMarketplaceConfigError, refetch: refetchMarketplaceConfig } = useRentalMarketplaceConfig();
+  const { data: marketplaceConfig, isLoading: isMarketplaceConfigLoading, isFetching: isMarketplaceConfigFetching, isError: isMarketplaceConfigError, refetch: refetchMarketplaceConfig } = useRentalMarketplaceConfig();
   const { toast } = useToast();
 
   const [docType, setDocType] = useState<"passport" | "drivers_license" | "international_license">("passport");
@@ -165,10 +165,10 @@ export function MyBookingDetail() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileCheck className="w-5 h-5 text-primary" /> {privateUploadAvailable ? t.upload : t.documents}
               </CardTitle>
-              <CardDescription>{isMarketplaceConfigLoading ? t.checking : isMarketplaceConfigError ? t.retry : privateUploadAvailable ? t.required : t.pickupCheck}</CardDescription>
+              <CardDescription>{isMarketplaceConfigFetching ? t.checking : isMarketplaceConfigError ? t.retry : privateUploadAvailable ? t.required : t.pickupCheck}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {isMarketplaceConfigError && <Button variant="outline" size="sm" onClick={() => void refetchMarketplaceConfig()}>{t.tryAgain}</Button>}
+              {isMarketplaceConfigError && <Button className="min-h-11" variant="outline" disabled={isMarketplaceConfigFetching} onClick={() => void refetchMarketplaceConfig()}>{t.tryAgain}</Button>}
               {privateUploadAvailable && <><div className="space-y-2">
                 <Label>{t.documentType}</Label>
                 <Select
