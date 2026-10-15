@@ -296,7 +296,6 @@ router.get(
   "/operator/rental/reservations/:id/driver-documents/:documentId/content",
   requireOperatorAuth,
   async (req, res, next): Promise<void> => {
-    if (!featureEnabled(res)) return;
     const reservationId = Number(req.params.id);
     const documentId = Number(req.params.documentId);
     if (!Number.isSafeInteger(reservationId) || reservationId <= 0 || !Number.isSafeInteger(documentId) || documentId <= 0) {
@@ -317,6 +316,8 @@ router.get(
         res.status(404).json({ error: "Document not found" });
         return;
       }
+      // Tenant check first, so another operator's reservation is a 404 even when storage is off.
+      if (!featureEnabled(res)) return;
       await staffDocumentView(req, res, reservationId, documentId, `operator:${identity.staffId}`, "operator");
     } catch (error) {
       next(error);
