@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { ArrowUpRight, Menu, X } from "lucide-react";
 import { localizedPath, useLanguage } from "@/lib/language";
+import { LODGING_ENABLED } from "@/lib/lodging";
 
 const languageLabels = {
   en: { lodging: "Lodging", cars: "Rental cars", bookings: "My bookings", language: "Language" },
@@ -61,9 +62,9 @@ export function Navbar() {
         </button>
 
         <nav className="hidden items-center gap-8 md:flex" aria-label="Main navigation">
-          <Link href={localizedHref("/lodging")} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground">
+          {LODGING_ENABLED && <Link href={localizedHref("/lodging")} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground">
             {labels.lodging}
-          </Link>
+          </Link>}
           <Link href={localizedHref("/rentalcar")} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground">
             {labels.cars}
           </Link>
@@ -86,9 +87,9 @@ export function Navbar() {
               <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{labels.language}</span>
               {languageOptions(true)}
             </div>
-            <Link href={localizedHref("/lodging")} onClick={closeMenu} className="flex min-h-14 items-center justify-between border-b border-border/70 text-sm font-semibold">
+            {LODGING_ENABLED && <Link href={localizedHref("/lodging")} onClick={closeMenu} className="flex min-h-14 items-center justify-between border-b border-border/70 text-sm font-semibold">
               {labels.lodging}<ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
-            </Link>
+            </Link>}
             <Link href={localizedHref("/rentalcar")} onClick={closeMenu} className="flex min-h-14 items-center justify-between border-b border-border/70 text-sm font-semibold">
               {labels.cars}<ArrowUpRight className="size-4 text-muted-foreground" aria-hidden="true" />
             </Link>

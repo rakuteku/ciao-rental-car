@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language";
+import { LODGING_ENABLED } from "@/lib/lodging";
 
 type NavItem = {
   href: string;
@@ -104,7 +105,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const topNavItems: NavItem[] = [
     { href: "/admin/dashboard", label: t("Dashboard", "ダッシュボード"), icon: LayoutDashboard },
     { href: "/admin/fleet", label: t("Fleet (Legacy)", "旧車両管理"), icon: Car },
-    { href: "/admin/lodging", label: t("Lodging", "宿泊施設"), icon: Building2 },
+    ...(LODGING_ENABLED ? [{ href: "/admin/lodging", label: t("Lodging", "宿泊施設"), icon: Building2 }] : []),
     { href: "/admin/content", label: t("Page Content", "ページ内容"), icon: FileText },
   ];
 

@@ -95,6 +95,9 @@ const apiProxy = apiProxyTarget
 
 export default defineConfig(async ({ command }) => ({
   base: basePath,
+  define: {
+    __LODGING_ENABLED__: JSON.stringify(process.env.LODGING_ENABLED?.trim().toLowerCase() === "true"),
+  },
   plugins: [
     react(),
     tailwindcss(),

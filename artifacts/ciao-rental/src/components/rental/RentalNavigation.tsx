@@ -4,6 +4,7 @@ import { ArrowRight, Building2, Bookmark } from "lucide-react";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { tokyoParts } from "@/lib/rental-marketplace";
 import { formatRentalTime } from "@/lib/rental-time";
+import { LODGING_ENABLED } from "@/lib/lodging";
 
 export const isCarDetailPath = (path: string) => /^\/(?:(?:en|ja|zh-TW|zh-CN)\/)?rentalcar\/cars\/[^/]+\/?$/.test(path);
 
@@ -171,8 +172,8 @@ export function RentalNavigation() {
         </button>
       </div>
     </div>}
-    <nav data-testid="mobile-public-navigation" aria-label={copy.navigation} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-2 divide-x border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-sm backdrop-blur md:hidden">
-      <Link href={localizedPath("/lodging", language)} className="flex h-14 min-w-0 items-center justify-center gap-2 px-2 text-sm font-semibold"><Building2 className="size-4 shrink-0 text-primary" />{copy.lodging}</Link>
+    <nav data-testid="mobile-public-navigation" aria-label={copy.navigation} className={`fixed inset-x-0 bottom-0 z-40 grid ${LODGING_ENABLED ? "grid-cols-2 divide-x" : "grid-cols-1"} border-t bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-sm backdrop-blur md:hidden`}>
+      {LODGING_ENABLED && <Link href={localizedPath("/lodging", language)} className="flex h-14 min-w-0 items-center justify-center gap-2 px-2 text-sm font-semibold"><Building2 className="size-4 shrink-0 text-primary" />{copy.lodging}</Link>}
       <Link href={localizedPath("/rentalcar/my-bookings", language)} className="flex h-14 min-w-0 items-center justify-center gap-2 px-2 text-sm font-semibold"><Bookmark className="size-4 shrink-0 text-primary" />{copy.bookings}</Link>
     </nav>
   </>;

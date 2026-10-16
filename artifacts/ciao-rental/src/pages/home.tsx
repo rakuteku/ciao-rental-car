@@ -6,6 +6,7 @@ import { useSeoMeta } from "@/hooks/use-seo-meta";
 import { localizeContent, localizedPath, useLanguage } from "@/lib/language";
 import { CONTACT_MAILTO } from "@/lib/contact";
 import { HomeSearchPanel } from "@/components/home/HomeSearchPanel";
+import { LODGING_ENABLED } from "@/lib/lodging";
 
 interface WhyItem {
   title: string;
@@ -41,6 +42,40 @@ function HomeSkeleton() {
 
 export function Home() {
   const { language } = useLanguage();
+  const heroCopy = {
+    en: { eyebrow: "Sapporo · Hokkaido", title: "PrimoStay Car Rental", subtitle: "Explore Hokkaido from Sapporo with a rental car.", cta: "Find a rental car" },
+    ja: { eyebrow: "札幌・北海道", title: "PrimoStay Car Rental", subtitle: "札幌からレンタカーで北海道を旅する。", cta: "レンタカーを探す" },
+    "zh-TW": { eyebrow: "札幌・北海道", title: "PrimoStay Car Rental", subtitle: "從札幌租車探索北海道。", cta: "搜尋租車" },
+  }[language];
+  const carOnlyCopy = {
+    en: {
+      rental: { title: "Rental cars in Sapporo", description: "Choose a rental car for your Hokkaido drive." },
+      why: [
+        { title: "Sapporo, Hokkaido", description: "Start your Hokkaido drive from Sapporo." },
+        { title: "Choose your vehicle", description: "Browse the available rental-car options for your trip." },
+        { title: "Plan your drive", description: "Search by your preferred pickup and return dates." },
+      ],
+      contact: { title: "Questions about car rental?", description: "Contact us for help with your rental-car plans.", ctaText: "Contact us" },
+    },
+    ja: {
+      rental: { title: "札幌のレンタカー", description: "北海道ドライブのためのレンタカーをお選びください。" },
+      why: [
+        { title: "札幌・北海道", description: "札幌から北海道ドライブを始められます。" },
+        { title: "車両を選ぶ", description: "ご旅行に合うレンタカーをお探しいただけます。" },
+        { title: "ドライブを計画", description: "希望する受取日と返却日で検索できます。" },
+      ],
+      contact: { title: "レンタカーについてのご質問", description: "レンタカーのご計画についてお気軽にお問い合わせください。", ctaText: "お問い合わせ" },
+    },
+    "zh-TW": {
+      rental: { title: "札幌租車", description: "為您的北海道自駕行程選擇租車。" },
+      why: [
+        { title: "札幌・北海道", description: "從札幌開始您的北海道自駕旅程。" },
+        { title: "選擇車輛", description: "搜尋適合您行程的租車選項。" },
+        { title: "規劃自駕", description: "依照您希望的取車與還車日期搜尋。" },
+      ],
+      contact: { title: "租車相關問題", description: "如需協助規劃租車，請聯絡我們。", ctaText: "聯絡我們" },
+    },
+  }[language];
   const interfaceCopy = {
     en: { retry: "Try again", pageError: "We couldn’t load this page just now.", errorHint: "Please try again in a moment.", roomsError: "Featured rooms are temporarily unavailable.", roomsEmpty: "There are no featured rooms at the moment." },
     ja: { retry: "もう一度試す", pageError: "ページを読み込めませんでした。", errorHint: "少し時間をおいて、もう一度お試しください。", roomsError: "おすすめのお部屋を一時的に表示できません。", roomsEmpty: "現在、おすすめのお部屋はありません。" },
@@ -79,21 +114,21 @@ export function Home() {
           <div className="mx-auto max-w-5xl">
             <p className="eyebrow mb-5 flex items-center justify-center gap-3 text-center text-white/80">
               <span className="h-px w-9 bg-white/60" aria-hidden="true" />
-              {content.copy.heroEyebrow}
+              {heroCopy.eyebrow}
             </p>
             <h1 id="home-hero-title" className="mx-auto max-w-4xl text-center font-serif text-4xl font-semibold leading-[1.06] text-white sm:text-5xl lg:text-6xl">
-              {content.hero.title}
+              {heroCopy.title}
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-7 text-white/85 sm:text-base sm:leading-8">{content.hero.subtitle}</p>
+            <p className="mx-auto mt-5 max-w-2xl text-center text-sm leading-7 text-white/85 sm:text-base sm:leading-8">{heroCopy.subtitle}</p>
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-              <Button asChild size="lg" className="min-h-12 rounded-full px-6">
+              {LODGING_ENABLED && <Button asChild size="lg" className="min-h-12 rounded-full px-6">
                 <Link href={localizedPath("/lodging", language)} data-testid="link-hero-lodging">
                   <Building2 className="mr-2 size-4" aria-hidden="true" />{content.hero.ctaLodging}
                 </Link>
-              </Button>
+              </Button>}
               <Button asChild size="lg" variant="secondary" className="min-h-12 rounded-full border border-white/35 bg-background/10 px-6 text-white backdrop-blur-sm hover:bg-background/20">
                 <Link href={localizedPath("/rentalcar", language)} data-testid="link-hero-rental-car">
-                  <CarIcon className="mr-2 size-4" aria-hidden="true" />{content.hero.ctaRentalCar}
+                  <CarIcon className="mr-2 size-4" aria-hidden="true" />{heroCopy.cta}
                 </Link>
               </Button>
             </div>
@@ -108,6 +143,7 @@ export function Home() {
         </div>
       </section>
 
+      {LODGING_ENABLED && <>
       <section id="lodging" className="border-b border-border/70 py-20 sm:py-28 lg:py-32">
         <div className="container">
           <div className="grid gap-12 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:gap-20">
@@ -203,6 +239,7 @@ export function Home() {
           </div>
         </div>
       </section>
+      </>}
 
       <section className="border-b border-border/70 py-20 sm:py-28 lg:py-32">
         <div className="container grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-20">
@@ -211,8 +248,8 @@ export function Home() {
               <CarIcon className="size-4" aria-hidden="true" />
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em]">{content.copy.rentalEyebrow}</p>
             </div>
-            <h2 className="max-w-xl font-serif text-4xl font-medium leading-[1.08] tracking-tight sm:text-5xl">{content.rentalCarOverview.title}</h2>
-            <p className="max-w-lg text-sm leading-7 text-muted-foreground sm:text-base">{content.rentalCarOverview.description}</p>
+            <h2 className="max-w-xl font-serif text-4xl font-medium leading-[1.08] tracking-tight sm:text-5xl">{LODGING_ENABLED ? content.rentalCarOverview.title : carOnlyCopy.rental.title}</h2>
+            <p className="max-w-lg text-sm leading-7 text-muted-foreground sm:text-base">{LODGING_ENABLED ? content.rentalCarOverview.description : carOnlyCopy.rental.description}</p>
             <Button asChild variant="outline" className="min-h-11 rounded-full px-5">
               <Link href={localizedPath("/rentalcar", language)} data-testid="link-explore-rental-cars">
                 {content.copy.exploreRentalCars}<ChevronRight className="ml-2 size-4" aria-hidden="true" />
@@ -234,7 +271,7 @@ export function Home() {
             <h2 className="font-serif text-4xl font-medium leading-[1.08] tracking-tight sm:text-5xl">{content.copy.whyTitle}</h2>
           </div>
           <div className="grid border-y border-border/80 sm:grid-cols-2 lg:grid-cols-4">
-            {content.whyChooseUs.map((item, index) => (
+            {(LODGING_ENABLED ? content.whyChooseUs : carOnlyCopy.why).map((item, index) => (
               <article key={item.title} className="border-b border-border/70 py-7 sm:px-6 sm:py-8 lg:border-b-0 lg:border-r lg:first:pl-0 lg:last:border-r-0">
                 <span className="mb-5 block font-serif text-sm text-muted-foreground">0{index + 1}</span>
                 <h3 className="mb-3 text-sm font-semibold tracking-wide">{item.title}</h3>
@@ -275,10 +312,10 @@ export function Home() {
               <Mail className="size-4" aria-hidden="true" />
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em]">{content.copy.contactEyebrow}</p>
             </div>
-            <h2 className="font-serif text-4xl font-medium leading-tight tracking-tight sm:text-5xl">{content.contact.title}</h2>
-            <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">{content.contact.description}</p>
+            <h2 className="font-serif text-4xl font-medium leading-tight tracking-tight sm:text-5xl">{LODGING_ENABLED ? content.contact.title : carOnlyCopy.contact.title}</h2>
+            <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">{LODGING_ENABLED ? content.contact.description : carOnlyCopy.contact.description}</p>
             <Button asChild size="lg" className="mt-8 min-h-12 rounded-full px-7">
-              <a href={CONTACT_MAILTO} data-testid="link-home-contact">{content.contact.ctaText}<ArrowUpRight className="ml-2 size-4" aria-hidden="true" /></a>
+              <a href={CONTACT_MAILTO} data-testid="link-home-contact">{LODGING_ENABLED ? content.contact.ctaText : carOnlyCopy.contact.ctaText}<ArrowUpRight className="ml-2 size-4" aria-hidden="true" /></a>
             </Button>
           </div>
         </div>
