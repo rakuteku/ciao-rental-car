@@ -90,9 +90,15 @@ const paymentCopy = {
 } as const;
 
 const documentCopy = {
-  en: { title: "Required documents", upload: "After booking, upload PDF, JPEG, or PNG files securely from your booking details.", pickup: "Original documents are checked at pickup. Staff will contact you about the documents needed.", driversLicence: "Driver's licence", japaneseLicense: "Japanese driver's licence", creditCard: "Credit card", insurance: "Insurance document", checking: "Checking secure upload…", retry: "Could not check secure upload. Please try again.", foreignLicense: "Foreign driver's licence", idp: "International driving permit", passport: "Passport", residenceCard: "Residence card", selfie: "Identity photo", additionalDrivers: "Additional driver's documents", other: "Other document" },
-  ja: { title: "必要書類", upload: "予約後、予約詳細から PDF・JPEG・PNG 形式の書類を安全にアップロードできます。", pickup: "原本は貸出時に確認します。必要書類についてスタッフからご連絡します。", driversLicence: "運転免許証", japaneseLicense: "日本の運転免許証", creditCard: "クレジットカード", insurance: "保険書類", checking: "安全なアップロードを確認しています…", retry: "安全なアップロードを確認できませんでした。もう一度お試しください。", foreignLicense: "外国の運転免許証", idp: "国際運転免許証", passport: "パスポート", residenceCard: "在留カード", selfie: "本人確認用写真", additionalDrivers: "追加運転者の書類", other: "その他の書類" },
-  "zh-TW": { title: "所需文件", upload: "預訂後可在預訂詳情安全上傳 PDF、JPEG 或 PNG 文件。", pickup: "取車時會查驗文件正本。工作人員將聯絡您確認所需文件。", driversLicence: "駕駛執照", japaneseLicense: "日本駕駛執照", creditCard: "信用卡", insurance: "保險文件", checking: "正在確認安全上傳…", retry: "無法確認安全上傳，請重試。", foreignLicense: "外國駕駛執照", idp: "國際駕駛許可證", passport: "護照", residenceCard: "在留卡", selfie: "身分確認照片", additionalDrivers: "其他駕駛人的文件", other: "其他文件" },
+  en: { title: "Documents", upload: "After booking, upload PDF, JPEG, or PNG files securely from your booking details.", pickup: "Original documents are checked at pickup. Staff will contact you about the documents needed.", driversLicence: "Driver's licence", japaneseLicense: "Japanese driver's licence", creditCard: "Credit card", insurance: "Insurance document", checking: "Checking secure upload…", retry: "Could not check secure upload. Please try again.", tryAgain: "Try again", foreignLicense: "Foreign driver's licence", idp: "International driving permit", passport: "Passport", residenceCard: "Residence card", selfie: "Identity photo", additionalDrivers: "Additional driver's documents", other: "Other document" },
+  ja: { title: "書類", upload: "予約後、予約詳細から PDF・JPEG・PNG 形式の書類を安全にアップロードできます。", pickup: "原本は貸出時に確認します。必要書類についてスタッフからご連絡します。", driversLicence: "運転免許証", japaneseLicense: "日本の運転免許証", creditCard: "クレジットカード", insurance: "保険書類", checking: "安全なアップロードを確認しています…", retry: "安全なアップロードを確認できませんでした。もう一度お試しください。", tryAgain: "再試行", foreignLicense: "外国の運転免許証", idp: "国際運転免許証", passport: "パスポート", residenceCard: "在留カード", selfie: "本人確認用写真", additionalDrivers: "追加運転者の書類", other: "その他の書類" },
+  "zh-TW": { title: "文件", upload: "預訂後可在預訂詳情安全上傳 PDF、JPEG 或 PNG 文件。", pickup: "取車時會查驗文件正本。工作人員將聯絡您確認所需文件。", driversLicence: "駕駛執照", japaneseLicense: "日本駕駛執照", creditCard: "信用卡", insurance: "保險文件", checking: "正在確認安全上傳…", retry: "無法確認安全上傳，請重試。", tryAgain: "重試", foreignLicense: "外國駕駛執照", idp: "國際駕駛許可證", passport: "護照", residenceCard: "在留卡", selfie: "身分確認照片", additionalDrivers: "其他駕駛人的文件", other: "其他文件" },
+} as const;
+
+const checkoutStepCopy = {
+  en: { addons: "Add-ons", driverInfo: "Driver Info", pickupDetails: "Pickup Details", summary: "Summary", pickupDetailsSubtitle: "Confirm your locations, times, and delivery notes.", driverInfoSubtitle: "Please provide details for the primary driver.", summarySubtitle: "Please review your booking details.", back: "Back", continue: "Continue", error: "Error", holdInvalid: "Hold expired or invalid", bookingFailed: "Booking failed", bookingRetry: "Please try again later." },
+  ja: { addons: "追加オプション", driverInfo: "運転者情報", pickupDetails: "貸出詳細", summary: "概要", pickupDetailsSubtitle: "場所、日時、配車に関するご要望をご確認ください。", driverInfoSubtitle: "主な運転者の情報を入力してください。", summarySubtitle: "予約内容をご確認ください。", back: "戻る", continue: "次へ", error: "エラー", holdInvalid: "仮予約の有効期限が切れたか、無効です。", bookingFailed: "予約を送信できませんでした", bookingRetry: "しばらくしてからもう一度お試しください。" },
+  "zh-TW": { addons: "加購項目", driverInfo: "駕駛人資料", pickupDetails: "取車詳情", summary: "摘要", pickupDetailsSubtitle: "請確認地點、時間和交車備註。", driverInfoSubtitle: "請提供主要駕駛人的資料。", summarySubtitle: "請確認您的預訂詳情。", back: "返回", continue: "繼續", error: "錯誤", holdInvalid: "保留已過期或無效。", bookingFailed: "預訂失敗", bookingRetry: "請稍後再試。" },
 } as const;
 
 function documentName(value: string, language: keyof typeof documentCopy): string {
@@ -137,6 +143,7 @@ function LegacyCheckout() {
   const { language } = useLanguage();
   const copy = rentalCopy(language);
   const payment = paymentCopy[language];
+  const stepCopy = checkoutStepCopy[language];
   const customer = useCustomerAccount().data?.account as { email?: string; fullName?: string; phone?: string } | undefined;
   const { data: configuredLocations } = useRentalLocations();
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
@@ -167,7 +174,7 @@ function LegacyCheckout() {
       ? Object.fromEntries(Object.entries(current).filter(([id]) => available.has(Number(id))))
       : current);
   }, [addons]);
-  const { data: marketplaceConfig, isLoading: isMarketplaceConfigLoading, isError: isMarketplaceConfigError } = useRentalMarketplaceConfig();
+  const { data: marketplaceConfig, isFetching: isMarketplaceConfigFetching, isError: isMarketplaceConfigError, refetch: refetchMarketplaceConfig } = useRentalMarketplaceConfig();
   const { data: car } = useGetRentalVehicle(draft?.vehicleSlug || "", {
     query: { enabled: !!draft?.vehicleSlug, queryKey: getGetRentalVehicleQueryKey(draft?.vehicleSlug || "") }
   });
@@ -262,14 +269,6 @@ function LegacyCheckout() {
         setStep(3);
       })();
     } else if (step === 3) {
-      if (isMarketplaceConfigLoading || !marketplaceConfig) {
-        toast({
-          title: "Document settings unavailable",
-          description: isMarketplaceConfigError ? "Could not check secure document settings. Please try again." : "Checking document settings. Please try again shortly.",
-          variant: "destructive",
-        });
-        return;
-      }
       setStep(4);
     } else if (step === 4) {
       updateDraft({ differentReturnLocation });
@@ -284,16 +283,8 @@ function LegacyCheckout() {
   };
 
   const handleConfirm = () => {
-    if (isMarketplaceConfigLoading || !marketplaceConfig) {
-      toast({
-        title: "Booking unavailable",
-        description: isMarketplaceConfigError ? "Could not verify document settings. Please try again." : "Checking document settings. Please try again shortly.",
-        variant: "destructive",
-      });
-      return;
-    }
     if (!draft.holdId || !draft.holdToken || holdExpired) {
-      toast({ title: "Error", description: "Hold expired or invalid", variant: "destructive" });
+      toast({ title: stepCopy.error, description: stepCopy.holdInvalid, variant: "destructive" });
       return;
     }
     
@@ -331,18 +322,18 @@ function LegacyCheckout() {
         clearDraft();
         setLocation(`${localizedPath("/rentalcar/booking/confirmation", language)}?id=${reservation.id}`);
       },
-      onError: (err) => {
-        toast({ title: "Booking failed", description: err.message || "Please try again later.", variant: "destructive" });
+      onError: () => {
+        toast({ title: stepCopy.bookingFailed, description: stepCopy.bookingRetry, variant: "destructive" });
       }
     });
   };
 
   const steps = [
-    "Add-ons",
-    "Driver Info",
+    stepCopy.addons,
+    stepCopy.driverInfo,
     documentCopy[language].title,
-    "Pickup Details",
-    "Summary",
+    stepCopy.pickupDetails,
+    stepCopy.summary,
     payment.step
   ];
   const secondsRemaining = draft.heldUntil
@@ -389,8 +380,8 @@ function LegacyCheckout() {
             {step === 4 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">Pickup Details</h2>
-                  <p className="text-muted-foreground">Confirm your locations, times, and delivery notes.</p>
+                  <h2 className="text-2xl font-serif font-bold">{stepCopy.pickupDetails}</h2>
+                  <p className="text-muted-foreground">{stepCopy.pickupDetailsSubtitle}</p>
                 </div>
                 <div className="flex items-start gap-3 rounded-lg border bg-background p-4">
                   <Checkbox id="different-return" checked={differentReturnLocation} onCheckedChange={(checked) => setDifferentReturnLocation(Boolean(checked))} />
@@ -440,7 +431,7 @@ function LegacyCheckout() {
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">{copy.enhanceTrip}</h2>
+                  <h2 className="text-2xl font-serif font-bold">{stepCopy.addons}</h2>
                   <p className="text-muted-foreground">{copy.enhanceTripHelp}</p>
                 </div>
                 <div className="space-y-4">
@@ -458,8 +449,8 @@ function LegacyCheckout() {
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">Driver Information</h2>
-                  <p className="text-muted-foreground">Please provide details for the primary driver.</p>
+                  <h2 className="text-2xl font-serif font-bold">{stepCopy.driverInfo}</h2>
+                  <p className="text-muted-foreground">{stepCopy.driverInfoSubtitle}</p>
                 </div>
                 <Card>
                   <CardContent className="p-6">
@@ -524,7 +515,8 @@ function LegacyCheckout() {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
                   <h2 className="text-2xl font-serif font-bold">{documentCopy[language].title}</h2>
-                  <p className="text-muted-foreground">{isMarketplaceConfigLoading ? documentCopy[language].checking : isMarketplaceConfigError ? documentCopy[language].retry : marketplaceConfig?.privateDocumentUploadAvailable ? documentCopy[language].upload : documentCopy[language].pickup}</p>
+                  <p className="text-muted-foreground">{isMarketplaceConfigFetching ? documentCopy[language].checking : isMarketplaceConfigError ? documentCopy[language].retry : marketplaceConfig?.privateDocumentUploadAvailable ? documentCopy[language].upload : documentCopy[language].pickup}</p>
+                  {isMarketplaceConfigError && <Button className="mt-3 min-h-11" variant="outline" disabled={isMarketplaceConfigFetching} onClick={() => void refetchMarketplaceConfig()}>{documentCopy[language].tryAgain}</Button>}
                 </div>
                 {(car?.requiredDocuments?.length ? car.requiredDocuments : ["drivers_license", "passport"]).map((document, index) => (
                   <Card key={`${document}-${index}`}>
@@ -538,8 +530,8 @@ function LegacyCheckout() {
             {step === 5 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">Review & Confirm</h2>
-                  <p className="text-muted-foreground">Please review your booking details.</p>
+                  <h2 className="text-2xl font-serif font-bold">{stepCopy.summary}</h2>
+                  <p className="text-muted-foreground">{stepCopy.summarySubtitle}</p>
                 </div>
 
                 <div className="grid gap-6">
@@ -649,14 +641,14 @@ function LegacyCheckout() {
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between pt-6 border-t">
               <Button variant="ghost" onClick={handleBack} disabled={step === 1} className="gap-2">
-                <ArrowLeft className="w-4 h-4" /> Back
+                <ArrowLeft className="w-4 h-4" /> {stepCopy.back}
               </Button>
               {step < 6 ? (
-                <Button onClick={handleNext} className="gap-2" size="lg" disabled={step === 3 && (isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig)}>
-                  Continue <ChevronRight className="w-4 h-4" />
+                <Button onClick={handleNext} className="gap-2" size="lg">
+                  {stepCopy.continue} <ChevronRight className="w-4 h-4" />
                 </Button>
               ) : (
-                <Button onClick={handleConfirm} disabled={!agreedTerms || !priceData || createReservation.isPending || isMarketplaceConfigLoading || isMarketplaceConfigError || !marketplaceConfig} className="gap-2 px-8" size="lg">
+                <Button onClick={handleConfirm} disabled={!agreedTerms || !priceData || createReservation.isPending} className="gap-2 px-8" size="lg">
                   {createReservation.isPending ? payment.submitting : payment.submit} <Check className="w-4 h-4" />
                 </Button>
               )}

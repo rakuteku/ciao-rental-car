@@ -7,6 +7,7 @@ import { RentalExceptionsPanel } from "@/components/rental/RentalExceptionsPanel
 import { partnerRequest } from "./shared";
 import { formatTokyo } from "@/lib/rental-marketplace";
 import { openStaffDocument } from "@/lib/rental-document-view";
+import { documentStatusLabels, documentTypeLabels } from "@/lib/rental-document-labels";
 
 function DriverDocumentReview({ id, trip }: { id: number; trip: Record<string, any> }) {
   const queryClient = useQueryClient();
@@ -48,8 +49,8 @@ function DriverDocumentReview({ id, trip }: { id: number; trip: Record<string, a
         return <article key={doc.id ?? index} data-testid={`card-driver-document-${doc.id ?? index}`} className="rounded-lg border p-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <p className="font-semibold">{driverName} · {String(doc.docType ?? "Document").replaceAll("_", " ")}</p>
-              <p className="mt-1 text-xs text-slate-600">Review status: <strong>{doc.status ?? "submitted"}</strong>{doc.createdAt ? ` · Submitted ${formatTokyo(doc.createdAt)}` : ""}</p>
+              <p className="font-semibold">{driverName} · {documentTypeLabels[String(doc.docType)] ?? documentTypeLabels.other}</p>
+              <p className="mt-1 text-xs text-slate-600">Review status: <strong>{documentStatusLabels[String(doc.status ?? "submitted")] ?? "Unknown"}</strong>{doc.createdAt ? ` · Submitted ${formatTokyo(doc.createdAt)}` : ""}</p>
             </div>
             <button data-testid={`link-private-driver-document-${doc.id ?? index}`} type="button" className="text-sm font-medium text-amber-800 underline" onClick={() => void openStaffDocument(`/api/partner/rental/reservations/${id}/driver-documents/${documentId}/content`).catch((failure: Error) => setError(failure.message))}>Open private document</button>
           </div>
