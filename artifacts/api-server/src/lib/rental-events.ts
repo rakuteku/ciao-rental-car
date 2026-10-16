@@ -42,9 +42,9 @@ const TEMPLATES = {
     ja: { subject: data.message ? `レンタルリクエスト #${data.bookingId} のお知らせ` : `レンタルリクエスト #${data.bookingId} を受け付けました`, body: data.message ? String(data.message) : `レンタルリクエスト #${data.bookingId} を受け付けました。事業者からの回答期限は ${data.respondBy ?? "リクエスト画面に表示された日時"} です。` },
   }),
   acceptance: (data) => ({
-    en: { subject: `Rental request #${data.bookingId} accepted`, body: `Your rental request #${data.bookingId} was accepted. Complete payment by ${data.paymentDeadline ?? "the payment deadline shown in your booking"}. Sign in to your customer panel: ${data.panelUrl ?? "Open the My bookings page on CIAO Rental Car"}.` },
-    ja: { subject: `レンタルリクエスト #${data.bookingId} が承認されました`, body: `レンタルリクエスト #${data.bookingId} が承認されました。${data.paymentDeadline ?? "予約画面に表示された"} 支払期限までにお支払いください。お客様パネルにログイン: ${data.panelUrl ?? "CIAOレンタカーの予約確認ページ"}。` },
-    "zh-TW": { subject: `租車申請 #${data.bookingId} 已接受`, body: `您的租車申請 #${data.bookingId} 已接受。請在 ${data.paymentDeadline ?? "預訂頁面顯示的付款期限"} 前完成付款。登入顧客面板: ${data.panelUrl ?? "CIAO 租車的我的預訂頁面"}。` },
+    en: { subject: `PrimoStay Car Rental: rental request #${data.bookingId} accepted`, body: `Your rental request #${data.bookingId} was accepted. Complete payment by ${data.paymentDeadline ?? "the payment deadline shown in your booking"}. Sign in to your customer panel: ${data.panelUrl ?? "Open the My bookings page on PrimoStay Car Rental"}.` },
+    ja: { subject: `PrimoStay レンタカー：レンタルリクエスト #${data.bookingId} が承認されました`, body: `レンタルリクエスト #${data.bookingId} が承認されました。${data.paymentDeadline ?? "予約画面に表示された"} 支払期限までにお支払いください。お客様パネルにログイン: ${data.panelUrl ?? "PrimoStay レンタカーの予約確認ページ"}。` },
+    "zh-TW": { subject: `PrimoStay 租車：租車申請 #${data.bookingId} 已接受`, body: `您的租車申請 #${data.bookingId} 已接受。請在 ${data.paymentDeadline ?? "預訂頁面顯示的付款期限"} 前完成付款。登入顧客面板: ${data.panelUrl ?? "PrimoStay 租車的我的預訂頁面"}。` },
   }),
   decline: (data) => ({
     en: { subject: `Rental request #${data.bookingId} declined`, body: `Your rental request #${data.bookingId} was declined.${data.reason ? ` Reason: ${data.reason}` : ""}` },
@@ -71,14 +71,14 @@ const TEMPLATES = {
     ja: { subject: `要対応：レンタルリクエスト #${data.bookingId}`, body: `レンタルリクエスト #${data.bookingId} の対応が必要です。${data.message ?? ""}` },
   }),
   new_booking: (data) => ({
-    en: { subject: `Booking #${data.bookingId} received`, body: `We received your CIAO Rental Car booking #${data.bookingId}. Sign in to review it: ${data.panelUrl ?? "Open the My bookings page on CIAO Rental Car"}. Your booking access code is: ${data.accessCode ?? "available in your booking confirmation"}.` },
-    ja: { subject: `予約 #${data.bookingId} を受け付けました`, body: `CIAOレンタカーの予約 #${data.bookingId} を受け付けました。ログインして予約を確認してください: ${data.panelUrl ?? "CIAOレンタカーの予約確認ページ"}。予約アクセスコード: ${data.accessCode ?? "予約確認画面をご覧ください"}。` },
-    "zh-TW": { subject: `已收到預訂 #${data.bookingId}`, body: `我們已收到您的 CIAO 租車預訂 #${data.bookingId}。請登入查看預訂: ${data.panelUrl ?? "CIAO 租車的我的預訂頁面"}。預訂存取碼: ${data.accessCode ?? "請查看預訂確認頁面"}。` },
+    en: { subject: `PrimoStay Car Rental: booking #${data.bookingId} received`, body: `We received your PrimoStay Car Rental booking #${data.bookingId}. Sign in to review it: ${data.panelUrl ?? "Open the My bookings page on PrimoStay Car Rental"}. Your booking access code is: ${data.accessCode ?? "available in your booking confirmation"}.` },
+    ja: { subject: `PrimoStay レンタカー：予約 #${data.bookingId} を受け付けました`, body: `PrimoStay レンタカーの予約 #${data.bookingId} を受け付けました。ログインして予約を確認してください: ${data.panelUrl ?? "PrimoStay レンタカーの予約確認ページ"}。予約アクセスコード: ${data.accessCode ?? "予約確認画面をご覧ください"}。` },
+    "zh-TW": { subject: `PrimoStay 租車：已收到預訂 #${data.bookingId}`, body: `我們已收到您的 PrimoStay 租車預訂 #${data.bookingId}。請登入查看預訂: ${data.panelUrl ?? "PrimoStay 租車的我的預訂頁面"}。預訂存取碼: ${data.accessCode ?? "請查看預訂確認頁面"}。` },
   }),
   booking_confirmed: (data) => ({
-    en: { subject: `Booking #${data.bookingId} confirmed`, body: `Your CIAO Rental Car booking #${data.bookingId} is confirmed.` },
-    ja: { subject: `予約 #${data.bookingId} が確定しました`, body: `CIAOレンタカーの予約 #${data.bookingId} が確定しました。` },
-    "zh-TW": { subject: `預訂 #${data.bookingId} 已確認`, body: `您的 CIAO 租車預訂 #${data.bookingId} 已確認。` },
+    en: { subject: `PrimoStay Car Rental: booking #${data.bookingId} confirmed`, body: `Your PrimoStay Car Rental booking #${data.bookingId} is confirmed.` },
+    ja: { subject: `PrimoStay レンタカー：予約 #${data.bookingId} が確定しました`, body: `PrimoStay レンタカーの予約 #${data.bookingId} が確定しました。` },
+    "zh-TW": { subject: `PrimoStay 租車：預訂 #${data.bookingId} 已確認`, body: `您的 PrimoStay 租車預訂 #${data.bookingId} 已確認。` },
   }),
   document_approved: (data) => ({
     en: { subject: `Documents approved for booking #${data.bookingId}`, body: `Your documents for booking #${data.bookingId} were approved.` },
@@ -89,17 +89,17 @@ const TEMPLATES = {
     ja: { subject: `予約 #${data.bookingId} の書類をご確認ください`, body: `予約 #${data.bookingId} の書類をご確認のうえ、再提出してください。` },
   }),
   pickup_reminder: (data) => ({
-    en: { subject: `Pickup reminder for rental #${data.bookingId}`, body: data.message ? String(data.message) : data.scheduledAt ? `Your CIAO rental #${data.bookingId} pickup is scheduled for ${data.scheduledAt}.` : `Your CIAO rental #${data.bookingId} starts in 24 hours.` },
+    en: { subject: `PrimoStay Car Rental: pickup reminder #${data.bookingId}`, body: data.message ? String(data.message) : data.scheduledAt ? `Your PrimoStay Car Rental booking #${data.bookingId} pickup is scheduled for ${data.scheduledAt}.` : `Your PrimoStay Car Rental booking #${data.bookingId} starts in 24 hours.` },
     ja: { subject: `レンタル #${data.bookingId} の出発リマインダー`, body: data.scheduledAt ? `レンタル #${data.bookingId} の出発予定日時は ${data.scheduledAt} です。` : `レンタル #${data.bookingId} の開始まで24時間です。` },
-    "zh-TW": { subject: `租車 #${data.bookingId} 取車提醒`, body: data.scheduledAt ? `您的 CIAO 租車 #${data.bookingId} 預定取車時間為 ${data.scheduledAt}。` : `您的 CIAO 租車 #${data.bookingId} 將在 24 小時後開始。` },
+    "zh-TW": { subject: `PrimoStay 租車：租車 #${data.bookingId} 取車提醒`, body: data.scheduledAt ? `您的 PrimoStay 租車 #${data.bookingId} 預定取車時間為 ${data.scheduledAt}。` : `您的 PrimoStay 租車 #${data.bookingId} 將在 24 小時後開始。` },
   }),
   return_reminder: (data) => ({
-    en: { subject: `Return reminder for rental #${data.bookingId}`, body: data.message ? String(data.message) : data.scheduledAt ? `Your CIAO rental #${data.bookingId} is due back at ${data.scheduledAt}.` : `Your CIAO rental #${data.bookingId} is due back in 24 hours.` },
+    en: { subject: `PrimoStay Car Rental: return reminder #${data.bookingId}`, body: data.message ? String(data.message) : data.scheduledAt ? `Your PrimoStay Car Rental booking #${data.bookingId} is due back at ${data.scheduledAt}.` : `Your PrimoStay Car Rental booking #${data.bookingId} is due back in 24 hours.` },
     ja: { subject: `レンタル #${data.bookingId} の返却リマインダー`, body: data.scheduledAt ? `レンタル #${data.bookingId} の返却予定日時は ${data.scheduledAt} です。` : `レンタル #${data.bookingId} の返却期限まで24時間です。` },
-    "zh-TW": { subject: `租車 #${data.bookingId} 還車提醒`, body: data.scheduledAt ? `您的 CIAO 租車 #${data.bookingId} 預定還車時間為 ${data.scheduledAt}。` : `您的 CIAO 租車 #${data.bookingId} 將在 24 小時後到期還車。` },
+    "zh-TW": { subject: `PrimoStay 租車：租車 #${data.bookingId} 還車提醒`, body: data.scheduledAt ? `您的 PrimoStay 租車 #${data.bookingId} 預定還車時間為 ${data.scheduledAt}。` : `您的 PrimoStay 租車 #${data.bookingId} 將在 24 小時後到期還車。` },
   }),
   overdue_alert: (data) => ({
-    en: { subject: `Rental #${data.bookingId} is overdue`, body: `Your CIAO rental #${data.bookingId} is overdue. Please contact us.` },
+    en: { subject: `PrimoStay Car Rental: booking #${data.bookingId} is overdue`, body: `Your PrimoStay Car Rental booking #${data.bookingId} is overdue. Please contact us.` },
     ja: { subject: `レンタル #${data.bookingId} の返却期限超過`, body: `レンタル #${data.bookingId} の返却期限を過ぎています。至急ご連絡ください。` },
   }),
   cancellation_confirmed: (data) => ({
@@ -121,7 +121,9 @@ const DELIVERY_LEASE_MS = 10 * 60_000;
 
 function smtpConfiguration() {
   const host = process.env.SMTP_HOST?.trim();
-  const from = process.env.SMTP_FROM?.trim();
+  const configuredFrom = process.env.SMTP_FROM?.trim();
+  const address = configuredFrom?.match(/<([^<>]+)>/)?.[1] ?? configuredFrom;
+  const from = address ? `PrimoStay Car Rental <${address}>` : undefined;
   const username = process.env.SMTP_USER;
   const password = process.env.SMTP_PASSWORD;
   const port = Number(process.env.SMTP_PORT ?? 587);
@@ -200,7 +202,7 @@ function buildMessage(id: number, from: string, to: string, subject: string, bod
   return [
     `From: ${safeHeader(from)}`,
     `To: ${safeHeader(to)}`,
-    `Message-ID: <rental-notification-${id}@ciao-rental.local>`,
+    `Message-ID: <rental-notification-${id}@rentacar.primostay.jp>`,
     `Subject: ${encodeHeader(safeHeader(subject))}`,
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=UTF-8",

@@ -50,7 +50,7 @@ export function AdminLogin() {
               <LockKeyhole className="h-5 w-5" />
             </div>
             <div className="space-y-2 text-center">
-              <CardTitle className="text-2xl font-bold tracking-normal text-foreground">CIAO Admin</CardTitle>
+              <CardTitle className="text-2xl font-bold tracking-normal text-foreground">PrimoStay Car Rental Admin</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Enter your credentials to access the operations console.
               </CardDescription>
@@ -94,7 +94,7 @@ export function AdminLogin() {
         </Card>
         <Link href="/" className="mx-auto mt-6 inline-flex min-h-10 items-center justify-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-          Back to CIAO Sapporo
+          Back to PrimoStay Car Rental
         </Link>
       </div>
     </div>

@@ -8,11 +8,7 @@ const router: IRouter = Router();
 const languages: SupportedLanguage[] = ["en", "ja", "zh-CN"];
 
 function resolveOrigin(req: Request): string {
-  const origin = typeof req.query["origin"] === "string" ? req.query["origin"] : "";
-  if (origin) return origin.replace(/\/$/, "");
-  const proto = req.get("x-forwarded-proto") ?? req.protocol;
-  const host = req.get("host") ?? "";
-  return `${proto}://${host}`;
+  return "https://rentacar.primostay.jp";
 }
 
 function xml(value: string): string {

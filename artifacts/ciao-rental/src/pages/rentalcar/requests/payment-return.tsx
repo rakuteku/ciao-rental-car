@@ -56,7 +56,7 @@ export function RentalPaymentReturn() {
 
   return <div className="marketplace-flow min-h-[100dvh] py-12 md:py-20">
     <div className="container max-w-2xl">
-      <p className="marketplace-kicker">CIAO SAPPORO / {ja ? "決済状況" : "PAYMENT STATUS"}</p>
+      <p className="marketplace-kicker">PRIMOSTAY CAR RENTAL / {ja ? "決済状況" : "PAYMENT STATUS"}</p>
       <section className="marketplace-panel mt-5 p-6 sm:p-9">
         <h1 className="text-3xl">{paymentConfirmed
           ? ja ? "予約が確定しました" : "Reservation confirmed"
