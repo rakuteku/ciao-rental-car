@@ -14,11 +14,6 @@ if (!process.env.SESSION_SECRET) {
 
 const app: Express = express();
 
-app.get(/^\/(?:(?:en|ja|zh-TW|zh-CN)\/)?lodging(?:\/[^/]+)?\/?$/, (req, res, next) => {
-  if (isLodgingEnabled()) return next();
-  res.redirect(301, "https://primostay.jp");
-});
-
 app.set("trust proxy", process.env.NODE_ENV === "production" ? 1 : false);
 
 app.use(
@@ -40,6 +35,11 @@ app.use(
     },
   }),
 );
+
+app.get(/^\/(?:(?:en|ja|zh-TW|zh-CN)\/)?lodging(?:\/[^/]+)?\/?$/, (req, res, next) => {
+  if (isLodgingEnabled()) return next();
+  res.redirect(301, "https://primostay.jp");
+});
 const corsAllowedOrigins = new Set(
   (process.env.CORS_ALLOWED_ORIGINS ?? "")
     .split(",")

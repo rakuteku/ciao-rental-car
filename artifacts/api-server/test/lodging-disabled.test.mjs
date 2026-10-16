@@ -5,10 +5,10 @@ import { test } from "node:test";
 const port = 28000 + process.pid % 1000;
 const origin = `http://127.0.0.1:${port}`;
 
-async function startApi() {
+async function startApi(lodgingEnabled) {
   const child = spawn("node", ["dist/index.mjs"], {
     cwd: new URL("..", import.meta.url),
-    env: { ...process.env, PORT: String(port), NODE_ENV: "test", LODGING_ENABLED: "false" },
+    env: { ...process.env, PORT: String(port), NODE_ENV: "test", LODGING_ENABLED: lodgingEnabled },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let output = "";
@@ -33,7 +33,7 @@ async function stopApi(child) {
 test("disabled lodging routes redirect and sitemap omits lodging URLs", async () => {
   assert.ok(process.env.DATABASE_URL);
   assert.ok(process.env.SESSION_SECRET);
-  const child = await startApi();
+  const child = await startApi("false");
   try {
     for (const path of ["/lodging", "/lodging/sapporo-room", "/ja/lodging", "/zh-TW/lodging/sapporo-room"]) {
       const response = await fetch(`${origin}${path}`, { redirect: "manual" });
@@ -44,6 +44,22 @@ test("disabled lodging routes redirect and sitemap omits lodging URLs", async ()
     const sitemap = await fetch(`${origin}/api/sitemap.xml`);
     assert.equal(sitemap.status, 200);
     assert.doesNotMatch(await sitemap.text(), /lodging/i);
+  } finally {
+    await stopApi(child);
+  }
+});
+
+test("enabled lodging routes are not redirected and sitemap includes lodging URLs", async () => {
+  assert.ok(process.env.DATABASE_URL);
+  assert.ok(process.env.SESSION_SECRET);
+  const child = await startApi("true");
+  try {
+    const response = await fetch(`${origin}/lodging`, { redirect: "manual" });
+    assert.notEqual(response.status, 301);
+
+    const sitemap = await fetch(`${origin}/api/sitemap.xml`);
+    assert.equal(sitemap.status, 200);
+    assert.match(await sitemap.text(), /\/lodging/);
   } finally {
     await stopApi(child);
   }
