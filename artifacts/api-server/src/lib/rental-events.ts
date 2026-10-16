@@ -38,8 +38,8 @@ export async function logRentalAudit(input: {
 
 const TEMPLATES = {
   request: (data) => ({
-    en: { subject: data.message ? `Update for rental request #${data.bookingId}` : `Rental request #${data.bookingId} received`, body: data.message ? String(data.message) : `We received your rental request #${data.bookingId}. The operator will respond by ${data.respondBy ?? "the deadline shown in your request"}.` },
-    ja: { subject: data.message ? `レンタルリクエスト #${data.bookingId} のお知らせ` : `レンタルリクエスト #${data.bookingId} を受け付けました`, body: data.message ? String(data.message) : `レンタルリクエスト #${data.bookingId} を受け付けました。事業者からの回答期限は ${data.respondBy ?? "リクエスト画面に表示された日時"} です。` },
+    en: { subject: data.message ? `PrimoStay Car Rental: update for rental request #${data.bookingId}` : `PrimoStay Car Rental: rental request #${data.bookingId} received`, body: data.message ? String(data.message) : `We received your rental request #${data.bookingId}. The operator will respond by ${data.respondBy ?? "the deadline shown in your request"}.` },
+    ja: { subject: data.message ? `PrimoStay レンタカー：レンタルリクエスト #${data.bookingId} のお知らせ` : `PrimoStay レンタカー：レンタルリクエスト #${data.bookingId} を受け付けました`, body: data.message ? String(data.message) : `レンタルリクエスト #${data.bookingId} を受け付けました。事業者からの回答期限は ${data.respondBy ?? "リクエスト画面に表示された日時"} です。` },
   }),
   acceptance: (data) => ({
     en: { subject: `PrimoStay Car Rental: rental request #${data.bookingId} accepted`, body: `Your rental request #${data.bookingId} was accepted. Complete payment by ${data.paymentDeadline ?? "the payment deadline shown in your booking"}. Sign in to your customer panel: ${data.panelUrl ?? "Open the My bookings page on PrimoStay Car Rental"}.` },
@@ -47,28 +47,28 @@ const TEMPLATES = {
     "zh-TW": { subject: `PrimoStay 租車：租車申請 #${data.bookingId} 已接受`, body: `您的租車申請 #${data.bookingId} 已接受。請在 ${data.paymentDeadline ?? "預訂頁面顯示的付款期限"} 前完成付款。登入顧客面板: ${data.panelUrl ?? "PrimoStay 租車的我的預訂頁面"}。` },
   }),
   decline: (data) => ({
-    en: { subject: `Rental request #${data.bookingId} declined`, body: `Your rental request #${data.bookingId} was declined.${data.reason ? ` Reason: ${data.reason}` : ""}` },
-    ja: { subject: `レンタルリクエスト #${data.bookingId} は承認されませんでした`, body: `レンタルリクエスト #${data.bookingId} は承認されませんでした。${data.reason ? `理由: ${data.reason}` : ""}` },
+    en: { subject: `PrimoStay Car Rental: rental request #${data.bookingId} declined`, body: `Your rental request #${data.bookingId} was declined.${data.reason ? ` Reason: ${data.reason}` : ""}` },
+    ja: { subject: `PrimoStay レンタカー：レンタルリクエスト #${data.bookingId} は承認されませんでした`, body: `レンタルリクエスト #${data.bookingId} は承認されませんでした。${data.reason ? `理由: ${data.reason}` : ""}` },
   }),
   payment: (data) => ({
-    en: { subject: `Payment update for rental #${data.bookingId}`, body: `The payment status for rental #${data.bookingId} has been updated${data.paymentStatus ? ` to ${data.paymentStatus}` : ""}.` },
-    ja: { subject: `レンタル #${data.bookingId} のお支払い状況`, body: `レンタル #${data.bookingId} のお支払い状況が更新されました${data.paymentStatus ? `（${data.paymentStatus}）` : ""}。` },
+    en: { subject: `PrimoStay Car Rental: payment update for rental #${data.bookingId}`, body: `The payment status for rental #${data.bookingId} has been updated${data.paymentStatus ? ` to ${data.paymentStatus}` : ""}.` },
+    ja: { subject: `PrimoStay レンタカー：レンタル #${data.bookingId} のお支払い状況`, body: `レンタル #${data.bookingId} のお支払い状況が更新されました${data.paymentStatus ? `（${data.paymentStatus}）` : ""}。` },
   }),
   voucher: (data) => ({
-    en: { subject: `Your voucher for rental #${data.bookingId}`, body: `Your voucher for rental #${data.bookingId} is ready.${data.voucherUrl ? ` View it here: ${data.voucherUrl}` : ""}` },
-    ja: { subject: `レンタル #${data.bookingId} のバウチャー`, body: `レンタル #${data.bookingId} のバウチャーをご利用いただけます。${data.voucherUrl ? `こちらをご確認ください: ${data.voucherUrl}` : ""}` },
+    en: { subject: `PrimoStay Car Rental: voucher for rental #${data.bookingId}`, body: `Your voucher for rental #${data.bookingId} is ready.${data.voucherUrl ? ` View it here: ${data.voucherUrl}` : ""}` },
+    ja: { subject: `PrimoStay レンタカー：レンタル #${data.bookingId} のバウチャー`, body: `レンタル #${data.bookingId} のバウチャーをご利用いただけます。${data.voucherUrl ? `こちらをご確認ください: ${data.voucherUrl}` : ""}` },
   }),
   reminder: (data) => ({
-    en: { subject: `Reminder for rental #${data.bookingId}`, body: `This is a reminder about rental #${data.bookingId}.${data.message ? ` ${data.message}` : ""}` },
-    ja: { subject: `レンタル #${data.bookingId} のリマインダー`, body: `レンタル #${data.bookingId} に関するお知らせです。${data.message ?? ""}` },
+    en: { subject: `PrimoStay Car Rental: reminder for rental #${data.bookingId}`, body: `This is a reminder about rental #${data.bookingId}.${data.message ? ` ${data.message}` : ""}` },
+    ja: { subject: `PrimoStay レンタカー：レンタル #${data.bookingId} のリマインダー`, body: `レンタル #${data.bookingId} に関するお知らせです。${data.message ?? ""}` },
   }),
   refund: (data) => ({
-    en: { subject: `Refund update for rental #${data.bookingId}`, body: `A refund update was recorded for rental #${data.bookingId}.${data.amount ? ` Amount: ${data.amount}` : ""}` },
-    ja: { subject: `レンタル #${data.bookingId} の返金状況`, body: `レンタル #${data.bookingId} の返金状況が更新されました。${data.amount ? `金額: ${data.amount}` : ""}` },
+    en: { subject: `PrimoStay Car Rental: refund update for rental #${data.bookingId}`, body: `A refund update was recorded for rental #${data.bookingId}.${data.amount ? ` Amount: ${data.amount}` : ""}` },
+    ja: { subject: `PrimoStay レンタカー：レンタル #${data.bookingId} の返金状況`, body: `レンタル #${data.bookingId} の返金状況が更新されました。${data.amount ? `金額: ${data.amount}` : ""}` },
   }),
   alert: (data) => ({
-    en: { subject: `Action required: rental request #${data.bookingId}`, body: `A rental request #${data.bookingId} needs your attention.${data.message ? ` ${data.message}` : ""}` },
-    ja: { subject: `要対応：レンタルリクエスト #${data.bookingId}`, body: `レンタルリクエスト #${data.bookingId} の対応が必要です。${data.message ?? ""}` },
+    en: { subject: `PrimoStay Car Rental: action required for rental request #${data.bookingId}`, body: `A rental request #${data.bookingId} needs your attention.${data.message ? ` ${data.message}` : ""}` },
+    ja: { subject: `PrimoStay レンタカー：要対応：レンタルリクエスト #${data.bookingId}`, body: `レンタルリクエスト #${data.bookingId} の対応が必要です。${data.message ?? ""}` },
   }),
   new_booking: (data) => ({
     en: { subject: `PrimoStay Car Rental: booking #${data.bookingId} received`, body: `We received your PrimoStay Car Rental booking #${data.bookingId}. Sign in to review it: ${data.panelUrl ?? "Open the My bookings page on PrimoStay Car Rental"}. Your booking access code is: ${data.accessCode ?? "available in your booking confirmation"}.` },
@@ -81,35 +81,35 @@ const TEMPLATES = {
     "zh-TW": { subject: `PrimoStay 租車：預訂 #${data.bookingId} 已確認`, body: `您的 PrimoStay 租車預訂 #${data.bookingId} 已確認。` },
   }),
   document_approved: (data) => ({
-    en: { subject: `Documents approved for booking #${data.bookingId}`, body: `Your documents for booking #${data.bookingId} were approved.` },
-    ja: { subject: `予約 #${data.bookingId} の書類が承認されました`, body: `予約 #${data.bookingId} の書類が承認されました。` },
+    en: { subject: `PrimoStay Car Rental: documents approved for booking #${data.bookingId}`, body: `Your documents for booking #${data.bookingId} were approved.` },
+    ja: { subject: `PrimoStay レンタカー：予約 #${data.bookingId} の書類が承認されました`, body: `予約 #${data.bookingId} の書類が承認されました。` },
   }),
   document_rejected: (data) => ({
-    en: { subject: `Action needed for booking #${data.bookingId}`, body: `Please review and resubmit documents for booking #${data.bookingId}.` },
-    ja: { subject: `予約 #${data.bookingId} の書類をご確認ください`, body: `予約 #${data.bookingId} の書類をご確認のうえ、再提出してください。` },
+    en: { subject: `PrimoStay Car Rental: action needed for booking #${data.bookingId}`, body: `Please review and resubmit documents for booking #${data.bookingId}.` },
+    ja: { subject: `PrimoStay レンタカー：予約 #${data.bookingId} の書類をご確認ください`, body: `予約 #${data.bookingId} の書類をご確認のうえ、再提出してください。` },
   }),
   pickup_reminder: (data) => ({
     en: { subject: `PrimoStay Car Rental: pickup reminder #${data.bookingId}`, body: data.message ? String(data.message) : data.scheduledAt ? `Your PrimoStay Car Rental booking #${data.bookingId} pickup is scheduled for ${data.scheduledAt}.` : `Your PrimoStay Car Rental booking #${data.bookingId} starts in 24 hours.` },
-    ja: { subject: `レンタル #${data.bookingId} の出発リマインダー`, body: data.scheduledAt ? `レンタル #${data.bookingId} の出発予定日時は ${data.scheduledAt} です。` : `レンタル #${data.bookingId} の開始まで24時間です。` },
+    ja: { subject: `PrimoStay レンタカー：レンタル #${data.bookingId} の出発リマインダー`, body: data.scheduledAt ? `レンタル #${data.bookingId} の出発予定日時は ${data.scheduledAt} です。` : `レンタル #${data.bookingId} の開始まで24時間です。` },
     "zh-TW": { subject: `PrimoStay 租車：租車 #${data.bookingId} 取車提醒`, body: data.scheduledAt ? `您的 PrimoStay 租車 #${data.bookingId} 預定取車時間為 ${data.scheduledAt}。` : `您的 PrimoStay 租車 #${data.bookingId} 將在 24 小時後開始。` },
   }),
   return_reminder: (data) => ({
     en: { subject: `PrimoStay Car Rental: return reminder #${data.bookingId}`, body: data.message ? String(data.message) : data.scheduledAt ? `Your PrimoStay Car Rental booking #${data.bookingId} is due back at ${data.scheduledAt}.` : `Your PrimoStay Car Rental booking #${data.bookingId} is due back in 24 hours.` },
-    ja: { subject: `レンタル #${data.bookingId} の返却リマインダー`, body: data.scheduledAt ? `レンタル #${data.bookingId} の返却予定日時は ${data.scheduledAt} です。` : `レンタル #${data.bookingId} の返却期限まで24時間です。` },
+    ja: { subject: `PrimoStay レンタカー：レンタル #${data.bookingId} の返却リマインダー`, body: data.scheduledAt ? `レンタル #${data.bookingId} の返却予定日時は ${data.scheduledAt} です。` : `レンタル #${data.bookingId} の返却期限まで24時間です。` },
     "zh-TW": { subject: `PrimoStay 租車：租車 #${data.bookingId} 還車提醒`, body: data.scheduledAt ? `您的 PrimoStay 租車 #${data.bookingId} 預定還車時間為 ${data.scheduledAt}。` : `您的 PrimoStay 租車 #${data.bookingId} 將在 24 小時後到期還車。` },
   }),
   overdue_alert: (data) => ({
     en: { subject: `PrimoStay Car Rental: booking #${data.bookingId} is overdue`, body: `Your PrimoStay Car Rental booking #${data.bookingId} is overdue. Please contact us.` },
-    ja: { subject: `レンタル #${data.bookingId} の返却期限超過`, body: `レンタル #${data.bookingId} の返却期限を過ぎています。至急ご連絡ください。` },
+    ja: { subject: `PrimoStay レンタカー：レンタル #${data.bookingId} の返却期限超過`, body: `レンタル #${data.bookingId} の返却期限を過ぎています。至急ご連絡ください。` },
   }),
   cancellation_confirmed: (data) => ({
-    en: { subject: `Booking #${data.bookingId} cancelled`, body: `Your booking #${data.bookingId} has been cancelled. Any applicable refund is processed separately.` },
-    ja: { subject: `予約 #${data.bookingId} がキャンセルされました`, body: `予約 #${data.bookingId} がキャンセルされました。返金が適用される場合は別途処理されます。` },
-    "zh-TW": { subject: `預訂 #${data.bookingId} 已取消`, body: `您的預訂 #${data.bookingId} 已取消。如適用退款，將另行處理。` },
+    en: { subject: `PrimoStay Car Rental: booking #${data.bookingId} cancelled`, body: `Your booking #${data.bookingId} has been cancelled. Any applicable refund is processed separately.` },
+    ja: { subject: `PrimoStay レンタカー：予約 #${data.bookingId} がキャンセルされました`, body: `予約 #${data.bookingId} がキャンセルされました。返金が適用される場合は別途処理されます。` },
+    "zh-TW": { subject: `PrimoStay 租車：預訂 #${data.bookingId} 已取消`, body: `您的預訂 #${data.bookingId} 已取消。如適用退款，將另行處理。` },
   }),
   refund_processed: (data) => ({
-    en: { subject: `Refund update for booking #${data.bookingId}`, body: `A refund was recorded for booking #${data.bookingId}.` },
-    ja: { subject: `予約 #${data.bookingId} の返金状況`, body: `予約 #${data.bookingId} の返金が記録されました。` },
+    en: { subject: `PrimoStay Car Rental: refund update for booking #${data.bookingId}`, body: `A refund was recorded for booking #${data.bookingId}.` },
+    ja: { subject: `PrimoStay レンタカー：予約 #${data.bookingId} の返金状況`, body: `予約 #${data.bookingId} の返金が記録されました。` },
   }),
 } satisfies Record<string, TemplateFactory>;
 
@@ -119,7 +119,7 @@ type MailSocket = Socket | TLSSocket;
 type NotificationRow = typeof rentalNotificationsTable.$inferSelect;
 const DELIVERY_LEASE_MS = 10 * 60_000;
 
-function smtpConfiguration() {
+export function smtpConfiguration() {
   const host = process.env.SMTP_HOST?.trim();
   const configuredFrom = process.env.SMTP_FROM?.trim();
   const address = configuredFrom?.match(/<([^<>]+)>/)?.[1] ?? configuredFrom;

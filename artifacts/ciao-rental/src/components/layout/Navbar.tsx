@@ -44,8 +44,11 @@ export function Navbar() {
   return (
     <header data-site-navbar className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/90 backdrop-blur-xl">
       <div className="container flex h-[4.5rem] items-center justify-between gap-4">
-        <Link href={localizedHref("/")} className="group relative z-50 flex shrink-0 items-center gap-3" onClick={closeMenu} aria-label={`${brand.name} home`}>
-          <span className="font-serif text-[1.35rem] font-semibold tracking-[0.08em]">{brand.shortName}</span>
+        <Link href={localizedHref("/")} className="group relative z-50 flex shrink-0 items-center gap-2 sm:gap-3" onClick={closeMenu} aria-label={`${brand.name} home`}>
+          <span className="flex flex-col leading-none sm:block">
+            <span className="font-serif text-[1.35rem] font-semibold tracking-[0.08em]">{brand.shortName}</span>
+            <span className="mt-0.5 text-[7px] font-medium uppercase tracking-[0.16em] text-muted-foreground sm:hidden">{brand.subLabel}</span>
+          </span>
           <span className="hidden h-7 w-px bg-border sm:block" aria-hidden="true" />
           <span className="hidden text-[9px] font-medium uppercase leading-[1.5] tracking-[0.19em] text-muted-foreground sm:block">{brand.subLabel}</span>
         </Link>
