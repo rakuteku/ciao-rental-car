@@ -27,6 +27,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language";
 import { LODGING_ENABLED } from "@/lib/lodging";
+import { RENTAL_BRAND } from "@/lib/rental-brand";
 
 type NavItem = {
   href: string;
@@ -78,6 +79,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [rentalCarsOpen, setRentalCarsOpen] = useState(isRentalCarSection);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
+  const brand = RENTAL_BRAND[language];
   const japanese = language === "ja";
   const t = (english: string, japaneseText: string) => japanese ? japaneseText : english;
 
@@ -113,8 +115,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <div className="admin-shell flex min-h-screen flex-col md:flex-row">
       <div className="admin-mobilebar relative z-20 flex h-14 shrink-0 items-center justify-between border-b px-4 md:hidden">
         <Link href="/admin/dashboard" className="admin-sidebar-brand inline-flex items-center gap-2 text-sm font-bold no-underline">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-xs font-bold tracking-normal">P</span>
-          <span>PrimoStay <span className="ml-1 text-[10px] font-medium text-white/65">CAR RENTAL ADMIN</span></span>
+          <img src="/brand/logo-b-car-white.svg" alt="PrimoStay Car Rental" width={32} height={32} className="size-8" />
+          <span>PrimoStay <span className="ml-1 text-[11px] font-medium text-white/65">{brand.subLabel}</span></span>
         </Link>
         <button
           type="button"
@@ -147,10 +149,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="admin-sidebar-brand hidden h-16 shrink-0 items-center gap-3 border-b border-white/10 px-6 md:flex">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-white/10 text-sm font-bold">P</span>
+          <img src="/brand/logo-b-car-white.svg" alt="PrimoStay Car Rental" width={40} height={40} className="size-10" />
           <span className="leading-tight">
             <span className="block text-base font-bold">PrimoStay</span>
-            <span className="block text-[10px] font-medium text-white/60">CAR RENTAL ADMIN</span>
+            <span className="block text-[11px] font-medium text-white/60">{brand.subLabel}</span>
           </span>
         </div>
 

@@ -116,6 +116,9 @@ export function Home() {
               <span className="h-px w-9 bg-white/60" aria-hidden="true" />
               {heroCopy.eyebrow}
             </p>
+            <div className="mx-auto mb-5 flex size-[72px] items-center justify-center rounded-2xl bg-white/95 p-2 shadow-lg sm:size-28 lg:size-36">
+              <img src="/brand/logo-a-road.svg" alt="PrimoStay Car Rental" width={144} height={144} className="h-full w-full" />
+            </div>
             <h1 id="home-hero-title" className="mx-auto max-w-4xl text-center font-serif text-4xl font-semibold leading-[1.06] text-white sm:text-5xl lg:text-6xl">
               {heroCopy.title}
             </h1>
