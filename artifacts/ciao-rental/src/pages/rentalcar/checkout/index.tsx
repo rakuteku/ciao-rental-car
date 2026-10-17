@@ -33,10 +33,10 @@ import {
   useCreateRentalReservation,
 } from "@workspace/api-client-react";
 
-const driverSchema = z.object({
-  fullName: z.string().min(2, "Full name is required"),
-  email: z.string().email("Valid email is required"),
-  phone: z.string().min(10, "Phone number is required"),
+const driverSchema = (validation: { fullNameRequired: string; emailInvalid: string; phoneRequired: string }) => z.object({
+  fullName: z.string().min(2, validation.fullNameRequired),
+  email: z.string().email(validation.emailInvalid),
+  phone: z.string().min(10, validation.phoneRequired),
   romanizedName: z.string().optional(),
   nationality: z.string().optional(),
   dateOfBirth: z.string().optional(),
@@ -46,6 +46,7 @@ const driverSchema = z.object({
   flightNumber: z.string().optional(),
   accommodation: z.string().optional(),
 });
+type DriverForm = z.infer<ReturnType<typeof driverSchema>>;
 
 const paymentCopy = {
   en: {
@@ -95,10 +96,28 @@ const documentCopy = {
   "zh-TW": { title: "文件", upload: "預訂後可在預訂詳情安全上傳 PDF、JPEG 或 PNG 文件。", pickup: "取車時會查驗文件正本。工作人員將聯絡您確認所需文件。", driversLicence: "駕駛執照", japaneseLicense: "日本駕駛執照", creditCard: "信用卡", insurance: "保險文件", checking: "正在確認安全上傳…", retry: "無法確認安全上傳，請重試。", tryAgain: "重試", foreignLicense: "外國駕駛執照", idp: "國際駕駛許可證", passport: "護照", residenceCard: "在留卡", selfie: "身分確認照片", additionalDrivers: "其他駕駛人的文件", other: "其他文件" },
 } as const;
 
-const checkoutStepCopy = {
-  en: { addons: "Add-ons", driverInfo: "Driver Info", pickupDetails: "Pickup Details", summary: "Summary", pickupDetailsSubtitle: "Confirm your locations, times, and delivery notes.", driverInfoSubtitle: "Please provide details for the primary driver.", summarySubtitle: "Please review your booking details.", back: "Back", continue: "Continue", error: "Error", holdInvalid: "Hold expired or invalid", bookingFailed: "Booking failed", bookingRetry: "Please try again later." },
-  ja: { addons: "追加オプション", driverInfo: "運転者情報", pickupDetails: "貸出詳細", summary: "概要", pickupDetailsSubtitle: "場所、日時、配車に関するご要望をご確認ください。", driverInfoSubtitle: "主な運転者の情報を入力してください。", summarySubtitle: "予約内容をご確認ください。", back: "戻る", continue: "次へ", error: "エラー", holdInvalid: "仮予約の有効期限が切れたか、無効です。", bookingFailed: "予約を送信できませんでした", bookingRetry: "しばらくしてからもう一度お試しください。" },
-  "zh-TW": { addons: "加購項目", driverInfo: "駕駛人資料", pickupDetails: "取車詳情", summary: "摘要", pickupDetailsSubtitle: "請確認地點、時間和交車備註。", driverInfoSubtitle: "請提供主要駕駛人的資料。", summarySubtitle: "請確認您的預訂詳情。", back: "返回", continue: "繼續", error: "錯誤", holdInvalid: "保留已過期或無效。", bookingFailed: "預訂失敗", bookingRetry: "請稍後再試。" },
+const checkoutCopy = {
+  en: {
+    addons: "Add-ons", driverInfo: "Driver Info", pickupDetails: "Pickup Details", summary: "Summary", pickupDetailsSubtitle: "Confirm your locations, times, and delivery notes.", driverInfoSubtitle: "Please provide details for the primary driver.", summarySubtitle: "Please review your booking details.", back: "Back", continue: "Continue", error: "Error", holdInvalid: "Hold expired or invalid", bookingFailed: "Booking failed", bookingRetry: "Please try again later.",
+    unavailableTitle: "Checkout temporarily unavailable", unavailableBody: "We could not verify the booking mode. No booking was submitted.", tryAgain: "Try again", noCheckoutTitle: "No active checkout", noCheckoutBody: "Please select a vehicle first.", viewFleet: "View Fleet", held: "Your vehicle is held for you", differentReturn: "I need a different return location. Our team will confirm any applicable delivery fee before pickup.", afterHours: "Your pickup is outside normal desk hours. An after-hours service fee may apply.", pickup: "Pickup", return: "Return",
+    fullName: "Full Name (as on Licence)", romanizedName: "Romanized Name (if applicable)", email: "Email Address", phone: "Phone Number", nationality: "Nationality", dateOfBirth: "Date of Birth", residenceCountry: "Country of Residence", address: "Home Address", emergencyContact: "Emergency Contact", emergencyContactPlaceholder: "Name and phone number", flightNumber: "Arrival Flight Number (Optional)", flightNumberPlaceholder: "e.g. JL501", accommodation: "Hotel / Accommodation (Optional)", addDriver: "Add additional driver", additionalDriver: "Additional driver", additionalDriverName: "Full legal name", additionalDriverNameAria: "Additional driver full legal name", additionalDriverEmailAria: "Additional driver email", additionalDriverPhoneAria: "Additional driver phone",
+    primaryDriver: "Primary Driver", name: "Name", itinerary: "Itinerary", stayPlanning: "Stay planning", stayPlanningNotice: "Room availability is confirmed separately by the PrimoStay Car Rental team.", selectedAddons: "Selected add-ons", addonsTotal: "Add-ons total", pickupFee: "Pickup Fee", dropoffFee: "Drop-off Fee", pickupLocationFee: "Pickup Location Fee", returnLocationFee: "Return Location Fee", oneWayFee: "One-way Fee", priceUnavailable: "We could not calculate the total.", holdExpiredTitle: "Your reservation hold has expired", holdExpiredBody: "The vehicle may no longer be available for your selected dates.", returnToSearch: "Return to search",
+    fullNameRequired: "Full name is required", emailInvalid: "Valid email is required", phoneRequired: "Phone number is required", seoTitle: "Checkout | PrimoStay Car Rental", seoDescription: "Review your PrimoStay Car Rental booking, driver details, add-ons, and pickup information.", seoOgDescription: "Review your PrimoStay Car Rental booking before confirming.", signInTitle: "Sign in before booking", signInBody: "Sign in or create an account to continue this vehicle booking.", signInAction: "Sign in or create account",
+  },
+  ja: {
+    addons: "追加オプション", driverInfo: "運転者情報", pickupDetails: "貸出詳細", summary: "概要", pickupDetailsSubtitle: "場所、日時、配車に関するご要望をご確認ください。", driverInfoSubtitle: "主な運転者の情報を入力してください。", summarySubtitle: "予約内容をご確認ください。", back: "戻る", continue: "次へ", error: "エラー", holdInvalid: "仮予約の有効期限が切れたか、無効です。", bookingFailed: "予約を送信できませんでした", bookingRetry: "しばらくしてからもう一度お試しください。",
+    unavailableTitle: "現在チェックアウトをご利用いただけません", unavailableBody: "予約モードを確認できませんでした。予約は送信されていません。", tryAgain: "再試行", noCheckoutTitle: "進行中の予約はありません", noCheckoutBody: "先に車両を選択してください。", viewFleet: "車両一覧を見る", held: "車両を仮押さえしています", differentReturn: "返却場所を変更したい。該当する配車料金は、貸出前にスタッフが確認します。", afterHours: "貸出時間が通常の営業時間外です。時間外対応料金がかかる場合があります。", pickup: "貸出", return: "返却",
+    fullName: "氏名（免許証の表記どおり）", romanizedName: "ローマ字氏名（該当する場合）", email: "メールアドレス", phone: "電話番号", nationality: "国籍", dateOfBirth: "生年月日", residenceCountry: "居住国", address: "住所", emergencyContact: "緊急連絡先", emergencyContactPlaceholder: "氏名と電話番号", flightNumber: "到着便名（任意）", flightNumberPlaceholder: "例：JL501", accommodation: "ホテル・宿泊先（任意）", addDriver: "追加運転者を追加", additionalDriver: "追加運転者", additionalDriverName: "正式な氏名", additionalDriverNameAria: "追加運転者の正式な氏名", additionalDriverEmailAria: "追加運転者のメールアドレス", additionalDriverPhoneAria: "追加運転者の電話番号",
+    primaryDriver: "主な運転者", name: "氏名", itinerary: "旅程", stayPlanning: "宿泊のご計画", stayPlanningNotice: "客室の空室状況は、PrimoStay Car Rental チームが別途確認します。", selectedAddons: "選択した追加オプション", addonsTotal: "追加オプション合計", pickupFee: "貸出料金", dropoffFee: "返却料金", pickupLocationFee: "貸出場所料金", returnLocationFee: "返却場所料金", oneWayFee: "乗り捨て料金", priceUnavailable: "料金を計算できませんでした。", holdExpiredTitle: "車両の仮押さえ期限が切れました", holdExpiredBody: "選択した日程では車両をご利用いただけない場合があります。", returnToSearch: "車両を検索する",
+    fullNameRequired: "氏名を入力してください", emailInvalid: "有効なメールアドレスを入力してください", phoneRequired: "電話番号を入力してください", seoTitle: "チェックアウト | PrimoStay Car Rental", seoDescription: "PrimoStay Car Rental の予約、運転者情報、追加オプション、貸出情報を確認します。", seoOgDescription: "予約を確定する前に PrimoStay Car Rental の予約内容を確認します。", signInTitle: "予約にはログインが必要です", signInBody: "ログインまたはアカウントを作成すると、この車両の予約を続けられます。", signInAction: "ログイン・アカウント作成",
+  },
+  "zh-TW": {
+    addons: "加購項目", driverInfo: "駕駛人資料", pickupDetails: "取車詳情", summary: "摘要", pickupDetailsSubtitle: "請確認地點、時間和交車備註。", driverInfoSubtitle: "請提供主要駕駛人的資料。", summarySubtitle: "請確認您的預訂詳情。", back: "返回", continue: "繼續", error: "錯誤", holdInvalid: "保留已過期或無效。", bookingFailed: "預訂失敗", bookingRetry: "請稍後再試。",
+    unavailableTitle: "目前無法結帳", unavailableBody: "無法確認預訂模式。尚未送出任何預訂。", tryAgain: "重試", noCheckoutTitle: "沒有進行中的結帳", noCheckoutBody: "請先選擇車輛。", viewFleet: "查看車隊", held: "已為您保留車輛", differentReturn: "我需要不同的還車地點。團隊會在取車前確認適用的交車費用。", afterHours: "您的取車時間在一般服務時間外，可能需要支付非營業時間服務費。", pickup: "取車", return: "還車",
+    fullName: "全名（須與駕照相同）", romanizedName: "羅馬拼音姓名（如適用）", email: "電子郵件地址", phone: "電話號碼", nationality: "國籍", dateOfBirth: "出生日期", residenceCountry: "居住國", address: "住址", emergencyContact: "緊急聯絡人", emergencyContactPlaceholder: "姓名和電話號碼", flightNumber: "抵達航班號碼（選填）", flightNumberPlaceholder: "例如 JL501", accommodation: "飯店／住宿地點（選填）", addDriver: "新增其他駕駛人", additionalDriver: "其他駕駛人", additionalDriverName: "法定全名", additionalDriverNameAria: "其他駕駛人的法定全名", additionalDriverEmailAria: "其他駕駛人的電子郵件地址", additionalDriverPhoneAria: "其他駕駛人的電話號碼",
+    primaryDriver: "主要駕駛人", name: "姓名", itinerary: "行程", stayPlanning: "住宿規劃", stayPlanningNotice: "PrimoStay Car Rental 團隊將另行確認客房供應情況。", selectedAddons: "已選加購項目", addonsTotal: "加購項目合計", pickupFee: "取車費", dropoffFee: "還車費", pickupLocationFee: "取車地點費", returnLocationFee: "還車地點費", oneWayFee: "異地還車費", priceUnavailable: "無法計算總額。", holdExpiredTitle: "您的車輛保留已過期", holdExpiredBody: "您選擇的日期可能已沒有可用車輛。", returnToSearch: "返回搜尋",
+    fullNameRequired: "請輸入全名", emailInvalid: "請輸入有效的電子郵件地址", phoneRequired: "請輸入電話號碼", seoTitle: "結帳 | PrimoStay Car Rental", seoDescription: "確認您的 PrimoStay Car Rental 預訂、駕駛人資料、加購項目和取車資訊。", seoOgDescription: "確認預訂前，請先檢視您的 PrimoStay Car Rental 預訂詳情。", signInTitle: "請先登入再預訂", signInBody: "登入或建立帳戶後，即可繼續此車輛的預訂。", signInAction: "登入或建立帳戶",
+  },
 } as const;
 
 function documentName(value: string, language: keyof typeof documentCopy): string {
@@ -119,18 +138,14 @@ function documentName(value: string, language: keyof typeof documentCopy): strin
 
 export function CheckoutPage() {
   const { language } = useLanguage();
+  const checkout = checkoutCopy[language];
   const account = useCustomerAccount();
   const config = useRentalMarketplaceConfig();
   if (config.isLoading || account.isLoading) return <div className="container min-h-[60dvh] space-y-4 py-20"><div className="h-10 w-56 animate-pulse bg-muted" /><div className="h-48 max-w-3xl animate-pulse bg-muted" /></div>;
-  if (config.isError || !config.data) return <div className="container min-h-[60dvh] py-20"><h1 className="font-serif text-2xl">Checkout temporarily unavailable</h1><p className="my-4 text-muted-foreground">We could not verify the booking mode. No booking was submitted.</p><Button onClick={() => config.refetch()}>Try again</Button></div>;
+  if (config.isError || !config.data) return <div className="container min-h-[60dvh] py-20"><h1 className="font-serif text-2xl">{checkout.unavailableTitle}</h1><p className="my-4 text-muted-foreground">{checkout.unavailableBody}</p><Button onClick={() => config.refetch()}>{checkout.tryAgain}</Button></div>;
   if (!account.data?.account) {
-    const gate = language === "ja"
-      ? { title: "予約にはログインが必要です", body: "ログインまたはアカウントを作成すると、この車両の予約を続けられます。", action: "ログイン・アカウント作成" }
-      : language === "zh-TW"
-        ? { title: "請先登入再預訂", body: "登入或建立帳戶後，即可繼續此車輛的預訂。", action: "登入或建立帳戶" }
-        : { title: "Sign in before booking", body: "Sign in or create an account to continue this vehicle booking.", action: "Sign in or create account" };
     const next = localizedPath("/rentalcar/checkout", language);
-    return <div className="container grid min-h-[65dvh] place-items-center py-16"><Card className="w-full max-w-lg"><CardContent className="space-y-5 p-8 text-center"><h1 className="font-serif text-3xl font-bold">{gate.title}</h1><p className="text-muted-foreground">{gate.body}</p><Button asChild className="w-full"><Link href={`${localizedPath("/rentalcar/my-bookings", language)}?next=${encodeURIComponent(next)}`}>{gate.action}</Link></Button></CardContent></Card></div>;
+    return <div className="container grid min-h-[65dvh] place-items-center py-16"><Card className="w-full max-w-lg"><CardContent className="space-y-5 p-8 text-center"><h1 className="font-serif text-3xl font-bold">{checkout.signInTitle}</h1><p className="text-muted-foreground">{checkout.signInBody}</p><Button asChild className="w-full"><Link href={`${localizedPath("/rentalcar/my-bookings", language)}?next=${encodeURIComponent(next)}`}>{checkout.signInAction}</Link></Button></CardContent></Card></div>;
   }
   return config.data.enabled ? <MarketplaceCheckout /> : <LegacyCheckout />;
 }
@@ -143,16 +158,16 @@ function LegacyCheckout() {
   const { language } = useLanguage();
   const copy = rentalCopy(language);
   const payment = paymentCopy[language];
-  const stepCopy = checkoutStepCopy[language];
+  const checkout = checkoutCopy[language];
   const customer = useCustomerAccount().data?.account as { email?: string; fullName?: string; phone?: string } | undefined;
   const { data: configuredLocations } = useRentalLocations();
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
   const locationLabel = (value: string) => rentalLocationLabel(value, locations, language);
   useInlineSeoMeta({
-    metaTitle: "Checkout | PrimoStay Car Rental",
-    metaDescription: "Review your PrimoStay Car Rental booking, driver details, add-ons, and pickup information.",
-    ogTitle: "Checkout | PrimoStay Car Rental",
-    ogDescription: "Review your PrimoStay Car Rental booking before confirming.",
+    metaTitle: checkout.seoTitle,
+    metaDescription: checkout.seoDescription,
+    ogTitle: checkout.seoTitle,
+    ogDescription: checkout.seoOgDescription,
     ogImage: "",
   });
   
@@ -174,7 +189,7 @@ function LegacyCheckout() {
       ? Object.fromEntries(Object.entries(current).filter(([id]) => available.has(Number(id))))
       : current);
   }, [addons]);
-  const { data: marketplaceConfig, isFetching: isMarketplaceConfigFetching, isError: isMarketplaceConfigError, refetch: refetchMarketplaceConfig } = useRentalMarketplaceConfig();
+  const { data: marketplaceConfig, isLoading: isMarketplaceConfigLoading, isError: isMarketplaceConfigError, refetch: refetchMarketplaceConfig } = useRentalMarketplaceConfig();
   const { data: car } = useGetRentalVehicle(draft?.vehicleSlug || "", {
     query: { enabled: !!draft?.vehicleSlug, queryKey: getGetRentalVehicleQueryKey(draft?.vehicleSlug || "") }
   });
@@ -194,8 +209,8 @@ function LegacyCheckout() {
 
   const createReservation = useCreateRentalReservation();
 
-  const form = useForm<z.infer<typeof driverSchema>>({
-    resolver: zodResolver(driverSchema),
+  const form = useForm<DriverForm>({
+    resolver: zodResolver(driverSchema(checkout)),
     defaultValues: draft?.driver || {
       fullName: customer?.fullName || "",
       email: customer?.email || "",
@@ -248,9 +263,9 @@ function LegacyCheckout() {
   if (!draft) {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center justify-center space-y-4">
-        <h1 className="text-2xl font-serif">No active checkout</h1>
-        <p className="text-muted-foreground">Please select a vehicle first.</p>
-        <Button onClick={() => setLocation(localizedPath("/rentalcar/cars", language))}>View Fleet</Button>
+        <h1 className="text-2xl font-serif">{checkout.noCheckoutTitle}</h1>
+        <p className="text-muted-foreground">{checkout.noCheckoutBody}</p>
+        <Button onClick={() => setLocation(localizedPath("/rentalcar/cars", language))}>{checkout.viewFleet}</Button>
       </div>
     );
   }
@@ -284,7 +299,7 @@ function LegacyCheckout() {
 
   const handleConfirm = () => {
     if (!draft.holdId || !draft.holdToken || holdExpired) {
-      toast({ title: stepCopy.error, description: stepCopy.holdInvalid, variant: "destructive" });
+      toast({ title: checkout.error, description: checkout.holdInvalid, variant: "destructive" });
       return;
     }
     
@@ -323,17 +338,17 @@ function LegacyCheckout() {
         setLocation(`${localizedPath("/rentalcar/booking/confirmation", language)}?id=${reservation.id}`);
       },
       onError: () => {
-        toast({ title: stepCopy.bookingFailed, description: stepCopy.bookingRetry, variant: "destructive" });
+        toast({ title: checkout.bookingFailed, description: checkout.bookingRetry, variant: "destructive" });
       }
     });
   };
 
   const steps = [
-    stepCopy.addons,
-    stepCopy.driverInfo,
+    checkout.addons,
+    checkout.driverInfo,
     documentCopy[language].title,
-    stepCopy.pickupDetails,
-    stepCopy.summary,
+    checkout.pickupDetails,
+    checkout.summary,
     payment.step
   ];
   const secondsRemaining = draft.heldUntil
@@ -345,7 +360,7 @@ function LegacyCheckout() {
     <div className="min-h-[100dvh] bg-muted/10 py-12">
       <div className="container max-w-5xl space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-background px-4 py-3 text-sm shadow-sm">
-          <div className="flex items-center gap-2 font-medium"><Clock className="h-4 w-4" /> Your vehicle is held for you</div>
+          <div className="flex items-center gap-2 font-medium"><Clock className="h-4 w-4" /> {checkout.held}</div>
           <span className="font-mono text-base font-bold">{holdLabel}</span>
         </div>
         
@@ -380,31 +395,31 @@ function LegacyCheckout() {
             {step === 4 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">{stepCopy.pickupDetails}</h2>
-                  <p className="text-muted-foreground">{stepCopy.pickupDetailsSubtitle}</p>
+                  <h2 className="text-2xl font-serif font-bold">{checkout.pickupDetails}</h2>
+                  <p className="text-muted-foreground">{checkout.pickupDetailsSubtitle}</p>
                 </div>
                 <div className="flex items-start gap-3 rounded-lg border bg-background p-4">
                   <Checkbox id="different-return" checked={differentReturnLocation} onCheckedChange={(checked) => setDifferentReturnLocation(Boolean(checked))} />
                   <label htmlFor="different-return" className="text-sm leading-relaxed">
-                    I need a different return location. Our team will confirm any applicable delivery fee before pickup.
+                    {checkout.differentReturn}
                   </label>
                 </div>
                 {((tokyoHour(draft.pickupAt) ?? 10) < 8 || (tokyoHour(draft.pickupAt) ?? 10) >= 19) && (
                   <div className="rounded-lg border border-amber-400 bg-amber-50 p-4 text-sm">
-                    Your pickup is outside normal desk hours. An after-hours service fee may apply.
+                    {checkout.afterHours}
                   </div>
                 )}
                 <div className="grid sm:grid-cols-2 gap-4">
                   <Card>
                     <CardContent className="p-6 space-y-2">
-                      <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Pickup</div>
+                      <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{checkout.pickup}</div>
                       <div className="font-bold text-lg">{formatTokyo(draft.pickupAt, language)}</div>
                       <div className="text-sm text-muted-foreground">{locationLabel(draft.pickupLocation)}</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-6 space-y-2">
-                      <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Return</div>
+                      <div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{checkout.return}</div>
                       <div className="font-bold text-lg">{formatTokyo(draft.returnAt, language)}</div>
                       <div className="text-sm text-muted-foreground">{locationLabel(draft.returnLocation)}</div>
                     </CardContent>
@@ -431,7 +446,7 @@ function LegacyCheckout() {
             {step === 1 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">{stepCopy.addons}</h2>
+                  <h2 className="text-2xl font-serif font-bold">{checkout.addons}</h2>
                   <p className="text-muted-foreground">{copy.enhanceTripHelp}</p>
                 </div>
                 <div className="space-y-4">
@@ -449,8 +464,8 @@ function LegacyCheckout() {
             {step === 2 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">{stepCopy.driverInfo}</h2>
-                  <p className="text-muted-foreground">{stepCopy.driverInfoSubtitle}</p>
+                  <h2 className="text-2xl font-serif font-bold">{checkout.driverInfo}</h2>
+                  <p className="text-muted-foreground">{checkout.driverInfoSubtitle}</p>
                 </div>
                 <Card>
                   <CardContent className="p-6">
@@ -458,51 +473,51 @@ function LegacyCheckout() {
                       <form className="space-y-6">
                         <div className="grid sm:grid-cols-2 gap-4">
                           <FormField control={form.control} name="fullName" render={({ field }) => (
-                            <FormItem><FormLabel>Full Name (as on License)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{checkout.fullName}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="romanizedName" render={({ field }) => (
-                            <FormItem><FormLabel>Romanized Name (if applicable)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{checkout.romanizedName}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="email" render={({ field }) => (
-                            <FormItem><FormLabel>Email Address</FormLabel><FormControl><Input type="email" readOnly className="bg-muted" {...field} value={customer?.email || field.value} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{checkout.email}</FormLabel><FormControl><Input type="email" readOnly className="bg-muted" {...field} value={customer?.email || field.value} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="phone" render={({ field }) => (
-                            <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{checkout.phone}</FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="nationality" render={({ field }) => (
-                            <FormItem><FormLabel>Nationality</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{checkout.nationality}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
-                            <FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{checkout.dateOfBirth}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="residenceCountry" render={({ field }) => (
-                            <FormItem><FormLabel>Country of Residence</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{checkout.residenceCountry}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="address" render={({ field }) => (
-                            <FormItem className="sm:col-span-2"><FormLabel>Home Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem className="sm:col-span-2"><FormLabel>{checkout.address}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="emergencyContact" render={({ field }) => (
-                            <FormItem className="sm:col-span-2"><FormLabel>Emergency Contact</FormLabel><FormControl><Input placeholder="Name and phone number" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem className="sm:col-span-2"><FormLabel>{checkout.emergencyContact}</FormLabel><FormControl><Input placeholder={checkout.emergencyContactPlaceholder} {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                         </div>
                         <Separator />
                         <div className="grid sm:grid-cols-2 gap-4">
                           <FormField control={form.control} name="flightNumber" render={({ field }) => (
-                            <FormItem><FormLabel>Arrival Flight Number (Optional)</FormLabel><FormControl><Input placeholder="e.g. JL501" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{checkout.flightNumber}</FormLabel><FormControl><Input placeholder={checkout.flightNumberPlaceholder} {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                           <FormField control={form.control} name="accommodation" render={({ field }) => (
-                            <FormItem><FormLabel>Hotel / Accommodation (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>{checkout.accommodation}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                           )} />
                         </div>
                       </form>
                     </Form>
-                    <Button variant="outline" className="mt-5" onClick={() => updateDraft({ additionalDrivers: true })}>+ Add additional driver</Button>
+                    <Button variant="outline" className="mt-5" onClick={() => updateDraft({ additionalDrivers: true })}>+ {checkout.addDriver}</Button>
                     {draft.additionalDrivers && (
                       <div className="mt-5 grid gap-4 border-t pt-5 sm:grid-cols-2">
-                        <p className="sm:col-span-2 text-sm font-medium">Additional driver</p>
-                        <Input placeholder="Full legal name" aria-label="Additional driver full legal name" value={additionalDriver.fullName} onChange={(event) => setAdditionalDriver((driver) => ({ ...driver, fullName: event.target.value }))} />
-                        <Input type="email" placeholder="Email address" aria-label="Additional driver email" value={additionalDriver.email} onChange={(event) => setAdditionalDriver((driver) => ({ ...driver, email: event.target.value }))} />
-                        <Input type="tel" placeholder="Phone number" aria-label="Additional driver phone" value={additionalDriver.phone} onChange={(event) => setAdditionalDriver((driver) => ({ ...driver, phone: event.target.value }))} />
+                        <p className="sm:col-span-2 text-sm font-medium">{checkout.additionalDriver}</p>
+                        <Input placeholder={checkout.additionalDriverName} aria-label={checkout.additionalDriverNameAria} value={additionalDriver.fullName} onChange={(event) => setAdditionalDriver((driver) => ({ ...driver, fullName: event.target.value }))} />
+                        <Input type="email" placeholder={checkout.email} aria-label={checkout.additionalDriverEmailAria} value={additionalDriver.email} onChange={(event) => setAdditionalDriver((driver) => ({ ...driver, email: event.target.value }))} />
+                        <Input type="tel" placeholder={checkout.phone} aria-label={checkout.additionalDriverPhoneAria} value={additionalDriver.phone} onChange={(event) => setAdditionalDriver((driver) => ({ ...driver, phone: event.target.value }))} />
                       </div>
                     )}
                   </CardContent>
@@ -515,8 +530,8 @@ function LegacyCheckout() {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
                   <h2 className="text-2xl font-serif font-bold">{documentCopy[language].title}</h2>
-                  <p className="text-muted-foreground">{isMarketplaceConfigFetching ? documentCopy[language].checking : isMarketplaceConfigError ? documentCopy[language].retry : marketplaceConfig?.privateDocumentUploadAvailable ? documentCopy[language].upload : documentCopy[language].pickup}</p>
-                  {isMarketplaceConfigError && <Button className="mt-3 min-h-11" variant="outline" disabled={isMarketplaceConfigFetching} onClick={() => void refetchMarketplaceConfig()}>{documentCopy[language].tryAgain}</Button>}
+                  <p className="text-muted-foreground">{isMarketplaceConfigLoading ? documentCopy[language].checking : isMarketplaceConfigError ? documentCopy[language].retry : marketplaceConfig?.privateDocumentUploadAvailable ? documentCopy[language].upload : documentCopy[language].pickup}</p>
+                  {isMarketplaceConfigError && <Button className="mt-3 min-h-11" variant="outline" disabled={isMarketplaceConfigLoading} onClick={() => void refetchMarketplaceConfig()}>{documentCopy[language].tryAgain}</Button>}
                 </div>
                 {(car?.requiredDocuments?.length ? car.requiredDocuments : ["drivers_license", "passport"]).map((document, index) => (
                   <Card key={`${document}-${index}`}>
@@ -530,41 +545,41 @@ function LegacyCheckout() {
             {step === 5 && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                 <div>
-                  <h2 className="text-2xl font-serif font-bold">{stepCopy.summary}</h2>
-                  <p className="text-muted-foreground">{stepCopy.summarySubtitle}</p>
+                  <h2 className="text-2xl font-serif font-bold">{checkout.summary}</h2>
+                  <p className="text-muted-foreground">{checkout.summarySubtitle}</p>
                 </div>
 
                 <div className="grid gap-6">
                   <Card>
                     <CardContent className="p-6 space-y-6">
                       <div>
-                        <h3 className="font-bold text-lg mb-4 border-b pb-2">Primary Driver</h3>
+                        <h3 className="font-bold text-lg mb-4 border-b pb-2">{checkout.primaryDriver}</h3>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-muted-foreground block text-xs">Name</span>
+                            <span className="text-muted-foreground block text-xs">{checkout.name}</span>
                             <span className="font-medium">{draft.driver.fullName}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground block text-xs">Email</span>
+                            <span className="text-muted-foreground block text-xs">{checkout.email}</span>
                             <span className="font-medium">{draft.driver.email}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground block text-xs">Phone</span>
+                            <span className="text-muted-foreground block text-xs">{checkout.phone}</span>
                             <span className="font-medium">{draft.driver.phone}</span>
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <h3 className="font-bold text-lg mb-4 border-b pb-2">Itinerary</h3>
+                        <h3 className="font-bold text-lg mb-4 border-b pb-2">{checkout.itinerary}</h3>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <span className="text-muted-foreground block text-xs">Pickup</span>
+                            <span className="text-muted-foreground block text-xs">{checkout.pickup}</span>
                             <span className="font-medium">{formatTokyo(draft.pickupAt, language)}</span><br/>
                             <span className="text-xs text-muted-foreground">{locationLabel(draft.pickupLocation)}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground block text-xs">Return</span>
+                            <span className="text-muted-foreground block text-xs">{checkout.return}</span>
                             <span className="font-medium">{formatTokyo(draft.returnAt, language)}</span><br/>
                             <span className="text-xs text-muted-foreground">{locationLabel(draft.returnLocation)}</span>
                           </div>
@@ -572,16 +587,16 @@ function LegacyCheckout() {
                       </div>
                       {draft.selectedRoom && (
                         <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Stay planning</p>
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">{checkout.stayPlanning}</p>
                           <p className="mt-1 font-semibold">{draft.selectedRoom.title}</p>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            Room availability is confirmed separately by the PrimoStay Car Rental team.
+                            {checkout.stayPlanningNotice}
                           </p>
                         </div>
                       )}
                       {priceData?.addons && priceData.addons.length > 0 && (
                         <div>
-                          <h3 className="font-bold text-lg mb-4 border-b pb-2">Selected add-ons</h3>
+                          <h3 className="font-bold text-lg mb-4 border-b pb-2">{checkout.selectedAddons}</h3>
                           <div className="space-y-2 text-sm">
                             {priceData.addons.map((addon) => (
                               <div key={addon.addonId} className="flex justify-between gap-4">
@@ -590,7 +605,7 @@ function LegacyCheckout() {
                               </div>
                             ))}
                             <div className="flex justify-between border-t pt-2 font-medium">
-                              <span>Add-ons total</span>
+                              <span>{checkout.addonsTotal}</span>
                               <span className="tabular-nums">¥{priceData.addonsTotal.toLocaleString()}</span>
                             </div>
                           </div>
@@ -641,11 +656,11 @@ function LegacyCheckout() {
             {/* Navigation Buttons */}
             <div className="flex items-center justify-between pt-6 border-t">
               <Button variant="ghost" onClick={handleBack} disabled={step === 1} className="gap-2">
-                <ArrowLeft className="w-4 h-4" /> {stepCopy.back}
+                <ArrowLeft className="w-4 h-4" /> {checkout.back}
               </Button>
               {step < 6 ? (
                 <Button onClick={handleNext} className="gap-2" size="lg">
-                  {stepCopy.continue} <ChevronRight className="w-4 h-4" />
+                  {checkout.continue} <ChevronRight className="w-4 h-4" />
                 </Button>
               ) : (
                 <Button onClick={handleConfirm} disabled={!agreedTerms || !priceData || createReservation.isPending} className="gap-2 px-8" size="lg">
@@ -701,19 +716,19 @@ function LegacyCheckout() {
                       )}
                       {priceData.airportPickupFee > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Pickup Fee</span>
+                          <span className="text-muted-foreground">{checkout.pickupFee}</span>
                           <span>¥{priceData.airportPickupFee.toLocaleString()}</span>
                         </div>
                       )}
                       {priceData.airportDropoffFee > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Dropoff Fee</span>
+                          <span className="text-muted-foreground">{checkout.dropoffFee}</span>
                           <span>¥{priceData.airportDropoffFee.toLocaleString()}</span>
                         </div>
                       )}
-                      {(priceData as any).pickupLocationFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Pickup Location Fee</span><span>¥{(priceData as any).pickupLocationFee.toLocaleString()}</span></div>}
-                      {(priceData as any).returnLocationFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Return Location Fee</span><span>¥{(priceData as any).returnLocationFee.toLocaleString()}</span></div>}
-                      {(priceData as any).oneWayFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">One-way Fee</span><span>¥{(priceData as any).oneWayFee.toLocaleString()}</span></div>}
+                      {(priceData as any).pickupLocationFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{checkout.pickupLocationFee}</span><span>¥{(priceData as any).pickupLocationFee.toLocaleString()}</span></div>}
+                      {(priceData as any).returnLocationFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{checkout.returnLocationFee}</span><span>¥{(priceData as any).returnLocationFee.toLocaleString()}</span></div>}
+                      {(priceData as any).oneWayFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">{checkout.oneWayFee}</span><span>¥{(priceData as any).oneWayFee.toLocaleString()}</span></div>}
                       <Separator className="my-2" />
                       <div className="flex justify-between font-bold text-lg">
                         <span>{payment.total}</span>
@@ -722,8 +737,8 @@ function LegacyCheckout() {
                     </>
                   ) : priceQuote.isError ? (
                     <div className="space-y-3 py-3 text-center text-sm text-destructive">
-                      <p>{language === "ja" ? "料金を計算できませんでした。" : language === "zh-TW" ? "無法計算價格。" : "We could not calculate the total."}</p>
-                      <Button variant="outline" size="sm" onClick={() => priceQuote.mutate({ data: { vehicleId: draft.vehicleId, pickupAt: draft.pickupAt, returnAt: draft.returnAt, pickupLocation: draft.pickupLocation, returnLocation: draft.returnLocation, addons: Object.entries(selectedAddons).filter(([, qty]) => qty > 0).map(([id, qty]) => ({ addonId: Number(id), qty })) } })}>{language === "ja" ? "再試行" : language === "zh-TW" ? "重試" : "Try again"}</Button>
+                      <p>{checkout.priceUnavailable}</p>
+                      <Button variant="outline" size="sm" onClick={() => priceQuote.mutate({ data: { vehicleId: draft.vehicleId, pickupAt: draft.pickupAt, returnAt: draft.returnAt, pickupLocation: draft.pickupLocation, returnLocation: draft.returnLocation, addons: Object.entries(selectedAddons).filter(([, qty]) => qty > 0).map(([id, qty]) => ({ addonId: Number(id), qty })) } })}>{checkout.tryAgain}</Button>
                     </div>
                   ) : (
                     <div className="text-center text-muted-foreground py-4">
@@ -742,10 +757,10 @@ function LegacyCheckout() {
             <CardContent className="space-y-5 p-7">
               <Clock className="h-8 w-8 text-destructive" />
               <div>
-                <h2 className="font-serif text-2xl font-bold">Your reservation hold has expired</h2>
-                <p className="mt-2 text-sm text-muted-foreground">The vehicle may no longer be available for your selected dates.</p>
+                <h2 className="font-serif text-2xl font-bold">{checkout.holdExpiredTitle}</h2>
+                <p className="mt-2 text-sm text-muted-foreground">{checkout.holdExpiredBody}</p>
               </div>
-        <Button className="w-full" onClick={() => { clearDraft(); setLocation(`${localizedPath("/rentalcar", language)}?hold=expired`); }}>Return to search</Button>
+        <Button className="w-full" onClick={() => { clearDraft(); setLocation(`${localizedPath("/rentalcar", language)}?hold=expired`); }}>{checkout.returnToSearch}</Button>
             </CardContent>
           </Card>
         </div>
