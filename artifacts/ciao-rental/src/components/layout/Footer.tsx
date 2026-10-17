@@ -19,9 +19,16 @@ export function Footer() {
         <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-12">
           <div className="space-y-5 md:col-span-4">
             <Link href={localizedPath("/", language)} className="inline-flex items-center gap-3" aria-label={`${brand.name} home`}>
+              <img
+                src="/brand/logo-b-car.svg"
+                alt="PrimoStay Car Rental"
+                width={40}
+                height={40}
+                className="size-10"
+              />
               <span className="font-serif text-xl font-semibold tracking-[0.08em]">{brand.shortName}</span>
               <span className="h-6 w-px bg-border" aria-hidden="true" />
-              <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{brand.subLabel}</span>
+              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{brand.subLabel}</span>
             </Link>
             <p className="max-w-xs text-sm leading-6 text-muted-foreground">
               Premium car rental in Sapporo, Hokkaido. Experience Japanese hospitality and seamless travel.
