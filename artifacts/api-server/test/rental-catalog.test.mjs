@@ -134,6 +134,23 @@ test("published rental catalog, live add-ons, pricing, slugs, and CMS cleanup ar
     const home = await getJson("/api/content/home");
     assert.equal(home.content.en.hero.title, "All-in-one stay in Hokkaido");
 
+    const rentalContent = await getJson("/api/content/rentalcar");
+    assert.deepEqual(rentalContent.content.en.importantNotes, [
+      "Insurance is included. Coverage details, deductibles and non-operation charges are shown before you confirm.",
+      "Cancellation terms are shown before you confirm your booking.",
+      "Driving-licence requirements depend on where your licence was issued. Taiwan licences need an official Japanese translation (JAF or the Taiwan–Japan Relations Association); many other countries need an International Driving Permit under the 1949 Geneva Convention. Bring your original licence and passport.",
+    ]);
+    assert.deepEqual(rentalContent.content.ja.importantNotes, [
+      "保険は料金に含まれます。補償内容・免責額・ノンオペレーションチャージはご予約確定前にご案内します。",
+      "キャンセル規定はご予約確定前にご案内します。",
+      "必要な書類は免許証の発行国・地域によって異なります。台湾の免許証はJAFまたは台湾日本関係協会の日本語翻訳文が必要です。その他の多くの国は1949年ジュネーブ条約に基づく国際運転免許証が必要です。免許証の原本とパスポートをお持ちください。",
+    ]);
+    assert.deepEqual(rentalContent.content["zh-CN"].importantNotes, [
+      "租金已含保險。保障內容、自負額及營業損失補償（NOC）將於確認預約前說明。",
+      "取消規定將於確認預約前說明。",
+      "所需文件依駕照核發國家或地區而定。台灣駕照需搭配 JAF 或台灣日本關係協會核發的日文譯本；其他多數國家需持 1949 年日內瓦公約國際駕照。取車時請攜帶駕照正本與護照。",
+    ]);
+
     const homeSource = await readFile(
       new URL("../../ciao-rental/src/pages/rentalcar/index.tsx", import.meta.url),
       "utf8",
