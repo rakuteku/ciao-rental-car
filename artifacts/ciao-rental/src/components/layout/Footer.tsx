@@ -1,14 +1,15 @@
 import { CONTACT_EMAIL, CONTACT_MAILTO, CONTACT_PHONE } from "@/lib/contact";
 import { Link } from "wouter";
 import { localizedPath, useLanguage } from "@/lib/language";
+import { LODGING_ENABLED, PRIMOSTAY_URL } from "@/lib/lodging";
 import { RENTAL_BRAND } from "@/lib/rental-brand";
 
 export function Footer() {
   const { language } = useLanguage();
   const content = {
-    en: { location: "Find your way", locationList: ["Sapporo Station", "New Chitose Airport", "Sapporo City Center"], contact: "Contact", explore: "Explore", lodging: "Lodging", cars: "Rental cars", bookings: "My bookings", legal: "Information", terms: "Terms of Service", privacy: "Privacy Policy", insurance: "Insurance Details" },
-    ja: { location: "アクセス", locationList: ["札幌駅", "新千歳空港", "札幌市中心部"], contact: "お問い合わせ", explore: "サービス", lodging: "宿泊", cars: "レンタカー", bookings: "予約の確認", legal: "ご案内", terms: "利用規約", privacy: "プライバシーポリシー", insurance: "保険について" },
-    "zh-TW": { location: "交通指南", locationList: ["札幌站", "新千歲機場", "札幌市中心"], contact: "聯絡方式", explore: "瀏覽服務", lodging: "住宿", cars: "租車", bookings: "我的預訂", legal: "資訊", terms: "服務條款", privacy: "隱私權政策", insurance: "保險詳情" },
+    en: { location: "Find your way", locationList: ["Sapporo Station", "New Chitose Airport", "Sapporo City Center"], contact: "Contact", explore: "Explore", lodging: "Lodging", stays: "Looking for a place to stay? PrimoStay", cars: "Rental cars", bookings: "My bookings", legal: "Information", terms: "Terms of Service", privacy: "Privacy Policy", insurance: "Insurance Details" },
+    ja: { location: "アクセス", locationList: ["札幌駅", "新千歳空港", "札幌市中心部"], contact: "お問い合わせ", explore: "サービス", lodging: "宿泊", stays: "宿泊先をお探しですか？ PrimoStay", cars: "レンタカー", bookings: "予約の確認", legal: "ご案内", terms: "利用規約", privacy: "プライバシーポリシー", insurance: "保険について" },
+    "zh-TW": { location: "交通指南", locationList: ["札幌站", "新千歲機場", "札幌市中心"], contact: "聯絡方式", explore: "瀏覽服務", lodging: "住宿", stays: "正在尋找住宿嗎？ PrimoStay", cars: "租車", bookings: "我的預訂", legal: "資訊", terms: "服務條款", privacy: "隱私權政策", insurance: "保險詳情" },
   }[language];
   const brand = RENTAL_BRAND[language];
 
@@ -42,7 +43,8 @@ export function Footer() {
           <div className="space-y-4 md:col-span-2">
             <h4 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{content.explore}</h4>
             <ul className="space-y-2.5 text-sm">
-              <li><Link className="text-foreground/80 transition-colors hover:text-foreground" href={localizedPath("/lodging", language)}>{content.lodging}</Link></li>
+              {LODGING_ENABLED && <li><Link className="text-foreground/80 transition-colors hover:text-foreground" href={localizedPath("/lodging", language)}>{content.lodging}</Link></li>}
+              <li><a className="text-foreground/80 transition-colors hover:text-foreground" href={PRIMOSTAY_URL}>{content.stays}</a></li>
               <li><Link className="text-foreground/80 transition-colors hover:text-foreground" href={localizedPath("/rentalcar", language)}>{content.cars}</Link></li>
               <li><Link className="text-foreground/80 transition-colors hover:text-foreground" href={localizedPath("/rentalcar/my-bookings", language)}>{content.bookings}</Link></li>
             </ul>

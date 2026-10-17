@@ -6,6 +6,7 @@ import { PostgresSessionStore } from "./lib/postgres-session-store";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { rentalStripeWebhookHandler } from "./routes/rental-finance";
+import { isLodgingEnabled } from "./lib/lodging-policy";
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET environment variable is required");
@@ -34,6 +35,11 @@ app.use(
     },
   }),
 );
+
+app.get(/^\/(?:(?:en|ja|zh-TW|zh-CN)\/)?lodging(?:\/[^/]+)?\/?$/, (req, res, next) => {
+  if (isLodgingEnabled()) return next();
+  res.redirect(301, "https://primostay.jp");
+});
 const corsAllowedOrigins = new Set(
   (process.env.CORS_ALLOWED_ORIGINS ?? "")
     .split(",")

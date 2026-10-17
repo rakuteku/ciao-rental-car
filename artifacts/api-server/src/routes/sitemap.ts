@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, pageContentTable, pageSeoTable, roomsTable } from "@workspace/db";
 import { KNOWN_PAGES } from "./content";
 import { DEFAULT_SEO, localizedRoute, normalizeSeo, type SupportedLanguage } from "./seo";
+import { isLodgingEnabled } from "../lib/lodging-policy";
 
 const router: IRouter = Router();
 const languages: SupportedLanguage[] = ["en", "ja", "zh-CN"];
@@ -26,6 +27,7 @@ router.get("/sitemap.xml", async (req, res): Promise<void> => {
   const pageEntries: string[] = [];
 
   for (const row of rows) {
+    if (!isLodgingEnabled() && row.page === "lodging") continue;
     if (!row.published) continue;
     const seoRow = seoRows.find((candidate) => candidate.page === row.page);
     if (!seoRow) continue;
@@ -40,6 +42,7 @@ router.get("/sitemap.xml", async (req, res): Promise<void> => {
   // Seeded built-in pages can be absent until first requested. Keep their legacy
   // English URLs in the sitemap while the normal page query remains additive.
   for (const page of KNOWN_PAGES) {
+    if (!isLodgingEnabled() && page === "lodging") continue;
     if (rows.some((row) => row.page === page)) continue;
     const defaults = DEFAULT_SEO[page];
     if (!defaults || !defaults.allowIndexing) continue;
@@ -48,7 +51,9 @@ router.get("/sitemap.xml", async (req, res): Promise<void> => {
     }
   }
 
-  const publishedRooms = await db.select().from(roomsTable).where(eq(roomsTable.published, true));
+  const publishedRooms = isLodgingEnabled()
+    ? await db.select().from(roomsTable).where(eq(roomsTable.published, true))
+    : [];
   const lodgingEntries = publishedRooms.map(
     (room) => `  <url>\n    <loc>${xml(absolute(origin, `/lodging/${room.slug}`))}</loc>\n    <lastmod>${room.updatedAt.toISOString()}</lastmod>\n  </url>`,
   );

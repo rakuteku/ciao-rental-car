@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -50,8 +51,16 @@ import { PartnerApplyPage } from "@/pages/partner/apply";
 import { PartnerInventoryPage } from "@/pages/partner/inventory";
 import { PartnerReservationsPage } from "@/pages/partner/reservations";
 import { PartnerReservationTripPage } from "@/pages/partner/reservation-trip";
+import { LODGING_ENABLED, PRIMOSTAY_URL } from "@/lib/lodging";
 
 const queryClient = new QueryClient();
+
+function LodgingRedirect() {
+  useEffect(() => {
+    window.location.replace(PRIMOSTAY_URL);
+  }, []);
+  return null;
+}
 
 function MainLayout({ children }: { children: React.ReactNode }) {
   const [path] = useLocation();
@@ -85,8 +94,8 @@ function Router() {
       <Route path="/rentalcar/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
       <Route path="/rentalcar/my-bookings" component={() => <MainLayout><MyBookings /></MainLayout>} />
       <Route path="/rentalcar/my-bookings/:id" component={() => <MainLayout><MyBookingDetail /></MainLayout>} />
-      <Route path="/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
-      <Route path="/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
+      <Route path="/lodging" component={() => LODGING_ENABLED ? <MainLayout><LodgingPage /></MainLayout> : <LodgingRedirect />} />
+      <Route path="/lodging/:slug" component={() => LODGING_ENABLED ? <MainLayout><LodgingDetailPage /></MainLayout> : <LodgingRedirect />} />
       <Route path="/privacy-policy" component={() => <MainLayout><PrivacyPolicyPage /></MainLayout>} />
       <Route path="/terms" component={() => <MainLayout><TermsPage /></MainLayout>} />
       <Route path="/partner/apply" component={PartnerApplyPage} />
@@ -99,7 +108,7 @@ function Router() {
       {/* Protected Admin Routes */}
       <Route path="/admin/dashboard" component={() => <AdminLayout><AdminDashboard /></AdminLayout>} />
       <Route path="/admin/fleet" component={() => <AdminLayout><AdminFleet /></AdminLayout>} />
-      <Route path="/admin/lodging" component={() => <AdminLayout><AdminLodging /></AdminLayout>} />
+      <Route path="/admin/lodging" component={() => LODGING_ENABLED ? <AdminLayout><AdminLodging /></AdminLayout> : <Redirect to="/admin/dashboard" />} />
       <Route path="/admin/bookings" component={() => <Redirect to="/admin/rental-cars/reservations" />} />
       <Route path="/admin/content" component={() => <AdminLayout><AdminContent /></AdminLayout>} />
       <Route path="/admin/seo" component={() => <AdminLayout><AdminContent /></AdminLayout>} />
@@ -137,14 +146,14 @@ function Router() {
       <Route path="/:language/rentalcar/booking/success" component={() => <MainLayout><BookingSuccessPage /></MainLayout>} />
       <Route path="/:language/rentalcar/my-bookings/:id" component={() => <MainLayout><MyBookingDetail /></MainLayout>} />
       <Route path="/:language/rentalcar/my-bookings" component={() => <MainLayout><MyBookings /></MainLayout>} />
-      <Route path="/:language/lodging/:slug" component={() => <MainLayout><LodgingDetailPage /></MainLayout>} />
+      <Route path="/:language/lodging/:slug" component={() => LODGING_ENABLED ? <MainLayout><LodgingDetailPage /></MainLayout> : <LodgingRedirect />} />
       <Route path="/:language/partner/apply" component={PartnerApplyPage} />
       <Route path="/:language/partner/inventory" component={PartnerInventoryPage} />
       <Route path="/:language/partner/reservations/:id" component={PartnerReservationTripPage} />
       <Route path="/:language/partner/reservations" component={PartnerReservationsPage} />
       <Route path="/:language/admin/rental-cars/partners" component={() => <AdminLayout><AdminRentalPartners /></AdminLayout>} />
       <Route path="/:language/rentalcar" component={() => <MainLayout><RentalCarHome /></MainLayout>} />
-      <Route path="/:language/lodging" component={() => <MainLayout><LodgingPage /></MainLayout>} />
+      <Route path="/:language/lodging" component={() => LODGING_ENABLED ? <MainLayout><LodgingPage /></MainLayout> : <LodgingRedirect />} />
       <Route path="/:language/privacy-policy" component={() => <MainLayout><PrivacyPolicyPage /></MainLayout>} />
       <Route path="/:language/terms" component={() => <MainLayout><TermsPage /></MainLayout>} />
       <Route path="/:language" component={() => <MainLayout><Home /></MainLayout>} />
