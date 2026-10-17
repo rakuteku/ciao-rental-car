@@ -112,17 +112,16 @@ export const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
     hero: {
       eyebrow: "Sapporo · Hokkaido",
       title: "Rent a Car in Sapporo with Ease",
-      subtitle: "Premium vehicles, flexible pickup, fully insured options.",
+      subtitle: "Choose a vehicle for your Hokkaido journey.",
     },
     search: {
       pickupDate: "Pickup Date", returnDate: "Return Date", pickupLocation: "Pickup Location", returnLocation: "Return Location",
       pickupTime: "Pickup Time", returnTime: "Return Time", pickDate: "Pick a date", selectLocation: "Select location",
       adults: "Adults", children: "Children", babies: "Babies", largeLuggage: "Large luggage", smallLuggage: "Small luggage",
       optionalFilters: "Optional filters", vehicleClass: "Vehicle class", anyClass: "Any class", searchVehicles: "Search Vehicles",
-      fullyInsured: "Fully Insured", fullyInsuredDescription: "Comprehensive coverage included in every booking.",
-      multipleLocations: "Multiple Locations", multipleLocationsDescription: "Pickup and drop-off across Sapporo and the airport.",
-      airportService: "Airport Service", airportServiceDescription: "Seamless New Chitose Airport connections.",
-      easyPayment: "Easy Payment", easyPaymentDescription: "Transparent pricing, no hidden fees.",
+      insurance: "Insurance", insuranceDescription: "Insurance is included. Coverage details, deductibles and non-operation charges are shown before you confirm.",
+      cancellation: "Cancellation", cancellationDescription: "Cancellation terms are shown before you confirm your booking.",
+      vehicleRates: "Vehicle rates", vehicleRatesDescription: "Select a vehicle to see its current rate.",
       roadImageAlt: "Sapporo winter road", minDailyPrice: "Minimum daily price", maxDailyPrice: "Maximum daily price",
       priceRangeTo: "to", perDay: "/day", compact: "Compact", suv: "SUV", minivan: "Minivan",
       fourWheelDrive: "4WD", winterTires: "Winter tires", childSeat: "Child seat", airportDelivery: "Airport delivery", skiLuggage: "Ski luggage",
@@ -132,37 +131,10 @@ export const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
       pricingEyebrow: "Pricing", insurancePlans: "Insurance Plans", addOns: "Add-Ons", importantNotes: "Important Notes",
       passengers: "Passengers", perDay: "/day",
     },
-    pricingTable: {
-      title: "Rental Pricing",
-      description: "Transparent daily rates with no hidden fees. Airport pickup/drop-off fees vary by vehicle.",
-      rows: [
-        { label: "Compact Cars", value: "From ¥6,000 / day" },
-        { label: "Sedans", value: "From ¥9,000 / day" },
-        { label: "Minivans & SUVs", value: "From ¥13,000 / day" },
-      ],
-    },
-    plans: [
-      {
-        name: "Standard Plan",
-        description: "Daily rental with basic liability insurance included.",
-        price: "Included in daily rate",
-      },
-      {
-        name: "Premium Protection Plan",
-        description: "Adds full collision damage waiver and roadside assistance for total peace of mind.",
-        price: "+¥1,500 / day",
-      },
-    ],
-    addOns: [
-      { name: "Child Safety Seat", description: "Rear-facing or booster seat, installed on request.", price: "¥800 / day" },
-      { name: "Winter Tire Upgrade", description: "Studless winter tires for snowy Hokkaido roads.", price: "¥1,000 / day" },
-      { name: "Portable Wi-Fi Router", description: "Stay connected on the road with unlimited data.", price: "¥600 / day" },
-    ],
     importantNotes: [
-      "A valid driver's license (and International Driving Permit for overseas visitors) is required at pickup.",
-      "Vehicles must be returned with a full tank of fuel or a refueling fee applies.",
-      "Winter driving in Hokkaido can be challenging — we recommend the Winter Tire Upgrade from November to March.",
-      "Cancellations within 24 hours of pickup may incur a cancellation fee.",
+      "Insurance is included. Coverage details, deductibles and non-operation charges are shown before you confirm.",
+      "Cancellation terms are shown before you confirm your booking.",
+      "Driving-licence requirements depend on where your licence was issued. Taiwan licences need an official Japanese translation (JAF or the Taiwan–Japan Relations Association); many other countries need an International Driving Permit under the 1949 Geneva Convention. Bring your original licence and passport.",
     ],
   },
   lodging: {
@@ -213,10 +185,10 @@ const DEFAULT_JA_CONTENT: Record<string, Record<string, unknown>> = {
     copy: { heroEyebrow: "北海道でのオールインワン旅行", lodgingEyebrow: "宿泊", featuredRooms: "おすすめのお部屋", viewAllRooms: "すべてのお部屋", monthlyEyebrow: "マンスリーステイ", rentalEyebrow: "レンタカー", exploreRentalCars: "レンタカーを見る", whyEyebrow: "PrimoStayの特徴", whyTitle: "選ばれる理由", accessEyebrow: "アクセス", contactEyebrow: "お問い合わせ", lodgingImageAlt: "札幌の快適な宿泊施設", monthlyImageAlt: "札幌のマンスリーステイ", rentalImageAlt: "北海道のレンタカー", mapTitle: "所在地マップ", heroImageAlt: "札幌の冬の街並み", perNight: "/泊" },
   },
   rentalcar: {
-    hero: { eyebrow: "札幌・北海道", title: "札幌で便利にレンタカー", subtitle: "プレミアム車種、柔軟な受け取り、安心の保険オプション。" },
+    hero: { eyebrow: "札幌・北海道", title: "札幌で便利にレンタカー", subtitle: "北海道の旅に合う車両をお選びください。" },
     sections: { fleetEyebrow: "車両一覧", featuredVehicles: "おすすめ車両", viewAll: "すべて見る", pricingEyebrow: "料金", insurancePlans: "保険プラン", addOns: "追加オプション", importantNotes: "重要事項", passengers: "定員", perDay: "/日" },
-    pricingTable: { title: "レンタル料金", description: "隠れた費用のない明瞭な日額料金です。", rows: [{ label: "コンパクトカー", value: "1日 ¥6,000〜" }, { label: "セダン", value: "1日 ¥9,000〜" }, { label: "ミニバン・SUV", value: "1日 ¥13,000〜" }] },
-    importantNotes: ["受取時に有効な運転免許証が必要です。海外からのお客様は国際運転免許証もご用意ください。", "燃料満タンで返却してください。", "北海道の冬道では冬タイヤをおすすめします。", "受取24時間以内のキャンセルには手数料がかかる場合があります。"],
+    search: { insurance: "保険", insuranceDescription: "保険は料金に含まれます。補償内容・免責額・ノンオペレーションチャージはご予約確定前にご案内します。", cancellation: "キャンセル", cancellationDescription: "キャンセル規定はご予約確定前にご案内します。", vehicleRates: "車両料金", vehicleRatesDescription: "車両を選択すると現在の料金をご確認いただけます。" },
+    importantNotes: ["保険は料金に含まれます。補償内容・免責額・ノンオペレーションチャージはご予約確定前にご案内します。", "キャンセル規定はご予約確定前にご案内します。", "必要な書類は免許証の発行国・地域によって異なります。台湾の免許証はJAFまたは台湾日本関係協会の日本語翻訳文が必要です。その他の多くの国は1949年ジュネーブ条約に基づく国際運転免許証が必要です。免許証の原本とパスポートをお持ちください。"],
   },
   lodging: {
     hero: { title: "札幌の短期滞在", subtitle: "北海道での滞在に便利な、家具付きで快適なお部屋。" },
@@ -238,10 +210,10 @@ const DEFAULT_ZH_CONTENT: Record<string, Record<string, unknown>> = {
     copy: { heroEyebrow: "北海道一站式旅程", lodgingEyebrow: "住宿", featuredRooms: "精选房间", viewAllRooms: "查看全部房间", monthlyEyebrow: "月租住宿", rentalEyebrow: "租车", exploreRentalCars: "探索租车", whyEyebrow: "PrimoStay的优势", whyTitle: "为什么选择我们", accessEyebrow: "交通", contactEyebrow: "联系我们", lodgingImageAlt: "札幌舒适住宿", monthlyImageAlt: "札幌月租住宿", rentalImageAlt: "北海道租车", mapTitle: "位置地图", heroImageAlt: "札幌冬季城市景色", perNight: "/晚" },
   },
   rentalcar: {
-    hero: { eyebrow: "札幌・北海道", title: "轻松租车探索札幌", subtitle: "优质车型、灵活取车，并提供全面保险选项。" },
+    hero: { eyebrow: "札幌・北海道", title: "輕鬆租車探索札幌", subtitle: "選擇適合您北海道旅程的車輛。" },
     sections: { fleetEyebrow: "我们的车队", featuredVehicles: "精选车辆", viewAll: "查看全部", pricingEyebrow: "价格", insurancePlans: "保险方案", addOns: "附加服务", importantNotes: "重要提示", passengers: "乘客", perDay: "/天" },
-    pricingTable: { title: "租车价格", description: "每日价格透明，没有隐藏费用。", rows: [{ label: "紧凑型车", value: "¥6,000 / 天起" }, { label: "轿车", value: "¥9,000 / 天起" }, { label: "小型客车与 SUV", value: "¥13,000 / 天起" }] },
-    importantNotes: ["取车时需要有效驾驶证；海外游客还需要国际驾驶许可证。", "还车时请加满燃油。", "建议在冬季升级冬季轮胎。", "取车前24小时内取消可能产生取消费用。"],
+    search: { insurance: "保險", insuranceDescription: "租金已含保險。保障內容、自負額及營業損失補償（NOC）將於確認預約前說明。", cancellation: "取消", cancellationDescription: "取消規定將於確認預約前說明。", vehicleRates: "車輛費率", vehicleRatesDescription: "選擇車輛即可查看目前費率。" },
+    importantNotes: ["租金已含保險。保障內容、自負額及營業損失補償（NOC）將於確認預約前說明。", "取消規定將於確認預約前說明。", "所需文件依駕照核發國家或地區而定。台灣駕照需搭配 JAF 或台灣日本關係協會核發的日文譯本；其他多數國家需持 1949 年日內瓦公約國際駕照。取車時請攜帶駕照正本與護照。"],
   },
   lodging: {
     hero: { title: "札幌短期住宿", subtitle: "家具齐全、舒适便利的北海道住宿房间。" },

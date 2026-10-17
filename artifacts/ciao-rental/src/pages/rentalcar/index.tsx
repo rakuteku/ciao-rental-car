@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Car as CarIcon, MapPin, Shield, CreditCard, ChevronRight, Clock3, ArrowRight } from "lucide-react";
+import { CalendarIcon, Car as CarIcon, Shield, CheckCircle2, ChevronRight, Clock3, ArrowRight } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -25,24 +25,10 @@ import { RentalTimeSelect } from "@/components/rental/RentalTimeSelect";
 import { useRentalTrip, useStickySummaryVisible } from "@/components/rental/RentalNavigation";
 import { formatRentalTime, isRentalTime } from "@/lib/rental-time";
 
-interface PricingRow {
-  label: string;
-  value: string;
-}
-
-interface Plan {
-  name: string;
-  description: string;
-  price: string;
-}
-
 interface RentalCarContent {
   hero: { eyebrow: string; title: string; subtitle: string };
   search: Record<string, string>;
   sections: Record<string, string>;
-  pricingTable: { title: string; description: string; rows: PricingRow[] };
-  plans: Plan[];
-  addOns?: Array<{ name: string; description: string; price: string }>;
   importantNotes: string[];
 }
 
@@ -50,6 +36,33 @@ const SEARCH_COPY = {
   en: { pickupDate: "Pickup Date", returnDate: "Return Date", pickupLocation: "Pickup Location", returnLocation: "Return Location", pickupTime: "Pickup Time", returnTime: "Return Time", pickupTrip: "Pickup", returnTrip: "Return", pickDate: "Pick a date", selectLocation: "Select location", selectTime: "Select time", adults: "Adults", children: "Children", babies: "Babies", largeLuggage: "Large luggage", smallLuggage: "Small luggage", optionalFilters: "Optional filters", vehicleClass: "Vehicle class", anyClass: "Any class", searchVehicles: "Search Vehicles", minDailyPrice: "Minimum daily price", maxDailyPrice: "Maximum daily price", priceRangeTo: "to", perDay: "/day", compact: "Compact", suv: "SUV", minivan: "Minivan", fourWheelDrive: "4WD", winterTires: "Winter tires", childSeat: "Child seat", airportDelivery: "Airport delivery", skiLuggage: "Ski luggage", passengersLuggage: "Passengers & luggage", dailyPrice: "Daily price", timeNote: "Dates and times are Japan Standard Time (Asia/Tokyo). Airport and hotel delivery require operator confirmation.", returnAfterPickup: "Return must be after pickup", editSearch: "Edit search", lodging: "Lodging", myBookings: "My bookings" },
   ja: { pickupDate: "受取日", returnDate: "返却日", pickupLocation: "受取場所", returnLocation: "返却場所", pickupTime: "受取時間", returnTime: "返却時間", pickupTrip: "受取", returnTrip: "返却", pickDate: "日付を選択", selectLocation: "場所を選択", selectTime: "時間を選択", adults: "大人", children: "子ども", babies: "乳幼児", largeLuggage: "大型荷物", smallLuggage: "小型荷物", optionalFilters: "詳細条件", vehicleClass: "車両クラス", anyClass: "すべてのクラス", searchVehicles: "空車を検索", minDailyPrice: "最低日額料金", maxDailyPrice: "最高日額料金", priceRangeTo: "から", perDay: "/日", compact: "コンパクト", suv: "SUV", minivan: "ミニバン", fourWheelDrive: "4WD", winterTires: "冬用タイヤ", childSeat: "チャイルドシート", airportDelivery: "空港配車", skiLuggage: "スキー用荷物", passengersLuggage: "乗車人数・荷物", dailyPrice: "日額料金", timeNote: "日時は日本標準時（Asia/Tokyo）で指定します。空港・ホテルへの配車は事業者の確認が必要です。", returnAfterPickup: "返却日時は受取日時より後にしてください", editSearch: "検索を編集", lodging: "宿泊", myBookings: "予約確認" },
   "zh-TW": { pickupDate: "取車日期", returnDate: "還車日期", pickupLocation: "取車地點", returnLocation: "還車地點", pickupTime: "取車時間", returnTime: "還車時間", pickupTrip: "取車", returnTrip: "還車", pickDate: "選擇日期", selectLocation: "選擇地點", selectTime: "選擇時間", adults: "成人", children: "兒童", babies: "嬰幼兒", largeLuggage: "大型行李", smallLuggage: "小型行李", optionalFilters: "更多條件", vehicleClass: "車輛類別", anyClass: "所有類別", searchVehicles: "搜尋車輛", minDailyPrice: "最低每日價格", maxDailyPrice: "最高每日價格", priceRangeTo: "至", perDay: "/天", compact: "小型車", suv: "SUV", minivan: "廂型車", fourWheelDrive: "四輪驅動", winterTires: "冬季輪胎", childSeat: "兒童座椅", airportDelivery: "機場送車", skiLuggage: "滑雪行李", passengersLuggage: "乘客與行李", dailyPrice: "每日價格", timeNote: "日期與時間均為日本標準時間（Asia/Tokyo）。機場與飯店送車須由租車業者確認。", returnAfterPickup: "還車時間必須晚於取車時間", editSearch: "修改搜尋", lodging: "住宿", myBookings: "我的預訂" },
+} as const;
+
+const VALUE_PROPS = {
+  en: {
+    insurance: "Insurance",
+    insuranceDescription: "Insurance is included. Coverage details, deductibles and non-operation charges are shown before you confirm.",
+    cancellation: "Cancellation",
+    cancellationDescription: "Cancellation terms are shown before you confirm your booking.",
+    vehicleRates: "Vehicle rates",
+    vehicleRatesDescription: "Select a vehicle to see its current rate.",
+  },
+  ja: {
+    insurance: "保険",
+    insuranceDescription: "保険は料金に含まれます。補償内容・免責額・ノンオペレーションチャージはご予約確定前にご案内します。",
+    cancellation: "キャンセル",
+    cancellationDescription: "キャンセル規定はご予約確定前にご案内します。",
+    vehicleRates: "車両料金",
+    vehicleRatesDescription: "車両を選択すると現在の料金をご確認いただけます。",
+  },
+  "zh-TW": {
+    insurance: "保險",
+    insuranceDescription: "租金已含保險。保障內容、自負額及營業損失補償（NOC）將於確認預約前說明。",
+    cancellation: "取消",
+    cancellationDescription: "取消規定將於確認預約前說明。",
+    vehicleRates: "車輛費率",
+    vehicleRatesDescription: "選擇車輛即可查看目前費率。",
+  },
 } as const;
 
 const searchSchema = z.object({
@@ -201,7 +214,7 @@ export function RentalCarHome() {
                 {content?.hero.title ?? "Rent a Car in Sapporo with Ease"}
               </h1>
               <p className="mx-auto max-w-2xl text-sm leading-7 text-white/85 sm:text-base sm:leading-8">
-                {content?.hero.subtitle ?? "Premium vehicles, flexible pickup, fully insured options."}
+                {content?.hero.subtitle ?? "Choose a vehicle for your Hokkaido journey."}
               </p>
             </div>
 
@@ -368,24 +381,10 @@ export function RentalCarHome() {
         </div>
       </section>
 
-      {/* Pricing, Plans, Add-ons */}
+      {/* Published add-ons and disclosures */}
       {content && (
         <section className="py-24 border-b">
           <div className="container space-y-16">
-            <div className="space-y-4 max-w-2xl">
-               <p className="text-xs tracking-[0.25em] uppercase text-muted-foreground">{content.sections.pricingEyebrow}</p>
-              <h2 className="text-3xl font-serif font-bold tracking-tight">{content.pricingTable.title}</h2>
-              <p className="text-muted-foreground leading-relaxed">{content.pricingTable.description}</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {content.pricingTable.rows.map((row) => (
-                <div key={row.label} className="border p-6 space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{row.label}</p>
-                  <p className="text-xl font-serif font-semibold">{row.value}</p>
-                </div>
-              ))}
-            </div>
-
             {addons?.some(addon => addon.category === "insurance") && <div className="space-y-6">
                <h3 className="text-2xl font-serif font-bold tracking-tight">{content.sections.insurancePlans}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -440,12 +439,11 @@ export function RentalCarHome() {
       {/* Why Book With PrimoStay Car Rental */}
       <section className="py-20 bg-muted/40">
         <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x border">
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x border">
             {[
-               { icon: <Shield className="h-5 w-5" />, title: content?.search.fullyInsured ?? "Fully Insured", desc: content?.search.fullyInsuredDescription ?? "Comprehensive coverage included in every booking." },
-               { icon: <MapPin className="h-5 w-5" />, title: content?.search.multipleLocations ?? "Multiple Locations", desc: content?.search.multipleLocationsDescription ?? "Pickup and drop-off across Sapporo and the airport." },
-               { icon: <CarIcon className="h-5 w-5" />, title: content?.search.airportService ?? "Airport Service", desc: content?.search.airportServiceDescription ?? "Seamless New Chitose Airport connections." },
-               { icon: <CreditCard className="h-5 w-5" />, title: content?.search.easyPayment ?? "Easy Payment", desc: content?.search.easyPaymentDescription ?? "Transparent pricing, no hidden fees." },
+               { icon: <Shield className="h-5 w-5" />, title: search.insurance || VALUE_PROPS[language].insurance, desc: search.insuranceDescription || VALUE_PROPS[language].insuranceDescription },
+               { icon: <CheckCircle2 className="h-5 w-5" />, title: search.cancellation || VALUE_PROPS[language].cancellation, desc: search.cancellationDescription || VALUE_PROPS[language].cancellationDescription },
+               { icon: <CarIcon className="h-5 w-5" />, title: search.vehicleRates || VALUE_PROPS[language].vehicleRates, desc: search.vehicleRatesDescription || VALUE_PROPS[language].vehicleRatesDescription },
             ].map(({ icon, title, desc }) => (
               <div key={title} className="flex flex-col gap-3 p-8">
                 <div className="text-muted-foreground">{icon}</div>

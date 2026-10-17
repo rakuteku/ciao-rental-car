@@ -5,7 +5,7 @@ import { format, differenceInDays, addDays } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { CalendarIcon, Users, CreditCard, Shield, MapPin, CheckCircle2, Fuel, AlertTriangle, Snowflake, ArrowRight } from "lucide-react";
+import { CalendarIcon, Users, Shield, CheckCircle2, Fuel, AlertTriangle, Snowflake, ArrowRight } from "lucide-react";
 
 import {
   useGetRentalVehicle,
@@ -45,6 +45,33 @@ const bookingSchema = z.object({
   returnDate: z.date({ required_error: "Return date is required" }),
 });
 const pickupDateString = (date: Date, time: string) => tokyoInstant(format(date, "yyyy-MM-dd"), time);
+
+const RENTAL_INFORMATION = {
+  en: {
+    insurance: "Insurance",
+    insuranceDescription: "Insurance is included. Coverage details, deductibles and non-operation charges are shown before you confirm.",
+    cancellation: "Cancellation",
+    cancellationDescription: "Cancellation terms are shown before you confirm your booking.",
+    licence: "Driving licence",
+    licenceDescription: "Driving-licence requirements depend on where your licence was issued. Taiwan licences need an official Japanese translation (JAF or the Taiwan–Japan Relations Association); many other countries need an International Driving Permit under the 1949 Geneva Convention. Bring your original licence and passport.",
+  },
+  ja: {
+    insurance: "保険",
+    insuranceDescription: "保険は料金に含まれます。補償内容・免責額・ノンオペレーションチャージはご予約確定前にご案内します。",
+    cancellation: "キャンセル",
+    cancellationDescription: "キャンセル規定はご予約確定前にご案内します。",
+    licence: "運転免許証",
+    licenceDescription: "必要な書類は免許証の発行国・地域によって異なります。台湾の免許証はJAFまたは台湾日本関係協会の日本語翻訳文が必要です。その他の多くの国は1949年ジュネーブ条約に基づく国際運転免許証が必要です。免許証の原本とパスポートをお持ちください。",
+  },
+  "zh-TW": {
+    insurance: "保險",
+    insuranceDescription: "租金已含保險。保障內容、自負額及營業損失補償（NOC）將於確認預約前說明。",
+    cancellation: "取消",
+    cancellationDescription: "取消規定將於確認預約前說明。",
+    licence: "駕照",
+    licenceDescription: "所需文件依駕照核發國家或地區而定。台灣駕照需搭配 JAF 或台灣日本關係協會核發的日文譯本；其他多數國家需持 1949 年日內瓦公約國際駕照。取車時請攜帶駕照正本與護照。",
+  },
+} as const;
 
 export function CarDetailPage() {
   const params = useParams();
@@ -108,6 +135,9 @@ export function CarDetailPage() {
   const priceData = calculatePrice.data;
 
   const localizedCar = car ? localizeVehicle(car, language) : undefined;
+  const disclosures = (car as typeof car & { disclosures?: Record<string, unknown> })?.disclosures;
+  const hasDisclosures = Boolean(disclosures && Object.keys(disclosures).length > 0);
+  const rentalInformation = RENTAL_INFORMATION[language];
   const addonName = (addonId: number, fallback: string) => {
     const addon = addons?.find((candidate) => candidate.id === addonId);
     return addon ? localizeAddon(addon, language).name : fallback;
@@ -244,10 +274,10 @@ export function CarDetailPage() {
                     {typeof (car as typeof car & { operatorName?: string }).operatorName === "string" && (
                       <p className="mt-2 text-sm text-muted-foreground">{language === "ja" ? "運営事業者" : "Operated by"}: {(car as typeof car & { operatorName?: string }).operatorName}</p>
                     )}
-                    {marketplace.data?.enabled === false && Boolean((car as typeof car & { disclosures?: Record<string, unknown> }).disclosures) && (
+                    {marketplace.data?.enabled === false && hasDisclosures && (
                       <div className="mt-3 text-sm text-muted-foreground">
                         <p className="font-medium">{language === "ja" ? "ご利用に関するご案内" : "Rental disclosures"}</p>
-                        {Object.entries((car as typeof car & { disclosures?: Record<string, unknown> }).disclosures ?? {}).map(([key, value]) => (
+                        {Object.entries(disclosures ?? {}).map(([key, value]) => (
                           <p key={key}>{key}: {Array.isArray(value) ? value.join(", ") : String(value)}</p>
                         ))}
                       </div>
@@ -290,34 +320,20 @@ export function CarDetailPage() {
                     returnLocations={car.returnLocations}
                     language={language}
                   />
-                  <p className="text-sm text-muted-foreground">{language === "ja" ? "原本の運転免許証、必要な場合は国際運転免許証・パスポートを貸出時にお持ちください。未提示の条件は承諾前に事業者へご確認ください。" : "Bring original driving documents and, where required, an international driving permit and passport. Ask the operator about any terms not yet supplied before accepting."}</p>
-                </div> : <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <p className="text-sm text-muted-foreground">{rentalInformation.licenceDescription}</p>
+                </div> : <div className="grid grid-cols-1 gap-4">
                   <div className="flex gap-3 items-start">
                     <Shield className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                         <div className="font-medium">Fully Insured</div>
-                         <div className="text-sm text-muted-foreground">Comprehensive coverage included</div>
+                         <div className="font-medium">{rentalInformation.insurance}</div>
+                         <div className="text-sm text-muted-foreground">{rentalInformation.insuranceDescription}</div>
                     </div>
                   </div>
                   <div className="flex gap-3 items-start">
                     <CheckCircle2 className="w-5 h-5 text-primary mt-0.5" />
                     <div>
-                         <div className="font-medium">Free Cancellation</div>
-                         <div className="text-sm text-muted-foreground">Up to 48 hours before pickup</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 items-start">
-                    <MapPin className="w-5 h-5 text-primary mt-0.5" />
-                    <div>
-                      <div className="font-medium">Multiple Locations</div>
-                      <div className="text-sm text-muted-foreground">Easy pickup and drop-off</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 items-start">
-                    <CreditCard className="w-5 h-5 text-primary mt-0.5" />
-                    <div>
-                         <div className="font-medium">Secure Payment</div>
-                         <div className="text-sm text-muted-foreground">Pay online or at pickup</div>
+                         <div className="font-medium">{rentalInformation.cancellation}</div>
+                         <div className="text-sm text-muted-foreground">{rentalInformation.cancellationDescription}</div>
                     </div>
                   </div>
                 </div>}
@@ -337,7 +353,6 @@ export function CarDetailPage() {
                 </div>
                 {marketplace.data?.enabled === false && <div className="grid gap-5 border-t pt-6 text-sm text-muted-foreground">
                   <div><h3 className="mb-1 font-bold text-foreground">Pickup & return</h3><p>We will send meeting instructions before your selected pickup time. Please return with the same fuel level.</p></div>
-                  <div><h3 className="mb-1 font-bold text-foreground">Policies & insurance</h3><p>Free cancellation is available before the policy cutoff. Standard collision coverage is included; security deposit terms are shown at checkout.</p></div>
                 </div>}
               </div>
             </div>
