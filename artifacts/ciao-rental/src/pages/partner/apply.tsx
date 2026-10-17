@@ -139,7 +139,7 @@ export function PartnerApplyPage() {
         </form>
       </Section>
       <div className="rounded-xl bg-slate-900 p-6 text-white sm:p-8">
-        <p className="text-xs uppercase tracking-[.2em] text-amber-300">CIAO RENTAL</p>
+        <p className="text-xs uppercase tracking-[.2em] text-amber-300">PRIMOSTAY CAR RENTAL</p>
         <h2 className="mt-4 font-serif text-2xl font-semibold">{t("Built for trusted local operators.", "地域の信頼できる事業者のために。")}</h2>
         <p className="mt-3 text-sm leading-6 text-slate-300">{t("Submit your company and compliance details for review. Approved partners can manage private vehicle information, availability, pricing, and maintenance from one place.", "会社情報と必要書類を提出して審査を受けます。承認後は車両情報、空き状況、料金、整備を一元管理できます。")}</p>
         <div className="mt-7 border-t border-white/15 pt-5 text-sm text-slate-300">{t("Have an account?", "アカウントをお持ちですか？")} <Link className="text-amber-300 underline" href="/partner/inventory">{t("Open inventory", "在庫管理へ")}</Link></div>
@@ -179,7 +179,7 @@ export function PartnerApplyPage() {
           <Field label={t("Insurance expires", "保険有効期限")}><input type="date" className={inputClass()} required disabled={!isOwner} value={application.insuranceExpiresAt.slice(0, 10)} onChange={(e) => setApp("insuranceExpiresAt", e.target.value)} /></Field>
           <Field label={t("Rental permission expires", "レンタカー許可有効期限")}><input type="date" className={inputClass()} required disabled={!isOwner} value={application.permissionExpiresAt.slice(0, 10)} onChange={(e) => setApp("permissionExpiresAt", e.target.value)} /></Field>
         </div>
-        <label className="flex items-start gap-3 rounded-lg border bg-slate-50 p-4 text-sm"><input type="checkbox" required disabled={!isOwner} checked={application.termsAccepted} onChange={(e) => setApplication((current) => ({ ...current, termsAccepted: e.target.checked }))} className="mt-1 h-4 w-4 accent-slate-900" /><span>{t("I accept the CIAO rental partner terms and confirm the information provided is accurate.", "CIAOレンタカーパートナー規約に同意し、入力情報が正確であることを確認します。")}</span></label>
+        <label className="flex items-start gap-3 rounded-lg border bg-slate-50 p-4 text-sm"><input type="checkbox" required disabled={!isOwner} checked={application.termsAccepted} onChange={(e) => setApplication((current) => ({ ...current, termsAccepted: e.target.checked }))} className="mt-1 h-4 w-4 accent-slate-900" /><span>{t("I accept the PrimoStay Car Rental partner terms and confirm the information provided is accurate.", "PrimoStay レンタカーパートナー規約に同意し、入力情報が正確であることを確認します。")}</span></label>
       </Section>
       {isOwner && <Section title={t("Supporting documents", "確認書類")} >
         <p className="text-sm text-slate-600">{t("Upload PDF, JPEG, or PNG evidence. Files are sent through the private document upload flow.", "PDF、JPEG、PNG形式の証明書類をアップロードしてください。ファイルは非公開のアップロード機能で送信されます。")}</p>

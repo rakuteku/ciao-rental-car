@@ -15,9 +15,9 @@ import { rentalReservationStatusLabel } from "@/lib/rental-localization";
 import { useInlineSeoMeta } from "@/hooks/use-seo-meta";
 
 const copy = {
-  en: { title: "My bookings", subtitle: "Sign in to see every CIAO rental booking linked to your email.", signIn: "Sign in", create: "Create account", guest: "Guest lookup", email: "Email address", password: "Password", name: "Full name", phone: "Phone number", register: "Create my account", noBookings: "No bookings are linked to this account yet.", upcoming: "Your bookings", logout: "Log out", booking: "Booking", pickup: "Pickup", return: "Return", view: "View booking", accessCode: "Booking access code", bookingId: "Booking ID", lookup: "Look up booking", passwordHint: "Use at least 8 characters.", accountIntro: "Customer account", guestIntro: "You can still open an existing reservation without creating an account." },
-  ja: { title: "予約の確認", subtitle: "ログインすると、メールアドレスに紐づくCIAOレンタカー予約を確認できます。", signIn: "ログイン", create: "アカウント作成", guest: "ゲスト予約検索", email: "メールアドレス", password: "パスワード", name: "氏名", phone: "電話番号", register: "アカウントを作成", noBookings: "このアカウントに紐づく予約はまだありません。", upcoming: "予約一覧", logout: "ログアウト", booking: "予約", pickup: "貸出", return: "返却", view: "予約を見る", accessCode: "予約アクセスコード", bookingId: "予約ID", lookup: "予約を検索", passwordHint: "8文字以上で設定してください。", accountIntro: "お客様アカウント", guestIntro: "アカウントを作成せず、既存予約を検索することもできます。" },
-  "zh-TW": { title: "我的預訂", subtitle: "登入後即可查看與電子郵件連結的所有 CIAO 租車預訂。", signIn: "登入", create: "建立帳戶", guest: "訪客查詢", email: "電子郵件", password: "密碼", name: "姓名", phone: "電話號碼", register: "建立我的帳戶", noBookings: "此帳戶目前沒有相關預訂。", upcoming: "您的預訂", logout: "登出", booking: "預訂", pickup: "取車", return: "還車", view: "查看預訂", accessCode: "預訂存取碼", bookingId: "預訂編號", lookup: "查詢預訂", passwordHint: "請使用至少 8 個字元。", accountIntro: "顧客帳戶", guestIntro: "您仍可在不建立帳戶的情況下查詢現有預訂。" },
+  en: { title: "My bookings", subtitle: "Sign in to see every PrimoStay Car Rental booking linked to your email.", signIn: "Sign in", create: "Create account", guest: "Guest lookup", email: "Email address", password: "Password", name: "Full name", phone: "Phone number", register: "Create my account", noBookings: "No bookings are linked to this account yet.", upcoming: "Your bookings", logout: "Log out", booking: "Booking", pickup: "Pickup", return: "Return", view: "View booking", accessCode: "Booking access code", bookingId: "Booking ID", lookup: "Look up booking", passwordHint: "Use at least 8 characters.", accountIntro: "Customer account", guestIntro: "You can still open an existing reservation without creating an account." },
+  ja: { title: "予約の確認", subtitle: "ログインすると、メールアドレスに紐づくPrimoStay レンタカー予約を確認できます。", signIn: "ログイン", create: "アカウント作成", guest: "ゲスト予約検索", email: "メールアドレス", password: "パスワード", name: "氏名", phone: "電話番号", register: "アカウントを作成", noBookings: "このアカウントに紐づく予約はまだありません。", upcoming: "予約一覧", logout: "ログアウト", booking: "予約", pickup: "貸出", return: "返却", view: "予約を見る", accessCode: "予約アクセスコード", bookingId: "予約ID", lookup: "予約を検索", passwordHint: "8文字以上で設定してください。", accountIntro: "お客様アカウント", guestIntro: "アカウントを作成せず、既存予約を検索することもできます。" },
+  "zh-TW": { title: "我的預訂", subtitle: "登入後即可查看與電子郵件連結的所有 PrimoStay 租車預訂。", signIn: "登入", create: "建立帳戶", guest: "訪客查詢", email: "電子郵件", password: "密碼", name: "姓名", phone: "電話號碼", register: "建立我的帳戶", noBookings: "此帳戶目前沒有相關預訂。", upcoming: "您的預訂", logout: "登出", booking: "預訂", pickup: "取車", return: "還車", view: "查看預訂", accessCode: "預訂存取碼", bookingId: "預訂編號", lookup: "查詢預訂", passwordHint: "請使用至少 8 個字元。", accountIntro: "顧客帳戶", guestIntro: "您仍可在不建立帳戶的情況下查詢現有預訂。" },
 } satisfies Record<Language, Record<string, string>>;
 
 export function MyBookings() {
@@ -26,7 +26,7 @@ export function MyBookings() {
   const { language } = useLanguage();
   const t = copy[language];
   useInlineSeoMeta({
-    metaTitle: `${t.title} | CIAO Rental Car`,
+    metaTitle: `${t.title} | ${language === "ja" ? "PrimoStay レンタカー" : language === "zh-TW" ? "PrimoStay 租車" : "PrimoStay Car Rental"}`,
     metaDescription: t.subtitle,
     ogTitle: t.title,
     ogDescription: t.subtitle,

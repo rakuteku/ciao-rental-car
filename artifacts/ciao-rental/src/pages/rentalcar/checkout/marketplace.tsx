@@ -100,7 +100,7 @@ export function MarketplaceCheckout() {
   return <div className="marketplace-flow min-h-[100dvh] py-10 md:py-16">
     <div className="container max-w-6xl">
       <Link href={localizedPath(`/rentalcar/cars/${draft.vehicleSlug}`, language)} className="mb-8 inline-flex items-center gap-2 text-sm text-[#ab593d] hover:underline"><ArrowLeft size={16} />{ja ? "車両に戻る" : "Back to vehicle"}</Link>
-      <p className="marketplace-kicker">{ja ? "CIAO 札幌 · お申し込み" : "CIAO SAPPORO · RENTAL REQUEST"}</p>
+      <p className="marketplace-kicker">{ja ? "PrimoStay レンタカー · お申し込み" : "PRIMOSTAY CAR RENTAL · RENTAL REQUEST"}</p>
       <h1 className="mt-3 max-w-3xl text-4xl leading-tight md:text-5xl">{ja ? "旅の予定をお聞かせください。" : "Tell us about your trip."}</h1>
       <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">{ja ? "これは予約リクエストです。送信時に決済は行われません。事業者が空き状況と条件を確認し、確定または変更提案をご案内します。" : "This is a request, not a paid reservation. No charge is made now. The operator will confirm availability and terms, or send a revised offer for your approval."}</p>
       <div className="mt-9 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -151,7 +151,7 @@ export function MarketplaceCheckout() {
               <p><strong className="text-[#1d3041]">{ja ? "キャンセル：" : "Cancellation: "}</strong>{ja ? "キャンセルの期限と料金は事業者の提示条件に従います。変更提案を承諾するまで変更後の条件では確定しません。" : "Cancellation cutoff and charges follow the operator's stated policy. A changed offer is not accepted until you explicitly approve it."}</p>
             </div>
             <label className="mt-6 flex items-start gap-3 text-sm"><Checkbox checked={terms} onCheckedChange={v => setTerms(v === true)} data-testid="checkbox-terms" /><span>{ja ? "貸渡条件、補償・免責、NOC、キャンセル規定を確認し、問い合わせとして送信することに同意します。" : "I have reviewed the rental, coverage, deductible, NOC and cancellation information, and agree to submit this request."}</span></label>
-            <label className="mt-5 flex items-start gap-3 text-sm"><Checkbox checked={consent} onCheckedChange={v => setConsent(v === true)} data-testid="checkbox-marketing" /><span>{ja ? "CIAOからの旅行情報やご案内メールを希望します（任意）。予約に必要な連絡とは別です。" : "I would like optional travel news and offers from CIAO. This is separate from messages needed to process my request."}</span></label>
+            <label className="mt-5 flex items-start gap-3 text-sm"><Checkbox checked={consent} onCheckedChange={v => setConsent(v === true)} data-testid="checkbox-marketing" /><span>{ja ? "PrimoStay レンタカーからの旅行情報やご案内メールを希望します（任意）。予約に必要な連絡とは別です。" : "I would like optional travel news and offers from PrimoStay Car Rental. This is separate from messages needed to process my request."}</span></label>
             {error && <p role="alert" className="mt-5 border-l-2 border-[#a84736] bg-[#fff1e8] p-3 text-sm text-[#8f3529]">{error}</p>}
             <Button form="marketplace-request-form" type="submit" size="lg" disabled={busy || expired || quote.isPending || !quote.data} className="mt-7 w-full gap-2">{busy ? ja ? "送信中…" : "Sending request…" : ja ? "予約リクエストを送信" : "Send rental request"}<ArrowRight size={17} /></Button>
             <p className="mt-3 text-center text-xs text-slate-500">{ja ? "この画面では決済・請求は行われません。" : "No payment or charge is taken on this page."}</p>

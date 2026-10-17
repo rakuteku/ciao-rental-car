@@ -56,12 +56,17 @@ test("published rental catalog, live add-ons, pricing, slugs, and CMS cleanup ar
       NODE_ENV: "test",
       PORT: String(port),
       SESSION_SECRET: process.env.SESSION_SECRET ?? "rental-catalog-regression-test-secret",
+      PUBLIC_BASE_URL: "https://rental-staging.example.test",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
 
   try {
     await waitForServer(child);
+
+    const robots = await fetch(`${baseUrl}/api/robots.txt`);
+    assert.equal(robots.ok, true);
+    assert.match(await robots.text(), /Sitemap: https:\/\/rental-staging\.example\.test\/sitemap\.xml/);
 
     const vehicles = await getJson("/api/rental/vehicles");
     assert.deepEqual(

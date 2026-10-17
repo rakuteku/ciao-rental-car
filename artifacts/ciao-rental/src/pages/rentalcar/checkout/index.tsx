@@ -149,10 +149,10 @@ function LegacyCheckout() {
   const locations = configuredLocations ?? DEFAULT_RENTAL_LOCATIONS;
   const locationLabel = (value: string) => rentalLocationLabel(value, locations, language);
   useInlineSeoMeta({
-    metaTitle: "Checkout | CIAO Rental Car Sapporo",
-    metaDescription: "Review your CIAO Sapporo rental car booking, driver details, add-ons, and pickup information.",
-    ogTitle: "Checkout | CIAO Rental Car",
-    ogDescription: "Review your CIAO Sapporo rental car booking before confirming.",
+    metaTitle: "Checkout | PrimoStay Car Rental",
+    metaDescription: "Review your PrimoStay Car Rental booking, driver details, add-ons, and pickup information.",
+    ogTitle: "Checkout | PrimoStay Car Rental",
+    ogDescription: "Review your PrimoStay Car Rental booking before confirming.",
     ogImage: "",
   });
   
@@ -575,7 +575,7 @@ function LegacyCheckout() {
                           <p className="text-xs uppercase tracking-wide text-muted-foreground">Stay planning</p>
                           <p className="mt-1 font-semibold">{draft.selectedRoom.title}</p>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            Room availability is confirmed separately by the CIAO team.
+                            Room availability is confirmed separately by the PrimoStay Car Rental team.
                           </p>
                         </div>
                       )}

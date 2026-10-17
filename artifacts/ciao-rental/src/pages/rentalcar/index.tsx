@@ -437,7 +437,7 @@ export function RentalCarHome() {
         </section>
       )}
 
-      {/* Why Book With CIAO */}
+      {/* Why Book With PrimoStay Car Rental */}
       <section className="py-20 bg-muted/40">
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x border">

@@ -96,7 +96,7 @@ export const DEFAULT_CONTENT: Record<string, Record<string, unknown>> = {
       monthlyEyebrow: "Monthly Stay",
       rentalEyebrow: "Rental Car",
       exploreRentalCars: "Explore rental cars",
-      whyEyebrow: "Why CIAO",
+      whyEyebrow: "Why PrimoStay",
       whyTitle: "Why Choose Us",
       accessEyebrow: "Access",
       contactEyebrow: "Contact",
@@ -210,7 +210,7 @@ const DEFAULT_JA_CONTENT: Record<string, Record<string, unknown>> = {
     access: { title: "場所とアクセス", description: "札幌に位置し、新千歳空港からアクセスしやすい便利な立地です。", address: "Wayado Sapporo Ciao, 札幌市, 北海道, 日本" },
     whyChooseUs: [{ title: "北海道・札幌に立地", description: "北海道の観光に便利な札幌の中心にあります。" }, { title: "空港から便利", description: "新千歳空港からの移動もスムーズです。" }, { title: "滞在と車をまとめて計画", description: "宿泊とレンタカーを一緒に計画できます。お部屋の空き状況はスタッフが別途確認します。" }, { title: "家族・グループ・ドライブ旅行に", description: "家族旅行や長距離の北海道旅行に対応します。" }],
     contact: { title: "ご質問はありますか？", description: "予約のお手伝いや旅程のご相談など、お気軽にお問い合わせください。", ctaText: "お問い合わせ" },
-    copy: { heroEyebrow: "北海道でのオールインワン旅行", lodgingEyebrow: "宿泊", featuredRooms: "おすすめのお部屋", viewAllRooms: "すべてのお部屋", monthlyEyebrow: "マンスリーステイ", rentalEyebrow: "レンタカー", exploreRentalCars: "レンタカーを見る", whyEyebrow: "CIAOの特徴", whyTitle: "選ばれる理由", accessEyebrow: "アクセス", contactEyebrow: "お問い合わせ", lodgingImageAlt: "札幌の快適な宿泊施設", monthlyImageAlt: "札幌のマンスリーステイ", rentalImageAlt: "北海道のレンタカー", mapTitle: "所在地マップ", heroImageAlt: "札幌の冬の街並み", perNight: "/泊" },
+    copy: { heroEyebrow: "北海道でのオールインワン旅行", lodgingEyebrow: "宿泊", featuredRooms: "おすすめのお部屋", viewAllRooms: "すべてのお部屋", monthlyEyebrow: "マンスリーステイ", rentalEyebrow: "レンタカー", exploreRentalCars: "レンタカーを見る", whyEyebrow: "PrimoStayの特徴", whyTitle: "選ばれる理由", accessEyebrow: "アクセス", contactEyebrow: "お問い合わせ", lodgingImageAlt: "札幌の快適な宿泊施設", monthlyImageAlt: "札幌のマンスリーステイ", rentalImageAlt: "北海道のレンタカー", mapTitle: "所在地マップ", heroImageAlt: "札幌の冬の街並み", perNight: "/泊" },
   },
   rentalcar: {
     hero: { eyebrow: "札幌・北海道", title: "札幌で便利にレンタカー", subtitle: "プレミアム車種、柔軟な受け取り、安心の保険オプション。" },
@@ -235,7 +235,7 @@ const DEFAULT_ZH_CONTENT: Record<string, Record<string, unknown>> = {
     access: { title: "位置与交通", description: "位于札幌，从新千岁机场前往十分方便。", address: "Wayado Sapporo Ciao，日本北海道札幌市" },
     whyChooseUs: [{ title: "位于札幌・北海道", description: "从北海道的中心城市出发，方便前往岛上的各个景点。" }, { title: "机场交通便利", description: "往返新千岁机场轻松方便。" }, { title: "住宿与租车一起规划", description: "可以一起规划住宿和租车；房间空房情况由工作人员另行确认。" }, { title: "适合家庭、团体与自驾", description: "适合家庭出游、团体旅行及北海道自驾。" }],
     contact: { title: "有问题吗？", description: "如需预订协助或定制行程，欢迎联系我们。", ctaText: "联系我们" },
-    copy: { heroEyebrow: "北海道一站式旅程", lodgingEyebrow: "住宿", featuredRooms: "精选房间", viewAllRooms: "查看全部房间", monthlyEyebrow: "月租住宿", rentalEyebrow: "租车", exploreRentalCars: "探索租车", whyEyebrow: "CIAO的优势", whyTitle: "为什么选择我们", accessEyebrow: "交通", contactEyebrow: "联系我们", lodgingImageAlt: "札幌舒适住宿", monthlyImageAlt: "札幌月租住宿", rentalImageAlt: "北海道租车", mapTitle: "位置地图", heroImageAlt: "札幌冬季城市景色", perNight: "/晚" },
+    copy: { heroEyebrow: "北海道一站式旅程", lodgingEyebrow: "住宿", featuredRooms: "精选房间", viewAllRooms: "查看全部房间", monthlyEyebrow: "月租住宿", rentalEyebrow: "租车", exploreRentalCars: "探索租车", whyEyebrow: "PrimoStay的优势", whyTitle: "为什么选择我们", accessEyebrow: "交通", contactEyebrow: "联系我们", lodgingImageAlt: "札幌舒适住宿", monthlyImageAlt: "札幌月租住宿", rentalImageAlt: "北海道租车", mapTitle: "位置地图", heroImageAlt: "札幌冬季城市景色", perNight: "/晚" },
   },
   rentalcar: {
     hero: { eyebrow: "札幌・北海道", title: "轻松租车探索札幌", subtitle: "优质车型、灵活取车，并提供全面保险选项。" },

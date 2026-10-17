@@ -43,7 +43,24 @@ new Function("require", "module", "exports", bundled.outputFiles[0].text)(
   module,
   module.exports,
 );
-const { queueRentalNotification } = module.exports;
+const { queueRentalNotification, smtpConfiguration } = module.exports;
+
+test("SMTP sender uses the PrimoStay display name with configured address forms", () => {
+  const original = { ...process.env };
+  try {
+    process.env.SMTP_HOST = "smtp.example.test";
+    process.env.SMTP_FROM = "Operations <mail@example.test>";
+    assert.equal(smtpConfiguration().from, "PrimoStay Car Rental <mail@example.test>");
+
+    process.env.SMTP_FROM = "mail@example.test";
+    assert.equal(smtpConfiguration().from, "PrimoStay Car Rental <mail@example.test>");
+  } finally {
+    for (const key of Object.keys(process.env)) {
+      if (!(key in original)) delete process.env[key];
+    }
+    Object.assign(process.env, original);
+  }
+});
 
 for (const eventType of [
   "new_booking",
@@ -94,3 +111,28 @@ for (const eventType of [
       );
   });
 }
+
+test("customer notification subjects use the localized PrimoStay brand", async () => {
+  const cases = [
+    ["request", "en", "PrimoStay Car Rental:"],
+    ["decline", "ja", "PrimoStay レンタカー："],
+    ["pickup_reminder", "ja", "PrimoStay レンタカー："],
+    ["return_reminder", "ja", "PrimoStay レンタカー："],
+    ["overdue_alert", "ja", "PrimoStay レンタカー："],
+    ["cancellation_confirmed", "zh-TW", "PrimoStay 租車："],
+  ];
+  for (const [eventType, locale, prefix] of cases) {
+    let stored;
+    await queueRentalNotification({
+      email: "customer@example.test", eventType, bookingId: 42, locale, dispatch: false,
+    }, {
+      insert() {
+        return { values(value) {
+          stored = value;
+          return { onConflictDoNothing() { return { returning: async () => [{ id: 1, ...value }] }; } };
+        } };
+      },
+    });
+    assert.ok(stored.payload.localeTemplates[locale].subject.startsWith(prefix), `${eventType} ${locale}`);
+  }
+});
