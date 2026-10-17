@@ -101,21 +101,21 @@ const checkoutCopy = {
     addons: "Add-ons", driverInfo: "Driver Info", pickupDetails: "Pickup Details", summary: "Summary", pickupDetailsSubtitle: "Confirm your locations, times, and delivery notes.", driverInfoSubtitle: "Please provide details for the primary driver.", summarySubtitle: "Please review your booking details.", back: "Back", continue: "Continue", error: "Error", holdInvalid: "Hold expired or invalid", bookingFailed: "Booking failed", bookingRetry: "Please try again later.",
     unavailableTitle: "Checkout temporarily unavailable", unavailableBody: "We could not verify the booking mode. No booking was submitted.", tryAgain: "Try again", noCheckoutTitle: "No active checkout", noCheckoutBody: "Please select a vehicle first.", viewFleet: "View Fleet", held: "Your vehicle is held for you", differentReturn: "I need a different return location. Our team will confirm any applicable delivery fee before pickup.", afterHours: "Your pickup is outside normal desk hours. An after-hours service fee may apply.", pickup: "Pickup", return: "Return",
     fullName: "Full Name (as on Licence)", romanizedName: "Romanized Name (if applicable)", email: "Email Address", phone: "Phone Number", nationality: "Nationality", dateOfBirth: "Date of Birth", residenceCountry: "Country of Residence", address: "Home Address", emergencyContact: "Emergency Contact", emergencyContactPlaceholder: "Name and phone number", flightNumber: "Arrival Flight Number (Optional)", flightNumberPlaceholder: "e.g. JL501", accommodation: "Hotel / Accommodation (Optional)", addDriver: "Add additional driver", additionalDriver: "Additional driver", additionalDriverName: "Full legal name", additionalDriverNameAria: "Additional driver full legal name", additionalDriverEmailAria: "Additional driver email", additionalDriverPhoneAria: "Additional driver phone",
-    primaryDriver: "Primary Driver", name: "Name", itinerary: "Itinerary", stayPlanning: "Stay planning", stayPlanningNotice: "Room availability is confirmed separately by the PrimoStay Car Rental team.", selectedAddons: "Selected add-ons", addonsTotal: "Add-ons total", pickupFee: "Pickup Fee", dropoffFee: "Drop-off Fee", pickupLocationFee: "Pickup Location Fee", returnLocationFee: "Return Location Fee", oneWayFee: "One-way Fee", priceUnavailable: "We could not calculate the total.", holdExpiredTitle: "Your reservation hold has expired", holdExpiredBody: "The vehicle may no longer be available for your selected dates.", returnToSearch: "Return to search",
+    primaryDriver: "Primary Driver", name: "Name", itinerary: "Itinerary", stayPlanning: "Stay planning", stayPlanningNotice: "Room availability is confirmed separately by the PrimoStay Car Rental team.", selectedAddons: "Selected add-ons", addonsTotal: "Add-ons total", pickupFee: "Airport pickup service fee", dropoffFee: "Airport return service fee", pickupLocationFee: "Pickup Location Fee", returnLocationFee: "Return Location Fee", oneWayFee: "One-way Fee", priceUnavailable: "We could not calculate the total.", holdExpiredTitle: "Your reservation hold has expired", holdExpiredBody: "The vehicle may no longer be available for your selected dates.", returnToSearch: "Return to search", vehicleClass: { compact: "Compact", suv: "SUV", minivan: "Minivan" },
     fullNameRequired: "Full name is required", emailInvalid: "Valid email is required", phoneRequired: "Phone number is required", seoTitle: "Checkout | PrimoStay Car Rental", seoDescription: "Review your PrimoStay Car Rental booking, driver details, add-ons, and pickup information.", seoOgDescription: "Review your PrimoStay Car Rental booking before confirming.", signInTitle: "Sign in before booking", signInBody: "Sign in or create an account to continue this vehicle booking.", signInAction: "Sign in or create account",
   },
   ja: {
     addons: "追加オプション", driverInfo: "運転者情報", pickupDetails: "貸出詳細", summary: "概要", pickupDetailsSubtitle: "場所、日時、配車に関するご要望をご確認ください。", driverInfoSubtitle: "主な運転者の情報を入力してください。", summarySubtitle: "予約内容をご確認ください。", back: "戻る", continue: "次へ", error: "エラー", holdInvalid: "仮予約の有効期限が切れたか、無効です。", bookingFailed: "予約を送信できませんでした", bookingRetry: "しばらくしてからもう一度お試しください。",
     unavailableTitle: "現在チェックアウトをご利用いただけません", unavailableBody: "予約モードを確認できませんでした。予約は送信されていません。", tryAgain: "再試行", noCheckoutTitle: "進行中の予約はありません", noCheckoutBody: "先に車両を選択してください。", viewFleet: "車両一覧を見る", held: "車両を仮押さえしています", differentReturn: "返却場所を変更したい。該当する配車料金は、貸出前にスタッフが確認します。", afterHours: "貸出時間が通常の営業時間外です。時間外対応料金がかかる場合があります。", pickup: "貸出", return: "返却",
     fullName: "氏名（免許証の表記どおり）", romanizedName: "ローマ字氏名（該当する場合）", email: "メールアドレス", phone: "電話番号", nationality: "国籍", dateOfBirth: "生年月日", residenceCountry: "居住国", address: "住所", emergencyContact: "緊急連絡先", emergencyContactPlaceholder: "氏名と電話番号", flightNumber: "到着便名（任意）", flightNumberPlaceholder: "例：JL501", accommodation: "ホテル・宿泊先（任意）", addDriver: "追加運転者を追加", additionalDriver: "追加運転者", additionalDriverName: "正式な氏名", additionalDriverNameAria: "追加運転者の正式な氏名", additionalDriverEmailAria: "追加運転者のメールアドレス", additionalDriverPhoneAria: "追加運転者の電話番号",
-    primaryDriver: "主な運転者", name: "氏名", itinerary: "旅程", stayPlanning: "宿泊のご計画", stayPlanningNotice: "客室の空室状況は、PrimoStay Car Rental チームが別途確認します。", selectedAddons: "選択した追加オプション", addonsTotal: "追加オプション合計", pickupFee: "貸出料金", dropoffFee: "返却料金", pickupLocationFee: "貸出場所料金", returnLocationFee: "返却場所料金", oneWayFee: "乗り捨て料金", priceUnavailable: "料金を計算できませんでした。", holdExpiredTitle: "車両の仮押さえ期限が切れました", holdExpiredBody: "選択した日程では車両をご利用いただけない場合があります。", returnToSearch: "車両を検索する",
+    primaryDriver: "主な運転者", name: "氏名", itinerary: "旅程", stayPlanning: "宿泊のご計画", stayPlanningNotice: "客室の空室状況は、PrimoStay Car Rental チームが別途確認します。", selectedAddons: "選択した追加オプション", addonsTotal: "追加オプション合計", pickupFee: "空港送迎料金（貸出）", dropoffFee: "空港送迎料金（返却）", pickupLocationFee: "貸出場所料金", returnLocationFee: "返却場所料金", oneWayFee: "乗り捨て料金", priceUnavailable: "料金を計算できませんでした。", holdExpiredTitle: "車両の仮押さえ期限が切れました", holdExpiredBody: "選択した日程では車両をご利用いただけない場合があります。", returnToSearch: "車両を検索する", vehicleClass: { compact: "コンパクト", suv: "SUV", minivan: "ミニバン" },
     fullNameRequired: "氏名を入力してください", emailInvalid: "有効なメールアドレスを入力してください", phoneRequired: "電話番号を入力してください", seoTitle: "チェックアウト | PrimoStay Car Rental", seoDescription: "PrimoStay Car Rental の予約、運転者情報、追加オプション、貸出情報を確認します。", seoOgDescription: "予約を確定する前に PrimoStay Car Rental の予約内容を確認します。", signInTitle: "予約にはログインが必要です", signInBody: "ログインまたはアカウントを作成すると、この車両の予約を続けられます。", signInAction: "ログイン・アカウント作成",
   },
   "zh-TW": {
     addons: "加購項目", driverInfo: "駕駛人資料", pickupDetails: "取車詳情", summary: "摘要", pickupDetailsSubtitle: "請確認地點、時間和交車備註。", driverInfoSubtitle: "請提供主要駕駛人的資料。", summarySubtitle: "請確認您的預訂詳情。", back: "返回", continue: "繼續", error: "錯誤", holdInvalid: "保留已過期或無效。", bookingFailed: "預訂失敗", bookingRetry: "請稍後再試。",
     unavailableTitle: "目前無法結帳", unavailableBody: "無法確認預訂模式。尚未送出任何預訂。", tryAgain: "重試", noCheckoutTitle: "沒有進行中的結帳", noCheckoutBody: "請先選擇車輛。", viewFleet: "查看車隊", held: "已為您保留車輛", differentReturn: "我需要不同的還車地點。團隊會在取車前確認適用的交車費用。", afterHours: "您的取車時間在一般服務時間外，可能需要支付非營業時間服務費。", pickup: "取車", return: "還車",
     fullName: "全名（須與駕照相同）", romanizedName: "羅馬拼音姓名（如適用）", email: "電子郵件地址", phone: "電話號碼", nationality: "國籍", dateOfBirth: "出生日期", residenceCountry: "居住國", address: "住址", emergencyContact: "緊急聯絡人", emergencyContactPlaceholder: "姓名和電話號碼", flightNumber: "抵達航班號碼（選填）", flightNumberPlaceholder: "例如 JL501", accommodation: "飯店／住宿地點（選填）", addDriver: "新增其他駕駛人", additionalDriver: "其他駕駛人", additionalDriverName: "法定全名", additionalDriverNameAria: "其他駕駛人的法定全名", additionalDriverEmailAria: "其他駕駛人的電子郵件地址", additionalDriverPhoneAria: "其他駕駛人的電話號碼",
-    primaryDriver: "主要駕駛人", name: "姓名", itinerary: "行程", stayPlanning: "住宿規劃", stayPlanningNotice: "PrimoStay Car Rental 團隊將另行確認客房供應情況。", selectedAddons: "已選加購項目", addonsTotal: "加購項目合計", pickupFee: "取車費", dropoffFee: "還車費", pickupLocationFee: "取車地點費", returnLocationFee: "還車地點費", oneWayFee: "異地還車費", priceUnavailable: "無法計算總額。", holdExpiredTitle: "您的車輛保留已過期", holdExpiredBody: "您選擇的日期可能已沒有可用車輛。", returnToSearch: "返回搜尋",
+    primaryDriver: "主要駕駛人", name: "姓名", itinerary: "行程", stayPlanning: "住宿規劃", stayPlanningNotice: "PrimoStay Car Rental 團隊將另行確認客房供應情況。", selectedAddons: "已選加購項目", addonsTotal: "加購項目合計", pickupFee: "機場取車接送費", dropoffFee: "機場還車接送費", pickupLocationFee: "取車地點費", returnLocationFee: "還車地點費", oneWayFee: "異地還車費", priceUnavailable: "無法計算總額。", holdExpiredTitle: "您的車輛保留已過期", holdExpiredBody: "您選擇的日期可能已沒有可用車輛。", returnToSearch: "返回搜尋", vehicleClass: { compact: "小型車", suv: "SUV", minivan: "廂型車" },
     fullNameRequired: "請輸入全名", emailInvalid: "請輸入有效的電子郵件地址", phoneRequired: "請輸入電話號碼", seoTitle: "結帳 | PrimoStay Car Rental", seoDescription: "確認您的 PrimoStay Car Rental 預訂、駕駛人資料、加購項目和取車資訊。", seoOgDescription: "確認預訂前，請先檢視您的 PrimoStay Car Rental 預訂詳情。", signInTitle: "請先登入再預訂", signInBody: "登入或建立帳戶後，即可繼續此車輛的預訂。", signInAction: "登入或建立帳戶",
   },
 } as const;
@@ -194,6 +194,7 @@ function LegacyCheckout() {
     query: { enabled: !!draft?.vehicleSlug, queryKey: getGetRentalVehicleQueryKey(draft?.vehicleSlug || "") }
   });
   const localizedCar = car ? localizeVehicle(car, language) : undefined;
+  const vehicleClassLabel = car ? checkout.vehicleClass[car.vehicleClass as keyof typeof checkout.vehicleClass] : undefined;
   const addonName = (addonId: number, fallback: string) => {
     const addon = addons?.find((candidate) => candidate.id === addonId);
     return addon ? localizeAddon(addon, language).name : fallback;
@@ -221,6 +222,10 @@ function LegacyCheckout() {
       accommodation: "",
     },
   });
+
+  useEffect(() => {
+    form.clearErrors();
+  }, [form, language]);
 
   const priceQuote = useCalculateRentalPrice();
 
@@ -686,7 +691,7 @@ function LegacyCheckout() {
                     </div>
                     <div>
                       <div className="font-bold text-sm leading-tight">{localizedCar?.title || car.model}</div>
-                      <div className="text-xs text-muted-foreground">{car.vehicleClass}</div>
+                      {vehicleClassLabel && <div className="text-xs text-muted-foreground">{vehicleClassLabel}</div>}
                     </div>
                   </div>
                 )}
