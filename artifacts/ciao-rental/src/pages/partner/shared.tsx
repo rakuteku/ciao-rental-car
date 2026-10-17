@@ -43,7 +43,7 @@ export function PartnerShell({ children, eyebrow, title, description }: {
     <div className="min-h-screen bg-[#f7f7f4] text-slate-900">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/rentalcar" className="font-serif text-xl font-bold tracking-wide">CIAO <span className="text-xs font-sans font-medium tracking-[.18em] text-slate-500">RENTAL PARTNER</span></Link>
+          <Link href="/rentalcar" className="font-serif text-xl font-bold tracking-wide">PrimoStay <span className="text-xs font-sans font-medium tracking-[.18em] text-slate-500">CAR RENTAL PARTNER</span></Link>
           <span className="rounded-full border px-3 py-1 text-xs font-medium text-slate-600">{eyebrow}</span>
         </div>
       </header>

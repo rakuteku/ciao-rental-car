@@ -2,6 +2,7 @@ import { CONTACT_EMAIL, CONTACT_MAILTO, CONTACT_PHONE } from "@/lib/contact";
 import { Link } from "wouter";
 import { localizedPath, useLanguage } from "@/lib/language";
 import { LODGING_ENABLED, PRIMOSTAY_URL } from "@/lib/lodging";
+import { RENTAL_BRAND } from "@/lib/rental-brand";
 
 export function Footer() {
   const { language } = useLanguage();
@@ -10,16 +11,17 @@ export function Footer() {
     ja: { location: "アクセス", locationList: ["札幌駅", "新千歳空港", "札幌市中心部"], contact: "お問い合わせ", explore: "サービス", lodging: "宿泊", stays: "宿泊先をお探しですか？ PrimoStay", cars: "レンタカー", bookings: "予約の確認", legal: "ご案内", terms: "利用規約", privacy: "プライバシーポリシー", insurance: "保険について" },
     "zh-TW": { location: "交通指南", locationList: ["札幌站", "新千歲機場", "札幌市中心"], contact: "聯絡方式", explore: "瀏覽服務", lodging: "住宿", stays: "正在尋找住宿嗎？ PrimoStay", cars: "租車", bookings: "我的預訂", legal: "資訊", terms: "服務條款", privacy: "隱私權政策", insurance: "保險詳情" },
   }[language];
+  const brand = RENTAL_BRAND[language];
 
   return (
     <footer className="border-t border-border/70 bg-muted/35">
       <div className="container pb-8 pt-14 md:pb-10 md:pt-16">
         <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-12">
           <div className="space-y-5 md:col-span-4">
-            <Link href={localizedPath("/", language)} className="inline-flex items-center gap-3" aria-label="CIAO Sapporo home">
-              <span className="font-serif text-xl font-semibold tracking-[0.18em]">CIAO</span>
+            <Link href={localizedPath("/", language)} className="inline-flex items-center gap-3" aria-label={`${brand.name} home`}>
+              <span className="font-serif text-xl font-semibold tracking-[0.08em]">{brand.shortName}</span>
               <span className="h-6 w-px bg-border" aria-hidden="true" />
-              <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Sapporo · Hokkaido</span>
+              <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{brand.subLabel}</span>
             </Link>
             <p className="max-w-xs text-sm leading-6 text-muted-foreground">
               Premium car rental in Sapporo, Hokkaido. Experience Japanese hospitality and seamless travel.
@@ -57,7 +59,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-12 flex flex-col gap-3 border-t border-border/70 pt-6 text-[11px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {new Date().getFullYear()} CIAO Rental Car. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {brand.name}. All rights reserved.</p>
           <p>Sapporo, Hokkaido, Japan</p>
         </div>
       </div>

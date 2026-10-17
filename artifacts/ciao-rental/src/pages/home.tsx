@@ -92,7 +92,7 @@ export function Home() {
     return (
       <section className="container flex min-h-[68vh] flex-col items-center justify-center py-20 text-center">
         <span className="mb-5 grid size-14 place-items-center rounded-full bg-muted text-muted-foreground"><Building2 className="size-6" /></span>
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">CIAO Sapporo</p>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">PrimoStay Car Rental</p>
         <h1 className="mb-3 font-serif text-3xl font-medium">{interfaceCopy.pageError}</h1>
         <p className="mb-7 max-w-md text-sm leading-6 text-muted-foreground">{interfaceCopy.errorHint}</p>
         <Button variant="outline" className="rounded-full px-6" onClick={() => void refetch()}>{interfaceCopy.retry}</Button>

@@ -35,7 +35,7 @@ export function MyBookingDetail() {
   const { language } = useLanguage();
   const t = copy[language];
   useInlineSeoMeta({
-    metaTitle: `${t.booking}${Number.isInteger(id) ? ` #${id}` : ""} | CIAO Rental Car`,
+    metaTitle: `${t.booking}${Number.isInteger(id) ? ` #${id}` : ""} | ${language === "ja" ? "PrimoStay レンタカー" : language === "zh-TW" ? "PrimoStay 租車" : "PrimoStay Car Rental"}`,
     metaDescription: t.itinerary,
     ogTitle: t.booking,
     ogDescription: t.itinerary,

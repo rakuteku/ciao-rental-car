@@ -1,4 +1,4 @@
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, pageContentTable, pageSeoTable, roomsTable } from "@workspace/db";
 import { KNOWN_PAGES } from "./content";
@@ -8,12 +8,8 @@ import { isLodgingEnabled } from "../lib/lodging-policy";
 const router: IRouter = Router();
 const languages: SupportedLanguage[] = ["en", "ja", "zh-CN"];
 
-function resolveOrigin(req: Request): string {
-  const origin = typeof req.query["origin"] === "string" ? req.query["origin"] : "";
-  if (origin) return origin.replace(/\/$/, "");
-  const proto = req.get("x-forwarded-proto") ?? req.protocol;
-  const host = req.get("host") ?? "";
-  return `${proto}://${host}`;
+function resolveOrigin(): string {
+  return process.env.PUBLIC_BASE_URL?.trim().replace(/\/$/, "") || "https://rentacar.primostay.jp";
 }
 
 function xml(value: string): string {
@@ -25,7 +21,7 @@ function absolute(origin: string, path: string): string {
 }
 
 router.get("/sitemap.xml", async (req, res): Promise<void> => {
-  const origin = resolveOrigin(req);
+  const origin = resolveOrigin();
   const rows = await db.select().from(pageContentTable);
   const seoRows = await db.select().from(pageSeoTable);
   const pageEntries: string[] = [];
@@ -67,7 +63,7 @@ router.get("/sitemap.xml", async (req, res): Promise<void> => {
 });
 
 router.get("/robots.txt", (req, res): void => {
-  const origin = resolveOrigin(req);
+  const origin = resolveOrigin();
   res.set("Content-Type", "text/plain");
   res.send(`User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`);
 });

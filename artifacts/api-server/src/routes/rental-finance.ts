@@ -1217,7 +1217,7 @@ router.post("/rental/requests/:id/checkout", async (req, res): Promise<void> => 
       ? await stripe.products.retrieve(payment.stripeProductId)
       : await stripe.products.create({
         name: `Rental reservation ${reservation.id}`,
-        description: `${formatTokyo(reservation.pickupAt)} – ${formatTokyo(reservation.returnAt)}`,
+        description: `PrimoStay Car Rental: ${formatTokyo(reservation.pickupAt)} – ${formatTokyo(reservation.returnAt)}`,
         metadata: {
           rentalPaymentId: String(payment.id),
           rentalReservationId: String(reservation.id),

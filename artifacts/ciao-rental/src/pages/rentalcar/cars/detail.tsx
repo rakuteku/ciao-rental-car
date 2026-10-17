@@ -116,9 +116,9 @@ export function CarDetailPage() {
   useInlineSeoMeta(
     car
       ? {
-          metaTitle: localizedCar?.metaTitle || `${localizedCar?.title || car.model} Rental Car in Sapporo | CIAO`,
-          metaDescription: localizedCar?.metaDescription || localizedCar?.description || `Book the ${localizedCar?.title || car.model} from CIAO Sapporo.`,
-          ogTitle: `${localizedCar?.title || car.model} | CIAO Rental Car`,
+          metaTitle: localizedCar?.metaTitle || `${localizedCar?.title || car.model} Rental Car in Sapporo | PrimoStay Car Rental`,
+          metaDescription: localizedCar?.metaDescription || localizedCar?.description || `Book the ${localizedCar?.title || car.model} from PrimoStay Car Rental.`,
+          ogTitle: `${localizedCar?.title || car.model} | PrimoStay Car Rental`,
           ogDescription: localizedCar?.description || `Reserve the ${localizedCar?.title || car.model} for your Hokkaido journey.`,
           ogImage: car.images?.[0]?.url ?? "",
         }

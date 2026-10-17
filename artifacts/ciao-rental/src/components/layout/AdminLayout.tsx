@@ -113,8 +113,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <div className="admin-shell flex min-h-screen flex-col md:flex-row">
       <div className="admin-mobilebar relative z-20 flex h-14 shrink-0 items-center justify-between border-b px-4 md:hidden">
         <Link href="/admin/dashboard" className="admin-sidebar-brand inline-flex items-center gap-2 text-sm font-bold no-underline">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-xs font-bold tracking-normal">C</span>
-          <span>CIAO <span className="ml-1 text-[10px] font-medium text-white/65">OPERATIONS</span></span>
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-white/10 text-xs font-bold tracking-normal">P</span>
+          <span>PrimoStay <span className="ml-1 text-[10px] font-medium text-white/65">CAR RENTAL ADMIN</span></span>
         </Link>
         <button
           type="button"
@@ -147,10 +147,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="admin-sidebar-brand hidden h-16 shrink-0 items-center gap-3 border-b border-white/10 px-6 md:flex">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-white/10 text-sm font-bold">C</span>
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-white/10 text-sm font-bold">P</span>
           <span className="leading-tight">
-            <span className="block text-base font-bold">CIAO</span>
-            <span className="block text-[10px] font-medium text-white/60">OPERATIONS</span>
+            <span className="block text-base font-bold">PrimoStay</span>
+            <span className="block text-[10px] font-medium text-white/60">CAR RENTAL ADMIN</span>
           </span>
         </div>
 

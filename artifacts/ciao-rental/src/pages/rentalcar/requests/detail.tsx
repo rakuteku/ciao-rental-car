@@ -72,7 +72,7 @@ export function RentalRequestDetail() {
   } as Record<string, string>)[status] || (changed ? ja ? "変更提案を確認してください" : "A revised offer needs your approval" : status.replaceAll("_", " "));
 
   return <div className="marketplace-flow min-h-[100dvh] py-12 md:py-20"><div className="container max-w-3xl">
-    <p className="marketplace-kicker">CIAO SAPPORO / {ja ? "リクエスト状況" : "REQUEST STATUS"}</p>
+    <p className="marketplace-kicker">PRIMOSTAY CAR RENTAL / {ja ? "リクエスト状況" : "REQUEST STATUS"}</p>
     <h1 className="mt-3 text-4xl md:text-5xl">{ja ? "旅の準備、進行中です。" : "Your trip is taking shape."}</h1>
     <p className="mt-4 text-sm text-slate-600">{ja ? "このページのURLを保存しておくと、後から最新の状況を確認できます。アクセスコードを他人に共有しないでください。" : "Save this page's URL to check your request after a reload. Keep its access code private."}</p>
     {!code || !Number.isInteger(requestId) || requestId <= 0 ? <div role="alert" className="marketplace-panel mt-8 p-7">{ja ? "有効なリクエストURLとアクセスコードが必要です。" : "A valid request URL and access code are required."}</div> :
