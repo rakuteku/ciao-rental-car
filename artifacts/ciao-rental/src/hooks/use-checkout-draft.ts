@@ -57,6 +57,24 @@ export function readSelectedRoom(): CheckoutDraft["selectedRoom"] {
   }
 }
 
+/**
+ * Persist the checkout draft. Returns false when session storage is unavailable
+ * (private browsing, blocked site data, quota exceeded) so callers can tell the
+ * customer instead of stalling silently.
+ */
+function writeDraftToStorage(value: CheckoutDraft | null): boolean {
+  try {
+    if (value) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    } else {
+      sessionStorage.removeItem(STORAGE_KEY);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function useCheckoutDraft() {
   const [draft, setDraftState] = useState<CheckoutDraft | null>(() => {
     try {
@@ -65,7 +83,7 @@ export function useCheckoutDraft() {
       const parsed = JSON.parse(stored) as CheckoutDraft & { documents?: unknown };
       if ("documents" in parsed) {
         delete parsed.documents;
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        writeDraftToStorage(parsed);
       }
       return parsed;
     } catch {
@@ -74,25 +92,22 @@ export function useCheckoutDraft() {
   });
 
   const setDraft = useCallback((newDraft: CheckoutDraft | null) => {
-    if (newDraft) {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(newDraft));
-    } else {
-      sessionStorage.removeItem(STORAGE_KEY);
-    }
+    const stored = writeDraftToStorage(newDraft);
     setDraftState(newDraft);
+    return stored;
   }, []);
 
   const updateDraft = useCallback((updates: Partial<CheckoutDraft>) => {
     setDraftState(prev => {
       if (!prev) return null;
       const next = { ...prev, ...updates };
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      writeDraftToStorage(next);
       return next;
     });
   }, []);
 
   const clearDraft = useCallback(() => {
-    sessionStorage.removeItem(STORAGE_KEY);
+    writeDraftToStorage(null);
     setDraftState(null);
   }, []);
 
