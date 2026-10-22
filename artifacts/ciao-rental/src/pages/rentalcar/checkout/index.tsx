@@ -327,18 +327,23 @@ function LegacyCheckout() {
     }, {
       onSuccess: (reservation) => {
         queryClient.invalidateQueries({ queryKey: ["rental", "customer-account"] });
-        window.sessionStorage.setItem("ciao_rental_confirmation", JSON.stringify({
-          reservation,
-           selectedRoom: draft.selectedRoom ?? null,
-          draft: {
-            pickupAt: draft.pickupAt,
-            returnAt: draft.returnAt,
-            pickupLocation: draft.pickupLocation,
-            returnLocation: draft.returnLocation,
-          },
-          vehicle: car ? { title: car.publicTitle || car.model, image: car.images?.[0]?.url } : null,
-           pricing: reservation.pricing,
-        }));
+        // The reservation already exists on the server, so never let a storage
+        // failure strand the customer on this page: the confirmation page falls
+        // back to its "look up an existing booking" state.
+        try {
+          window.sessionStorage.setItem("ciao_rental_confirmation", JSON.stringify({
+            reservation,
+            selectedRoom: draft.selectedRoom ?? null,
+            draft: {
+              pickupAt: draft.pickupAt,
+              returnAt: draft.returnAt,
+              pickupLocation: draft.pickupLocation,
+              returnLocation: draft.returnLocation,
+            },
+            vehicle: car ? { title: car.publicTitle || car.model, image: car.images?.[0]?.url } : null,
+            pricing: reservation.pricing,
+          }));
+        } catch { /* Storage is optional; the confirmation page handles its absence. */ }
         clearDraft();
         setLocation(`${localizedPath("/rentalcar/booking/confirmation", language)}?id=${reservation.id}`);
       },

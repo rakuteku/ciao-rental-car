@@ -177,7 +177,7 @@ export function CarDetailPage() {
     }, {
       onSuccess: (hold) => {
         const selectedRoom = readSelectedRoom();
-        setDraft({
+        const stored = setDraft({
           vehicleId: car.id,
           vehicleSlug: car.slug,
           pickupAt: start,
@@ -193,6 +193,18 @@ export function CarDetailPage() {
           selectedRoom,
           driver: { fullName: "", email: "", phone: "", accommodation: selectedRoom?.title ?? "" }
         });
+        if (!stored) {
+          toast({
+            title: language === "ja" ? "ブラウザの保存領域を利用できません" : language === "zh-TW" ? "無法使用瀏覽器儲存空間" : "Browser storage is unavailable",
+            description: language === "ja"
+              ? "このブラウザでは予約内容を保存できないため、予約手続きに進めません。プライベートモードを解除するか、サイトデータの保存を許可してからもう一度お試しください。"
+              : language === "zh-TW"
+                ? "這個瀏覽器無法儲存您的預訂內容，因此無法進入結帳。請關閉無痕模式或允許本網站儲存資料後再試一次。"
+                : "We could not save your booking details in this browser, so checkout cannot continue. Turn off private browsing or allow site data, then try again.",
+            variant: "destructive",
+          });
+          return;
+        }
         setLocation(localizedPath("/rentalcar/checkout", language));
       },
       onError: () => {
