@@ -1,5 +1,29 @@
-const API_ORIGIN = "https://car-fleet-manager.replit.app";
 const NO_INDEX = "noindex, nofollow";
+
+export function getApiOrigin(env) {
+  const configuredOrigin = env?.API_ORIGIN?.trim();
+
+  if (!configuredOrigin) {
+    throw new Error("Staging API_ORIGIN must be configured");
+  }
+
+  let apiOrigin;
+  try {
+    apiOrigin = new URL(configuredOrigin);
+  } catch {
+    throw new Error("Staging API_ORIGIN must be a valid URL");
+  }
+
+  if (apiOrigin.protocol !== "https:" && apiOrigin.protocol !== "http:") {
+    throw new Error("Staging API_ORIGIN must use HTTP or HTTPS");
+  }
+
+  if (apiOrigin.hostname === "car-fleet-manager.replit.app") {
+    throw new Error("Staging API_ORIGIN must not use the production API");
+  }
+
+  return apiOrigin;
+}
 
 function copyResponseWithStagingHeaders(response) {
   const headers = new Headers();
@@ -32,11 +56,11 @@ function copyResponseWithStagingHeaders(response) {
   });
 }
 
-async function proxyApi(request) {
+async function proxyApi(request, env) {
   const requestUrl = new URL(request.url);
   const upstreamUrl = new URL(
     `${requestUrl.pathname}${requestUrl.search}`,
-    API_ORIGIN,
+    getApiOrigin(env),
   );
   const headers = new Headers(request.headers);
 
@@ -80,7 +104,7 @@ export default {
   async fetch(request, env) {
     const requestUrl = new URL(request.url);
     const response = requestUrl.pathname.startsWith("/api/")
-      ? await proxyApi(request)
+      ? await proxyApi(request, env)
       : await serveAsset(request, env);
 
     return copyResponseWithStagingHeaders(response);
