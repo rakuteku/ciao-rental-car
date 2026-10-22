@@ -68,6 +68,16 @@ export interface PriceBreakdown {
 
 const AIRPORT_LOCATION = "New Chitose Airport";
 
+/**
+ * JPY has no minor unit. Fees and rates can reach us as floats — `real` columns
+ * and free-form numbers in the settings JSON — so every money input is rounded
+ * to whole yen before it enters a total. Keeps the server the price authority
+ * and stops a fractional amount ever being stored, displayed or charged.
+ */
+function yen(value: number | null | undefined): number {
+  return Math.round(Number(value) || 0);
+}
+
 function getDaysBetween(start: Date, end: Date): Date[] {
   const days: Date[] = [];
   const current = new Date(start);
@@ -178,11 +188,13 @@ export async function calculatePrice(
   const dayRates: DayRate[] = [{ date: pickupDate, baseRate: basePrice, appliedRate: timedRate.total, ruleApplied: selectedSeason?.name }];
   let subtotal = timedRate.total;
 
+  // JPY has no minor unit: a percentage of a yen amount is rounded to whole yen
+  // before it reaches the total, so no fractional yen is ever stored or charged.
   let discount = 0;
   if (numDays >= 30 && pricing?.monthlyDiscountPct) {
-    discount = subtotal * (pricing.monthlyDiscountPct / 100);
+    discount = Math.round(subtotal * (pricing.monthlyDiscountPct / 100));
   } else if (numDays >= 7 && pricing?.weeklyDiscountPct) {
-    discount = subtotal * (pricing.weeklyDiscountPct / 100);
+    discount = Math.round(subtotal * (pricing.weeklyDiscountPct / 100));
   }
 
   const settingsRows = await client.select().from(rentalSettingsTable);
@@ -192,11 +204,11 @@ export async function calculatePrice(
   const locations = Array.isArray(settings.bookingLocations) ? settings.bookingLocations as Array<{ value: string; pickupFee?: number; returnFee?: number }> : [];
   const oneWayFees = Array.isArray(settings.oneWayFees) ? settings.oneWayFees as Array<{ pickupLocation: string; returnLocation: string; fee: number; active?: boolean }> : [];
   const override = oneWayFees.find((fee) => fee.active !== false && fee.pickupLocation === input.pickupLocation && fee.returnLocation === input.returnLocation);
-  const pickupLocationFee = override ? 0 : Math.max(0, locations.find((location) => location.value === input.pickupLocation)?.pickupFee ?? 0);
-  const returnLocationFee = override ? 0 : Math.max(0, locations.find((location) => location.value === input.returnLocation)?.returnFee ?? 0);
-  const oneWayFee = override ? Math.max(0, override.fee) : 0;
-  const airportPickupFee = locations.length === 0 && input.pickupLocation === AIRPORT_LOCATION ? (pricing?.airportPickupFee ?? 0) : 0;
-  const airportDropoffFee = locations.length === 0 && input.returnLocation === AIRPORT_LOCATION ? (pricing?.airportDropoffFee ?? 0) : 0;
+  const pickupLocationFee = override ? 0 : Math.max(0, yen(locations.find((location) => location.value === input.pickupLocation)?.pickupFee));
+  const returnLocationFee = override ? 0 : Math.max(0, yen(locations.find((location) => location.value === input.returnLocation)?.returnFee));
+  const oneWayFee = override ? Math.max(0, yen(override.fee)) : 0;
+  const airportPickupFee = locations.length === 0 && input.pickupLocation === AIRPORT_LOCATION ? yen(pricing?.airportPickupFee) : 0;
+  const airportDropoffFee = locations.length === 0 && input.returnLocation === AIRPORT_LOCATION ? yen(pricing?.airportDropoffFee) : 0;
   const deliveryFee = 0;
 
   const addonLineItems: AddonLineItem[] = [];
@@ -233,11 +245,11 @@ export async function calculatePrice(
       let unitPrice = 0;
       const pricingType = String(addon.pricingType);
       if (pricingType === "flat" || pricingType === "per_rental" || pricingType === "per_handover") {
-        unitPrice = addon.flatFee;
+        unitPrice = yen(addon.flatFee);
       } else if (pricingType === "per_day" || pricingType === "per_started_24_hours") {
-        unitPrice = addon.perDayFee * numDays;
+        unitPrice = yen(addon.perDayFee) * numDays;
       } else if (pricingType === "per_unit") {
-        unitPrice = addon.perUnitFee;
+        unitPrice = yen(addon.perUnitFee);
       } else if (pricingType === "included") {
         unitPrice = 0;
       }
@@ -258,12 +270,12 @@ export async function calculatePrice(
 
   const addonsTotal = addonLineItems.reduce((sum, a) => sum + a.totalPrice, 0);
 
-  const securityDeposit = pricing?.securityDeposit ?? 0;
+  const securityDeposit = yen(pricing?.securityDeposit);
   const taxRate = pricing?.taxRate ?? 0;
   const taxIncluded = pricing?.taxIncluded ?? true;
 
   const preTaxTotal = subtotal - discount + airportPickupFee + airportDropoffFee + pickupLocationFee + returnLocationFee + oneWayFee + deliveryFee + addonsTotal;
-  const tax = taxIncluded ? 0 : preTaxTotal * (taxRate / 100);
+  const tax = taxIncluded ? 0 : Math.round(preTaxTotal * (taxRate / 100));
   const finalTotal = preTaxTotal + tax;
 
   return {
